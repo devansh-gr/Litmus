@@ -1,0 +1,18 @@
+# Xcode / build artifacts
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+
+# XcodeGen regenerates the .xcodeproj from project.yml, so it is not committed.
+
+# Swift Package Manager
+.build/
+
+# macOS
+.DS_Store
+
+# Compiled
+*.o
+*.swiftmodule

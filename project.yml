@@ -1,0 +1,27 @@
+name: CorticalPersuasionDecoder
+options:
+  bundleIdPrefix: ai.zeonsystems
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+targets:
+  CorticalPersuasionDecoder:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_NAME: CorticalPersuasionDecoder
+        PRODUCT_BUNDLE_IDENTIFIER: ai.zeonsystems.corticalpersuasiondecoder
+        INFOPLIST_FILE: SupportingFiles/Info.plist
+        CODE_SIGN_ENTITLEMENTS: CorticalPersuasionDecoder.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
