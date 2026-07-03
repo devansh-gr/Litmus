@@ -22,6 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var regionSelector: RegionSelector?
 
+    /// Floating verdict overlay (Milestone 4).
+    private let overlay = OverlayController()
+
     // NOTE: `SelectionTextCapture` (Accessibility polling) and `HotkeyManager`
     // (Carbon global hotkey) still exist in the project but are intentionally
     // NOT started here. The AX path can't read web/article body text (it only
@@ -97,7 +100,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             let oneLine = text.replacingOccurrences(of: "\n", with: " ⏎ ")
             report("🔤 OCR: \(oneLine)")
-            await classifyAndReport(text)
+            // Anchor the card at the top-right corner of the captured region.
+            await classifyAndPresent(text, anchor: CGPoint(x: rect.maxX, y: rect.maxY))
         } catch {
             report("⚠️  region/OCR failed: \(error.localizedDescription)")
         }
@@ -119,15 +123,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         report("✂️  Ready — select any text and press ⌘C to capture it.")
     }
 
-    /// Capture → classify → look up brain region → print the full label.
+    /// Capture → classify → look up brain region → print the label + show overlay.
     private func handleCapturedText(_ text: String) {
         let oneLine = text.replacingOccurrences(of: "\n", with: " ⏎ ")
         let clipped = oneLine.count > 140 ? String(oneLine.prefix(140)) + "…" : oneLine
         report("✂️  copied (\(text.count) chars): \(clipped)")
-        Task { await classifyAndReport(text) }
+        // The mouse is at the end of the just-made selection — a good anchor.
+        let anchor = NSEvent.mouseLocation
+        Task { await classifyAndPresent(text, anchor: anchor) }
     }
 
-    private func classifyAndReport(_ text: String) async {
+    private func classifyAndPresent(_ text: String, anchor: CGPoint) async {
         do {
             let verdict = try await classifier.classify(ClassificationInput(text: text))
             let entry = Taxonomy.entry(for: verdict.vector)
@@ -136,6 +142,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             report("   ↳ mechanism: \(entry.mechanism)")
             if let why = verdict.rationale {
                 report("   ↳ why: \(why)")
+            }
+            await MainActor.run {
+                overlay.show(verdict: verdict, entry: entry, anchor: anchor)
             }
         } catch {
             report("⚠️  classify failed: \(error.localizedDescription)")
