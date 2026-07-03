@@ -2,7 +2,7 @@ name: CorticalPersuasionDecoder
 options:
   bundleIdPrefix: ai.zeonsystems
   deploymentTarget:
-    macOS: "13.0"
+    macOS: "14.0"
   createIntermediateGroups: true
 settings:
   base:
@@ -14,7 +14,7 @@ targets:
   CorticalPersuasionDecoder:
     type: application
     platform: macOS
-    deploymentTarget: "13.0"
+    deploymentTarget: "14.0"
     sources:
       - path: Sources
     settings:
