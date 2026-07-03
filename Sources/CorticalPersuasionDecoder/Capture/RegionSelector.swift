@@ -17,78 +17,107 @@ final class RegionSelector {
             completion(rect)
         }
         self.window = window
-        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
     }
 }
 
 final class SelectionWindow: NSWindow {
-    var onFinish: ((CGRect?) -> Void)?
-    private var startPoint: NSPoint?
-    private let selectionView = SelectionView()
+    var onFinish: ((CGRect?) -> Void)? {
+        get { view.onFinish }
+        set { view.onFinish = newValue }
+    }
+    private let view = SelectionView()
 
     init(screenFrame: NSRect) {
         super.init(contentRect: screenFrame, styleMask: .borderless, backing: .buffered, defer: false)
         isOpaque = false
-        backgroundColor = NSColor.black.withAlphaComponent(0.15)
+        backgroundColor = NSColor.black.withAlphaComponent(0.25)
         level = .screenSaver
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         ignoresMouseEvents = false
-        acceptsMouseMovedEvents = true
-        contentView = selectionView
-        selectionView.frame = NSRect(origin: .zero, size: screenFrame.size)
+        contentView = view
+        view.frame = NSRect(origin: .zero, size: screenFrame.size)
     }
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 { view.cancel() }   // Esc
+    }
+}
+
+final class SelectionView: NSView {
+    var onFinish: ((CGRect?) -> Void)?
+    private var startPoint: NSPoint?
+    private var currentRect: NSRect = .zero
+
+    override var acceptsFirstResponder: Bool { true }
+    // Critical: without this, an .accessory app's overlay eats the first click as
+    // window activation and the drag is lost.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .crosshair)
+    }
+
     override func mouseDown(with event: NSEvent) {
-        startPoint = event.locationInWindow
+        startPoint = convert(event.locationInWindow, from: nil)
+        currentRect = .zero
+        needsDisplay = true
     }
 
     override func mouseDragged(with event: NSEvent) {
         guard let start = startPoint else { return }
-        selectionView.selectionRect = rect(from: start, to: event.locationInWindow)
-        selectionView.needsDisplay = true
+        currentRect = rect(from: start, to: convert(event.locationInWindow, from: nil))
+        needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {
-        defer { onFinish = nil }
+        defer { reset() }
         guard let start = startPoint else { onFinish?(nil); return }
-        let winRect = rect(from: start, to: event.locationInWindow)
-        if winRect.width < 4 || winRect.height < 4 {
+        let local = rect(from: start, to: convert(event.locationInWindow, from: nil))
+        if local.width < 4 || local.height < 4 {
             onFinish?(nil)
             return
         }
-        // Window frame == screen frame, so window coords → global by offset.
-        let global = CGRect(x: frame.minX + winRect.minX,
-                            y: frame.minY + winRect.minY,
-                            width: winRect.width, height: winRect.height)
-        onFinish?(global)
+        // View fills the window (bottom-left origin); global = window origin + local.
+        let origin = window?.frame.origin ?? .zero
+        onFinish?(CGRect(x: origin.x + local.minX, y: origin.y + local.minY,
+                         width: local.width, height: local.height))
     }
 
-    override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 {   // Esc
-            onFinish?(nil)
-            onFinish = nil
-        }
+    func cancel() {
+        onFinish?(nil)
+        reset()
+    }
+
+    private func reset() {
+        onFinish = nil
+        startPoint = nil
+        currentRect = .zero
     }
 
     private func rect(from a: NSPoint, to b: NSPoint) -> NSRect {
         NSRect(x: min(a.x, b.x), y: min(a.y, b.y),
                width: abs(a.x - b.x), height: abs(a.y - b.y))
     }
-}
-
-final class SelectionView: NSView {
-    var selectionRect: NSRect = .zero
 
     override func draw(_ dirtyRect: NSRect) {
-        guard selectionRect.width > 0, selectionRect.height > 0 else { return }
-        NSColor.systemBlue.withAlphaComponent(0.20).setFill()
-        selectionRect.fill()
+        let hint = "Drag to select a region  ·  Esc to cancel"
+        hint.draw(at: NSPoint(x: 24, y: bounds.height - 48), withAttributes: [
+            .font: NSFont.systemFont(ofSize: 16, weight: .semibold),
+            .foregroundColor: NSColor.white,
+        ])
+
+        guard currentRect.width > 0, currentRect.height > 0 else { return }
+        NSColor.systemBlue.withAlphaComponent(0.18).setFill()
+        currentRect.fill()
         NSColor.systemBlue.setStroke()
-        let path = NSBezierPath(rect: selectionRect)
-        path.lineWidth = 1.5
+        let path = NSBezierPath(rect: currentRect)
+        path.lineWidth = 2
         path.stroke()
     }
 }
