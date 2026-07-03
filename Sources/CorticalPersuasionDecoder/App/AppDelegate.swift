@@ -15,6 +15,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Primary Milestone 1 capture path: select text anywhere + ⌘C.
     private var pasteboardWatcher: PasteboardWatcher?
 
+    /// Swappable classifier seam (Milestone 3). Mock for now; RemoteClassifier later.
+    private let classifier: Classifier = MockClassifier()
+
     // NOTE: `SelectionTextCapture` (Accessibility polling) and `HotkeyManager`
     // (Carbon global hotkey) still exist in the project but are intentionally
     // NOT started here. The AX path can't read web/article body text (it only
@@ -30,13 +33,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startPasteboardWatch() {
-        let watcher = PasteboardWatcher { text in
-            let oneLine = text.replacingOccurrences(of: "\n", with: " ⏎ ")
-            let clipped = oneLine.count > 140 ? String(oneLine.prefix(140)) + "…" : oneLine
-            report("✂️  copied (\(text.count) chars): \(clipped)")
+        let watcher = PasteboardWatcher { [weak self] text in
+            self?.handleCapturedText(text)
         }
         watcher.start()
         pasteboardWatcher = watcher
         report("✂️  Ready — select any text and press ⌘C to capture it.")
+    }
+
+    /// Capture → classify → look up brain region → print the full label.
+    private func handleCapturedText(_ text: String) {
+        let oneLine = text.replacingOccurrences(of: "\n", with: " ⏎ ")
+        let clipped = oneLine.count > 140 ? String(oneLine.prefix(140)) + "…" : oneLine
+        report("✂️  copied (\(text.count) chars): \(clipped)")
+        Task { await classifyAndReport(text) }
+    }
+
+    private func classifyAndReport(_ text: String) async {
+        do {
+            let verdict = try await classifier.classify(ClassificationInput(text: text))
+            let entry = Taxonomy.entry(for: verdict.vector)
+            let pct = Int((verdict.confidence * 100).rounded())
+            report("🧠 \(entry.displayName)  →  \(entry.brainRegion)   [confidence \(pct)%]")
+            report("   ↳ mechanism: \(entry.mechanism)")
+            if let why = verdict.rationale {
+                report("   ↳ why: \(why)")
+            }
+        } catch {
+            report("⚠️  classify failed: \(error.localizedDescription)")
+        }
     }
 }
