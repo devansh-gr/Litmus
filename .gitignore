@@ -23,3 +23,5 @@ server/cache/
 server/vendor/
 __pycache__/
 *.pyc
+server/a2_run.log
+server/a2_results.json
