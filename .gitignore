@@ -16,3 +16,10 @@ xcuserdata/
 # Compiled
 *.o
 *.swiftmodule
+
+# Python inference server (TRIBE v2)
+server/.venv/
+server/cache/
+server/vendor/
+__pycache__/
+*.pyc
