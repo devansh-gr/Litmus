@@ -15,8 +15,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Primary Milestone 1 capture path: select text anywhere + ⌘C.
     private var pasteboardWatcher: PasteboardWatcher?
 
-    /// Swappable classifier seam (Milestone 3). Mock for now; RemoteClassifier later.
-    private let classifier: Classifier = MockClassifier()
+    /// Detection: LLM (remote) by default, or the offline mock. See Config.
+    private let classifier: Classifier = Config.makeClassifier()
+
+    /// Interpretation: TRIBE v2 cortical map. Nil when running on the mock.
+    private let brainMapper: RemoteClassifier? = Config.makeBrainMapper()
 
     /// Menu-bar presence + region-capture trigger (Milestone 2).
     private var statusItem: NSStatusItem?
@@ -134,20 +137,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func classifyAndPresent(_ text: String, anchor: CGPoint) async {
+        let verdict: Verdict
         do {
-            let verdict = try await classifier.classify(ClassificationInput(text: text))
-            let entry = Taxonomy.entry(for: verdict.vector)
-            let pct = Int((verdict.confidence * 100).rounded())
-            report("🧠 \(entry.displayName)  →  \(entry.brainRegion)   [confidence \(pct)%]")
-            report("   ↳ mechanism: \(entry.mechanism)")
-            if let why = verdict.rationale {
-                report("   ↳ why: \(why)")
-            }
-            await MainActor.run {
-                overlay.show(verdict: verdict, entry: entry, anchor: anchor)
-            }
+            verdict = try await classifier.classify(ClassificationInput(text: text))
+        } catch RemoteClassifierError.neutral {
+            report("🧠 neutral — no persuasion vector detected.")
+            return
         } catch {
             report("⚠️  classify failed: \(error.localizedDescription)")
+            return
+        }
+
+        guard verdict.confidence >= Config.confidenceThreshold else {
+            let pct = Int((verdict.confidence * 100).rounded())
+            report("🧠 \(verdict.vector.rawValue) at \(pct)% — below threshold, suppressed.")
+            return
+        }
+
+        let entry = Taxonomy.entry(for: verdict.vector)
+        let pct = Int((verdict.confidence * 100).rounded())
+        report("🧠 \(entry.displayName)   [confidence \(pct)%]")
+        report("   ↳ mechanism: \(entry.mechanism)")
+
+        // Show the card immediately with the LLM verdict.
+        let token = await MainActor.run {
+            overlay.show(verdict: verdict, entry: entry, anchor: anchor)
+        }
+
+        // TRIBE v2 takes ~30s+, so the cortical map arrives afterwards. The token
+        // ensures a late map can't overwrite a newer selection's card.
+        guard let brainMapper else { return }
+        do {
+            let regions = try await brainMapper.brainMap(for: text)
+            let top = regions.prefix(3)
+                .map { "\($0.region) (z\(String(format: "%+.1f", $0.activationZ)))" }
+                .joined(separator: ", ")
+            report("   ↳ cortex: \(top)")
+            await MainActor.run {
+                overlay.updateRegions(regions, failed: false, token: token)
+            }
+        } catch {
+            report("   ↳ cortical map unavailable: \(error.localizedDescription)")
+            await MainActor.run {
+                overlay.updateRegions(nil, failed: true, token: token)
+            }
         }
     }
 }

@@ -4,22 +4,35 @@ import SwiftUI
 /// Owns the floating overlay panel that renders a `VerdictCard` next to the
 /// user's selection. Borderless, non-activating (never steals focus), `.floating`
 /// level. Auto-dismisses on any click, Esc, or after a timeout.
+///
+/// The card is shown IMMEDIATELY with the LLM verdict (~3s) and the cortical map
+/// filled in later via `updateRegions` (~30s+), because TRIBE v2 is far too slow
+/// to sit in the interactive path.
+///
 /// All methods must be called on the main thread (callers hop via `MainActor.run`).
 final class OverlayController {
     private var panel: NSPanel?
+    private var hosting: NSHostingView<VerdictCard>?
     private var globalMonitor: Any?
     private var localMonitor: Any?
     private var dismissWork: DispatchWorkItem?
 
-    /// `anchor` is a global AppKit point (bottom-left origin) near the selection.
-    func show(verdict: Verdict, entry: TaxonomyEntry, anchor: CGPoint) {
-        dismiss()
+    /// Token identifying the currently shown verdict, so a late-arriving brain map
+    /// from a previous selection cannot overwrite a newer card.
+    private var generation = 0
 
-        let card = VerdictCard(title: entry.displayName,
-                               brainRegion: entry.brainRegion,
-                               mechanism: entry.mechanism,
-                               confidence: verdict.confidence,
-                               rationale: verdict.rationale)
+    private var current: (title: String, mechanism: String, confidence: Double, rationale: String?)?
+
+    /// `anchor` is a global AppKit point (bottom-left origin) near the selection.
+    /// Returns a generation token to pass back to `updateRegions`.
+    @discardableResult
+    func show(verdict: Verdict, entry: TaxonomyEntry, anchor: CGPoint) -> Int {
+        dismiss()
+        generation += 1
+
+        current = (entry.displayName, entry.mechanism, verdict.confidence, verdict.rationale)
+        let card = makeCard(regions: nil, failed: false)
+
         let hosting = NSHostingView(rootView: card)
         hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
@@ -35,10 +48,44 @@ final class OverlayController {
         panel.contentView = hosting
         panel.setFrameOrigin(position(for: size, near: anchor))
         panel.orderFrontRegardless()
+
         self.panel = panel
+        self.hosting = hosting
 
         installDismissMonitors()
-        scheduleAutoDismiss(after: 9)
+        // Generous timeout: the brain map can take ~30s+ to arrive.
+        scheduleAutoDismiss(after: 60)
+        return generation
+    }
+
+    /// Fill in the cortical map once TRIBE v2 returns. `token` must match the
+    /// generation from `show`, otherwise the card has moved on and we drop it.
+    func updateRegions(_ regions: [BrainRegion]?, failed: Bool, token: Int) {
+        guard token == generation, let hosting, let panel else { return }
+        hosting.rootView = makeCard(regions: regions, failed: failed)
+        hosting.layoutSubtreeIfNeeded()
+
+        // Card grew — resize the panel but keep its top-left corner pinned.
+        let newSize = hosting.fittingSize
+        let frame = panel.frame
+        let topLeft = CGPoint(x: frame.minX, y: frame.maxY)
+        panel.setFrame(
+            NSRect(x: topLeft.x, y: topLeft.y - newSize.height,
+                   width: newSize.width, height: newSize.height),
+            display: true
+        )
+    }
+
+    private func makeCard(regions: [BrainRegion]?, failed: Bool) -> VerdictCard {
+        let c = current ?? ("", "", 0, nil)
+        return VerdictCard(
+            title: c.title,
+            mechanism: c.mechanism,
+            confidence: c.confidence,
+            rationale: c.rationale,
+            regions: regions,
+            regionsFailed: failed
+        )
     }
 
     func dismiss() {
@@ -47,6 +94,7 @@ final class OverlayController {
         if let localMonitor { NSEvent.removeMonitor(localMonitor); self.localMonitor = nil }
         panel?.orderOut(nil)
         panel = nil
+        hosting = nil
     }
 
     /// Place the card just below-and-right of the anchor, clamped to the screen.
