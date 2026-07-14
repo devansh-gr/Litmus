@@ -25,3 +25,5 @@ __pycache__/
 *.pyc
 server/a2_run.log
 server/a2_results.json
+server/a3_run.log
+server/a3_results.json
