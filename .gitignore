@@ -29,3 +29,6 @@ server/a3_run.log
 server/a3_results.json
 server/a4_results.json
 server/a5_results.json
+server/server.log
+server/baseline.log
+server/baseline.npz
