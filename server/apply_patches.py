@@ -31,6 +31,52 @@ PATCHES = [
         '        # ctranslate2 has no efficient float16 path on CPU / Apple Silicon.\n'
         '        compute_type = "float16" if device == "cuda" else "int8"\n',
     ),
+    # PRIVACY: upstream synthesises speech with gTTS, which uploads the text to
+    # Google. This tool reads whatever the user highlights, so that is an
+    # unacceptable leak. Use macOS `say` (offline) instead.
+    (
+        TRIBE / "demo_utils.py",
+        "        from gtts import gTTS\n"
+        "        from langdetect import detect\n"
+        "\n"
+        '        audio_path = Path(self.infra.uid_folder(create=True)) / "audio.mp3"\n'
+        "        lang = detect(self.text)\n"
+        "        tts = gTTS(self.text, lang=lang)\n"
+        "        tts.save(str(audio_path))\n"
+        '        logger.info(f"Wrote TTS audio to {audio_path}")\n',
+        "        # PRIVACY: upstream uses gTTS, which uploads the text to Google's servers.\n"
+        "        # This tool analyses whatever the user highlights on screen, so that is an\n"
+        "        # unacceptable leak. Synthesise locally instead (macOS `say`), and only\n"
+        "        # fall back to gTTS with a loud warning if no offline voice exists.\n"
+        "        import shutil\n"
+        "        import subprocess\n"
+        "\n"
+        "        folder = Path(self.infra.uid_folder(create=True))\n"
+        "\n"
+        '        if shutil.which("say") and shutil.which("ffmpeg"):\n'
+        '            aiff_path = folder / "audio.aiff"\n'
+        '            audio_path = folder / "audio.wav"\n'
+        '            subprocess.run(["say", "-o", str(aiff_path), self.text], check=True)\n'
+        "            subprocess.run(\n"
+        '                ["ffmpeg", "-y", "-loglevel", "error", "-i", str(aiff_path),\n'
+        '                 "-ar", "16000", "-ac", "1", str(audio_path)],\n'
+        "                check=True,\n"
+        "            )\n"
+        "            aiff_path.unlink(missing_ok=True)\n"
+        '            logger.info(f"Wrote OFFLINE TTS audio to {audio_path}")\n'
+        "        else:\n"
+        "            from gtts import gTTS\n"
+        "            from langdetect import detect\n"
+        "\n"
+        "            logger.warning(\n"
+        '                "No offline TTS available - FALLING BACK TO gTTS, which SENDS THE "\n'
+        '                "TEXT TO GOOGLE. Install ffmpeg / run on macOS to avoid this."\n'
+        "            )\n"
+        '            audio_path = folder / "audio.mp3"\n'
+        "            tts = gTTS(self.text, lang=detect(self.text))\n"
+        "            tts.save(str(audio_path))\n"
+        '            logger.info(f"Wrote TTS audio to {audio_path}")\n',
+    ),
     (
         NEURALSET / "extractors/base.py",
         "import logging\nimport typing as tp\n",
