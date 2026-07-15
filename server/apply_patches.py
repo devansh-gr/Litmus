@@ -31,6 +31,17 @@ PATCHES = [
         '        # ctranslate2 has no efficient float16 path on CPU / Apple Silicon.\n'
         '        compute_type = "float16" if device == "cuda" else "int8"\n',
     ),
+    # num_workers=None -> ~20 forked DataLoader workers that DEADLOCK on macOS
+    # (froze the baseline build for 4h at 0% CPU). Force single-process loading.
+    (
+        TRIBE / "main.py",
+        "    batch_size: int = 64\n    num_workers: int | None = None\n",
+        "    batch_size: int = 64\n"
+        "    # Was None -> ~20 forked DataLoader workers, which DEADLOCKS on macOS (froze\n"
+        "    # the baseline build for 4h at 0% CPU). Single-process loading can't deadlock\n"
+        "    # and is faster for our tiny single-sentence inputs.\n"
+        "    num_workers: int | None = 0\n",
+    ),
     # PRIVACY: upstream synthesises speech with gTTS, which uploads the text to
     # Google. This tool reads whatever the user highlights, so that is an
     # unacceptable leak. Use macOS `say` (offline) instead.
