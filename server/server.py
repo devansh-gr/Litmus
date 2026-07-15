@@ -197,20 +197,19 @@ def classify(inp: TextIn):
     }
 
 
-# Low-level AUDITORY cortex. TRIBE v2's text path synthesises speech, so these
-# regions light up for ANY sentence simply because sound exists -- an artifact of
-# our TTS step, not of the content. The user READS the text, and the modality
-# literature says low-level sensory representations do NOT transfer between
-# listening and reading (semantic regions like IFG/MTG do). Reporting these as
-# findings would be a lie, so they are separated out.
-AUDITORY_ARTIFACT = {
-    "S_temporal_transverse",
-    "G_temp_sup-G_T_transv",
-    "G_temp_sup-Plan_tempo",
-    "G_temp_sup-Plan_polar",
-    "G_temp_sup-Lateral",
-    "Lat_Fis-post",
-}
+# Curated VALUE + LANGUAGE-EVALUATION ROIs. Ranking ALL regions of a single
+# sentence's map surfaces low-level acoustic cortex (auditory + sensorimotor
+# articulation) driven by the TTS step, not the content -- experiment A7 showed
+# sensorimotor separates emotional/neutral at d~0.94, LARGER than the semantic
+# signal. But A7 also showed these curated semantic ROIs separate emotional from
+# neutral at d=0.95, p=0.02, matching A2 and published fMRI on emotional-word
+# reading (OFC + inferior frontal). So we report THESE, honestly, rather than the
+# acoustic-dominated raw ranking.
+SEMANTIC_ROIS = [
+    "G_front_inf-Orbital", "G_front_inf-Triangul", "G_front_inf-Opercular",
+    "S_orbital-H_Shaped", "S_orbital_med-olfact", "S_orbital_lateral",
+    "G_rectus", "G_subcallosal", "G_front_middle", "G_front_sup", "G_orbital",
+]
 
 
 @app.post("/brainmap")
@@ -242,31 +241,42 @@ def brainmap(inp: TextIn):
     if not base_path.exists():
         return {"error": "baseline.npz missing -- run build_baseline.py first"}
     b = np.load(base_path)
-    zvert = (vertex_mean - b["mean"]) / b["std"]   # content-driven deviation
+    zvert = (vertex_mean - b["mean"]) / b["std"]   # deviation from neutral baseline
 
     labels, annot = get_atlas()
-    content, artifacts = [], []
-    for idx, name in enumerate(labels):
-        if name == "Unknown":
-            continue
-        mask = annot == idx
-        if not mask.sum():
-            continue
-        entry = {"region": name, "activation_z": round(float(zvert[mask].mean()), 3)}
-        (artifacts if name in AUDITORY_ARTIFACT else content).append(entry)
+    idx = {name: i for i, name in enumerate(labels)}
 
-    content.sort(key=lambda r: -abs(r["activation_z"]))
-    artifacts.sort(key=lambda r: -abs(r["activation_z"]))
+    def region_z(name: str):
+        i = idx.get(name)
+        if i is None:
+            return None
+        mask = annot == i
+        return float(zvert[mask].mean()) if mask.sum() else None
+
+    regions = []
+    for name in SEMANTIC_ROIS:
+        z = region_z(name)
+        if z is not None:
+            regions.append({"region": name, "activation_z": round(z, 3)})
+    regions.sort(key=lambda r: -r["activation_z"])
+
+    engagement = float(np.mean([r["activation_z"] for r in regions])) if regions else 0.0
 
     return {
-        "top_regions": content[:6],
-        "excluded_auditory_artifacts": artifacts[:3],
+        "value_cortex_engagement_z": round(engagement, 3),
+        "top_regions": regions[:6],
         "baseline_n": int(b["n"]),
         "n_vertices": int(vertex_mean.shape[0]),
-        "source": "TRIBE v2 (local) -> Destrieux/fsaverage5, z-scored vs baseline corpus",
-        "caveat": "predicted cortical BOLD. NOT a detector (the text model is "
-                  "strictly better at that). NOT subcortical: this model cannot "
-                  "see the amygdala or nucleus accumbens.",
+        "source": "TRIBE v2 (local) -> curated value/language-evaluation ROIs, "
+                  "z-scored vs neutral baseline",
+        "interpretation": "engagement of value (orbitofrontal) and language-"
+                          "evaluation (inferior frontal) cortex above neutral text. "
+                          "Validated d=0.95 emotional-vs-neutral (A7), consistent "
+                          "with published fMRI on emotional-word reading.",
+        "caveat": "predicted cortical BOLD, NOT a detector (the LLM is strictly "
+                  "better). NOT subcortical: cannot see amygdala/accumbens. "
+                  "Emotional text also drives sensorimotor cortex (TTS acoustics); "
+                  "we deliberately report only the semantic ROIs.",
     }
 
 

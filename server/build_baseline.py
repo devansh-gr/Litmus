@@ -1,13 +1,17 @@
 """Build the per-vertex baseline that makes /brainmap meaningful.
 
 THE PROBLEM: TRIBE v2's text path synthesises speech, so raw activation for ANY
-sentence is dominated by primary auditory cortex responding to "there is speech"
--- an artifact of our TTS step, not the content. We z-score new text against this
-baseline so only CONTENT-driven deviation survives.
+sentence is dominated by primary auditory cortex ("there is speech") -- a TTS
+artifact, not content. We z-score new text against this baseline so only
+CONTENT-driven deviation survives.
 
-CRASH-RESILIENT: predictions are checkpointed to baseline_partial.npz after every
-sentence. On restart it skips sentences already done. A hang (see the num_workers
-deadlock) can now cost at most one sentence, not the whole run.
+THE BASELINE MUST BE NEUTRAL TEXT. If the baseline contains emotional sentences,
+z-scoring subtracts the emotional signal too, leaving only sensorimotor noise
+(learned the hard way). A neutral baseline makes emotional text deviate in the
+fronto-orbital / value regions that A2-A3 validated against published fMRI.
+
+CRASH-RESILIENT: checkpoints to baseline_partial.npz after every sentence and
+resumes on restart, so a hang costs at most one sentence.
 """
 
 import time
@@ -16,19 +20,52 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from a3_emotion_test import CONDITIONS
-
 HERE = Path(__file__).parent
 CACHE = HERE / "cache"
 PARTIAL = HERE / "baseline_partial.npz"
 FINAL = HERE / "baseline.npz"
+
+# Neutral / informational reference corpus. Deliberately varied in topic and
+# syntax, no emotional or persuasive content. The first 15 are the A3 neutral set
+# (already cached), the rest are fresh.
+NEUTRAL = [
+    "The council approved the new drainage plan for the eastern district on Tuesday.",
+    "The library will extend its opening hours during the spring term this year.",
+    "She placed the folded map back inside the glove compartment of the car.",
+    "The train arrives at the central station every twenty minutes during the day.",
+    "He watered the plants on the balcony before sitting down to read.",
+    "The museum has rearranged its collection of pottery in the eastern wing.",
+    "Rainfall this month was slightly above the seasonal average for the region.",
+    "The committee will publish its annual report at the end of the quarter.",
+    "The bakery on the corner opens at six every morning except Sunday.",
+    "A new bicycle lane was added along the river path last autumn.",
+    "The lecture covered the basic principles of sedimentary rock formation.",
+    "She filed the documents alphabetically in the cabinet beside her desk.",
+    "The ferry crosses the harbour four times a day during the summer.",
+    "The software update adds support for two additional keyboard layouts.",
+    "A wooden bench was installed near the entrance of the public garden.",
+    "The recipe suggests letting the dough rest for about thirty minutes.",
+    "Their office moved to the third floor of the building last month.",
+    "The bus timetable changes slightly on public holidays and weekends.",
+    "He labelled each box before stacking them neatly in the storage room.",
+    "The report summarises rainfall and temperature data for the past decade.",
+    "The gardener trimmed the hedges along the northern edge of the lawn.",
+    "The store restocks fresh produce on Monday and Thursday mornings.",
+    "A short footbridge connects the two halves of the campus over the stream.",
+    "The printer on the second floor supports double-sided colour printing.",
+    "She catalogued the samples by date and stored them in the freezer.",
+    "The seminar will be held in the annex next to the main lecture hall.",
+    "The road resurfacing work is scheduled to finish before the end of March.",
+    "He adjusted the thermostat and closed the window before leaving the room.",
+    "The archive contains maps of the town dating back to the last century.",
+    "The workshop covers basic maintenance for common household appliances.",
+]
 
 
 def main() -> None:
     from tribev2.demo_utils import TribeModel
 
     CACHE.mkdir(exist_ok=True)
-    sentences = [s for sents in CONDITIONS.values() for s in sents]
 
     done: dict[int, np.ndarray] = {}
     if PARTIAL.exists():
@@ -36,7 +73,7 @@ def main() -> None:
         for k in d.files:
             if k.startswith("v"):
                 done[int(k[1:])] = d[k]
-        print(f"resuming: {len(done)}/{len(sentences)} already computed", flush=True)
+        print(f"resuming: {len(done)}/{len(NEUTRAL)} already computed", flush=True)
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     model = TribeModel.from_pretrained(
@@ -44,21 +81,20 @@ def main() -> None:
     )
 
     t0 = time.time()
-    for i, sent in enumerate(sentences):
+    for i, sent in enumerate(NEUTRAL):
         if i in done:
             continue
-        txt = CACHE / f"a3_baseline_{i}.txt"
+        txt = CACHE / f"neutral_baseline_{i}.txt"
         txt.write_text(sent)
         events = model.get_events_dataframe(text_path=str(txt))
         preds, _ = model.predict(events=events, verbose=False)
         done[i] = np.asarray(preds).mean(axis=0)
-        # checkpoint immediately
         np.savez(PARTIAL, **{f"v{k}": v for k, v in done.items()})
-        print(f"  {len(done)}/{len(sentences)}  ({time.time()-t0:.0f}s)", flush=True)
+        print(f"  {len(done)}/{len(NEUTRAL)}  ({time.time()-t0:.0f}s)", flush=True)
 
-    X = np.stack([done[i] for i in range(len(sentences))])
-    np.savez(FINAL, mean=X.mean(axis=0), std=np.maximum(X.std(axis=0), 1e-9), n=len(sentences))
-    print(f"\n[saved] {FINAL}  from {len(sentences)} sentences", flush=True)
+    X = np.stack([done[i] for i in range(len(NEUTRAL))])
+    np.savez(FINAL, mean=X.mean(axis=0), std=np.maximum(X.std(axis=0), 1e-9), n=len(NEUTRAL))
+    print(f"\n[saved] {FINAL}  from {len(NEUTRAL)} NEUTRAL sentences", flush=True)
 
 
 if __name__ == "__main__":
