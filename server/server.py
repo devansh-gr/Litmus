@@ -17,6 +17,7 @@ Everything runs locally. No text ever leaves the machine (offline TTS patched in
 """
 
 import json
+import os
 import logging
 import re
 import threading
@@ -29,7 +30,11 @@ from pydantic import BaseModel
 
 HERE = Path(__file__).parent
 CACHE = HERE / "cache"
-LLM_NAME = "meta-llama/Llama-3.2-3B-Instruct"
+# 3B detector (accurate: 5/5 in testing; the 1B mislabels neutral text). The 24GB
+# memory pressure came from co-loading TRIBE v2 -- which itself contains a 3B Llama
+# text-encoder (~13GB of models total). Fix is architectural (free TRIBE after each
+# /brainmap, see below), not a smaller detector. Override with CPD_LLM if desired.
+LLM_NAME = os.environ.get("CPD_LLM", "meta-llama/Llama-3.2-3B-Instruct")
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("cpd")
@@ -121,6 +126,19 @@ def get_tribe():
             )
             log.info("TRIBE v2 ready")
     return _tribe
+
+
+def _free_tribe():
+    """Release TRIBE v2 (and its 3B text-encoder) so it doesn't co-reside with the
+    detector between brain-map calls."""
+    global _tribe
+    import gc
+
+    with _lock:
+        _tribe = None
+    gc.collect()
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
 
 def get_atlas():
@@ -233,9 +251,15 @@ def brainmap(inp: TextIn):
     txt = CACHE / "live_input.txt"
     txt.write_text(inp.text)
 
-    events = tribe.get_events_dataframe(text_path=str(txt))
-    preds, _ = tribe.predict(events=events)
-    vertex_mean = np.asarray(preds).mean(axis=0)   # (20484,)
+    try:
+        events = tribe.get_events_dataframe(text_path=str(txt))
+        preds, _ = tribe.predict(events=events)
+        vertex_mean = np.asarray(preds).mean(axis=0)   # (20484,)
+    finally:
+        # TRIBE v2 carries a 3B text-encoder + audio encoders (~7GB). Free it after
+        # each call so the resident footprint stays just the 3B detector, keeping
+        # the interactive /classify fast on a 24GB machine.
+        _free_tribe()
 
     base_path = HERE / "baseline.npz"
     if not base_path.exists():
