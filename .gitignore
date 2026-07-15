@@ -32,3 +32,6 @@ server/a5_results.json
 server/server.log
 server/baseline.log
 server/baseline.npz
+server/app.log
+server/verify_result.txt
+server/*.sh
