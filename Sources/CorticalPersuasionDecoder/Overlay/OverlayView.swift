@@ -14,8 +14,10 @@ struct VerdictCard: View {
     let mechanism: String
     let confidence: Double          // 0.0-1.0
     let rationale: String?
-    let regions: [BrainRegion]?     // nil => still computing
+    let regions: [BrainRegion]?     // non-nil => brain map done
     let regionsFailed: Bool
+    let awaitingBrain: Bool         // true => a deep scan is in flight (spinner)
+                                    // false + nil regions => idle (show hint)
 
     private var pct: Int { Int((confidence * 100).rounded()) }
 
@@ -95,17 +97,25 @@ struct VerdictCard: View {
                             .foregroundStyle(r.activationZ >= 0 ? .red : .blue)
                     }
                 }
-                Text("TRIBE v2 · measured, not asserted")
+                Text("TRIBE v2 · measured value/language cortex")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 2)
             }
-        } else {
+        } else if awaitingBrain {
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
-                Text("modelling cortex…")
+                Text("modelling cortex… (~2 min)")
                     .font(.caption2).foregroundStyle(.tertiary)
             }
+        } else {
+            // Idle: the brain map is opt-in (it takes ~2 min), so don't auto-run it.
+            HStack(spacing: 5) {
+                Image(systemName: "brain.head.profile").font(.caption2)
+                Text("Deep-scan cortex →  🧠 menu")
+                    .font(.caption2)
+            }
+            .foregroundStyle(.tertiary)
         }
     }
 

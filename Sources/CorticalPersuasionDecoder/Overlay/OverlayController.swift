@@ -31,7 +31,7 @@ final class OverlayController {
         generation += 1
 
         current = (entry.displayName, entry.mechanism, verdict.confidence, verdict.rationale)
-        let card = makeCard(regions: nil, failed: false)
+        let card = makeCard(regions: nil, failed: false, awaiting: false)
 
         let hosting = NSHostingView(rootView: card)
         hosting.layoutSubtreeIfNeeded()
@@ -58,25 +58,38 @@ final class OverlayController {
         return generation
     }
 
+    /// Switch the current card into the "scanning cortex" state (spinner). Called
+    /// when the user opts into a deep scan from the menu.
+    func beginBrainScan(token: Int) {
+        guard token == generation, let hosting else { return }
+        hosting.rootView = makeCard(regions: nil, failed: false, awaiting: true)
+        resizeToFit()
+    }
+
     /// Fill in the cortical map once TRIBE v2 returns. `token` must match the
     /// generation from `show`, otherwise the card has moved on and we drop it.
     func updateRegions(_ regions: [BrainRegion]?, failed: Bool, token: Int) {
         guard token == generation, let hosting, let panel else { return }
-        hosting.rootView = makeCard(regions: regions, failed: failed)
-        hosting.layoutSubtreeIfNeeded()
+        _ = panel
+        hosting.rootView = makeCard(regions: regions, failed: failed, awaiting: false)
+        resizeToFit()
+    }
 
-        // Card grew — resize the panel but keep its top-left corner pinned.
+    /// Re-fit the panel to the current card, keeping the top-left corner pinned.
+    private func resizeToFit() {
+        guard let hosting, let panel else { return }
+        hosting.layoutSubtreeIfNeeded()
         let newSize = hosting.fittingSize
         let frame = panel.frame
-        let topLeft = CGPoint(x: frame.minX, y: frame.maxY)
+        let topY = frame.maxY
         panel.setFrame(
-            NSRect(x: topLeft.x, y: topLeft.y - newSize.height,
+            NSRect(x: frame.minX, y: topY - newSize.height,
                    width: newSize.width, height: newSize.height),
             display: true
         )
     }
 
-    private func makeCard(regions: [BrainRegion]?, failed: Bool) -> VerdictCard {
+    private func makeCard(regions: [BrainRegion]?, failed: Bool, awaiting: Bool) -> VerdictCard {
         let c = current ?? ("", "", 0, nil)
         return VerdictCard(
             title: c.title,
@@ -84,7 +97,8 @@ final class OverlayController {
             confidence: c.confidence,
             rationale: c.rationale,
             regions: regions,
-            regionsFailed: failed
+            regionsFailed: failed,
+            awaitingBrain: awaiting
         )
     }
 

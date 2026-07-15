@@ -21,6 +21,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Interpretation: TRIBE v2 cortical map. Nil when running on the mock.
     private let brainMapper: RemoteClassifier? = Config.makeBrainMapper()
 
+    /// The last analysed selection + its overlay generation, for opt-in deep scan.
+    private var lastCapturedText: String?
+    private var lastOverlayToken: Int = 0
+
     /// Menu-bar presence + region-capture trigger (Milestone 2).
     private var statusItem: NSStatusItem?
     private var regionSelector: RegionSelector?
@@ -50,6 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = "🧠"
         let menu = NSMenu()
+        let deepScan = NSMenuItem(title: "Deep-scan cortex (last selection)",
+                                  action: #selector(deepScanCortex), keyEquivalent: "")
+        deepScan.target = self
+        menu.addItem(deepScan)
         let capture = NSMenuItem(title: "Capture Region (OCR → classify)",
                                  action: #selector(captureRegion), keyEquivalent: "")
         capture.target = self
@@ -159,27 +167,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         report("🧠 \(entry.displayName)   [confidence \(pct)%]")
         report("   ↳ mechanism: \(entry.mechanism)")
 
-        // Show the card immediately with the LLM verdict.
+        // Show the card immediately with the LLM verdict. The cortical brain map
+        // is OPT-IN (it takes ~2 min), triggered from the 🧠 menu — we do NOT
+        // auto-run it on every selection.
         let token = await MainActor.run {
             overlay.show(verdict: verdict, entry: entry, anchor: anchor)
         }
+        lastCapturedText = text
+        lastOverlayToken = token
+    }
 
-        // TRIBE v2 takes ~30s+, so the cortical map arrives afterwards. The token
-        // ensures a late map can't overwrite a newer selection's card.
-        guard let brainMapper else { return }
-        do {
-            let regions = try await brainMapper.brainMap(for: text)
-            let top = regions.prefix(3)
-                .map { "\($0.region) (z\(String(format: "%+.1f", $0.activationZ)))" }
-                .joined(separator: ", ")
-            report("   ↳ cortex: \(top)")
-            await MainActor.run {
-                overlay.updateRegions(regions, failed: false, token: token)
-            }
-        } catch {
-            report("   ↳ cortical map unavailable: \(error.localizedDescription)")
-            await MainActor.run {
-                overlay.updateRegions(nil, failed: true, token: token)
+    // MARK: - Opt-in deep cortical scan (Milestone 5, slow path)
+
+    @objc private func deepScanCortex() {
+        guard let brainMapper, let text = lastCapturedText else {
+            report("🧠 deep scan: nothing captured yet — select text + ⌘C first.")
+            return
+        }
+        let token = lastOverlayToken
+        report("🧠 deep scan: modelling cortex for last selection (~2 min)…")
+        overlay.beginBrainScan(token: token)
+        Task {
+            do {
+                let regions = try await brainMapper.brainMap(for: text)
+                let top = regions.prefix(3)
+                    .map { "\($0.region) (z\(String(format: "%+.1f", $0.activationZ)))" }
+                    .joined(separator: ", ")
+                report("   ↳ cortex: \(top)")
+                await MainActor.run { overlay.updateRegions(regions, failed: false, token: token) }
+            } catch {
+                report("   ↳ cortical map unavailable: \(error.localizedDescription)")
+                await MainActor.run { overlay.updateRegions(nil, failed: true, token: token) }
             }
         }
     }
