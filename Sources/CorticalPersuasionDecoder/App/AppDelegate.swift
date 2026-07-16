@@ -189,15 +189,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         overlay.beginBrainScan(token: token)
         Task {
             do {
-                let regions = try await brainMapper.brainMap(for: text)
-                let top = regions.prefix(3)
-                    .map { "\($0.region) (z\(String(format: "%+.1f", $0.activationZ)))" }
-                    .joined(separator: ", ")
-                report("   ↳ cortex: \(top)")
-                await MainActor.run { overlay.updateRegions(regions, failed: false, token: token) }
+                let profile = try await brainMapper.brainMap(for: text)
+                let summary = profile
+                    .map { "\($0.system.split(separator: " (").first.map(String.init) ?? $0.system): \($0.level)" }
+                    .joined(separator: " · ")
+                report("   ↳ cortical impact: \(summary)")
+                await MainActor.run { overlay.updateProfile(profile, failed: false, token: token) }
             } catch {
                 report("   ↳ cortical map unavailable: \(error.localizedDescription)")
-                await MainActor.run { overlay.updateRegions(nil, failed: true, token: token) }
+                await MainActor.run { overlay.updateProfile(nil, failed: true, token: token) }
             }
         }
     }

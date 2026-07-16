@@ -14,10 +14,10 @@ struct VerdictCard: View {
     let mechanism: String
     let confidence: Double          // 0.0-1.0
     let rationale: String?
-    let regions: [BrainRegion]?     // non-nil => brain map done
+    let profile: [CorticalSystem]?  // non-nil => brain map done
     let regionsFailed: Bool
     let awaitingBrain: Bool         // true => a deep scan is in flight (spinner)
-                                    // false + nil regions => idle (show hint)
+                                    // false + nil profile => idle (show hint)
 
     private var pct: Int { Int((confidence * 100).rounded()) }
 
@@ -62,7 +62,7 @@ struct VerdictCard: View {
 
             HStack(spacing: 6) {
                 Image(systemName: "brain.head.profile").font(.caption2)
-                Text("PREDICTED CORTICAL ACTIVATION")
+                Text("CORTICAL IMPACT PROFILE")
                     .font(.caption2.weight(.semibold)).tracking(1.0)
             }
             .foregroundStyle(.secondary)
@@ -84,20 +84,29 @@ struct VerdictCard: View {
         if regionsFailed {
             Text("cortical map unavailable")
                 .font(.caption2).foregroundStyle(.tertiary)
-        } else if let regions {
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(regions.prefix(4), id: \.region) { r in
+        } else if let profile {
+            VStack(alignment: .leading, spacing: 5) {
+                ForEach(profile, id: \.system) { s in
                     HStack(spacing: 8) {
-                        Text(pretty(r.region))
+                        Text(shortName(s.system))
                             .font(.caption)
                             .lineLimit(1)
                         Spacer(minLength: 6)
-                        Text(String(format: "z%+.1f", r.activationZ))
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(r.activationZ >= 0 ? .red : .blue)
+                        Text(s.level)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(levelColor(s.z))
                     }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.quaternary)
+                            Capsule().fill(levelColor(s.z))
+                                // z ~ [-0.3, 1.0] mapped to bar width
+                                .frame(width: max(3, geo.size.width * min(1, max(0, (s.z + 0.2) / 1.2))))
+                        }
+                    }
+                    .frame(height: 4)
                 }
-                Text("TRIBE v2 · measured value/language cortex")
+                Text("TRIBE v2 · predicted engagement vs neutral text")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 2)
@@ -119,24 +128,21 @@ struct VerdictCard: View {
         }
     }
 
-    /// Destrieux labels are unreadable ("G_front_inf-Triangul"); humanise them.
-    private func pretty(_ raw: String) -> String {
-        let map: [String: String] = [
-            "G_front_inf-Triangul": "Inferior frontal (Broca's)",
-            "G_front_inf-Orbital": "Inferior frontal, orbital",
-            "G_front_inf-Opercular": "Inferior frontal, opercular",
-            "G_front_middle": "Middle frontal (dlPFC)",
-            "G_front_sup": "Superior frontal",
-            "S_orbital-H_Shaped": "Orbital sulcus",
-            "S_orbital_med-olfact": "Medial orbital sulcus",
-            "G_rectus": "Gyrus rectus (vmPFC)",
-            "G_and_S_cingul-Ant": "Anterior cingulate",
-            "G_Ins_lg_and_S_cent_ins": "Insula",
-            "G_temp_sup-Plan_polar": "Superior temporal (planum polare)",
-            "S_temporal_sup": "Superior temporal sulcus",
-            "S_intrapariet_and_P_trans": "Intraparietal sulcus",
-        ]
-        if let nice = map[raw] { return nice }
-        return raw.replacingOccurrences(of: "_", with: " ")
+    /// Trim the anatomical parenthetical for a compact card row, e.g.
+    /// "Value / evaluation (orbitofrontal)" -> "Value / evaluation".
+    private func shortName(_ system: String) -> String {
+        if let paren = system.firstIndex(of: "(") {
+            return String(system[..<paren]).trimmingCharacters(in: .whitespaces)
+        }
+        return system
+    }
+
+    private func levelColor(_ z: Double) -> Color {
+        switch z {
+        case ..<(-0.15): return .blue
+        case ..<0.15:    return .secondary
+        case ..<0.5:     return .orange
+        default:         return .red
+        }
     }
 }

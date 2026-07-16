@@ -31,7 +31,7 @@ final class OverlayController {
         generation += 1
 
         current = (entry.displayName, entry.mechanism, verdict.confidence, verdict.rationale)
-        let card = makeCard(regions: nil, failed: false, awaiting: false)
+        let card = makeCard(profile: nil, failed: false, awaiting: false)
 
         let hosting = NSHostingView(rootView: card)
         hosting.layoutSubtreeIfNeeded()
@@ -62,16 +62,15 @@ final class OverlayController {
     /// when the user opts into a deep scan from the menu.
     func beginBrainScan(token: Int) {
         guard token == generation, let hosting else { return }
-        hosting.rootView = makeCard(regions: nil, failed: false, awaiting: true)
+        hosting.rootView = makeCard(profile: nil, failed: false, awaiting: true)
         resizeToFit()
     }
 
-    /// Fill in the cortical map once TRIBE v2 returns. `token` must match the
-    /// generation from `show`, otherwise the card has moved on and we drop it.
-    func updateRegions(_ regions: [BrainRegion]?, failed: Bool, token: Int) {
-        guard token == generation, let hosting, let panel else { return }
-        _ = panel
-        hosting.rootView = makeCard(regions: regions, failed: failed, awaiting: false)
+    /// Fill in the cortical impact profile once TRIBE v2 returns. `token` must
+    /// match the generation from `show`, else the card has moved on and we drop it.
+    func updateProfile(_ profile: [CorticalSystem]?, failed: Bool, token: Int) {
+        guard token == generation, let hosting, panel != nil else { return }
+        hosting.rootView = makeCard(profile: profile, failed: failed, awaiting: false)
         resizeToFit()
     }
 
@@ -89,14 +88,14 @@ final class OverlayController {
         )
     }
 
-    private func makeCard(regions: [BrainRegion]?, failed: Bool, awaiting: Bool) -> VerdictCard {
+    private func makeCard(profile: [CorticalSystem]?, failed: Bool, awaiting: Bool) -> VerdictCard {
         let c = current ?? ("", "", 0, nil)
         return VerdictCard(
             title: c.title,
             mechanism: c.mechanism,
             confidence: c.confidence,
             rationale: c.rationale,
-            regions: regions,
+            profile: profile,
             regionsFailed: failed,
             awaitingBrain: awaiting
         )

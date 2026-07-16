@@ -1,15 +1,12 @@
 import Foundation
 
-/// A brain region measured by TRIBE v2, with its content-driven activation
-/// (z-scored against a baseline corpus, so it is NOT just "there is speech").
-struct BrainRegion: Decodable {
-    let region: String
-    let activationZ: Double
-
-    enum CodingKeys: String, CodingKey {
-        case region
-        case activationZ = "activation_z"
-    }
+/// One cortical system in the impact profile: how strongly the content recruits
+/// it above neutral text (z-scored vs a neutral baseline), plus a qualitative
+/// level ("high" / "elevated" / "low" / "below baseline").
+struct CorticalSystem: Decodable {
+    let system: String
+    let z: Double
+    let level: String
 }
 
 /// Vendor-neutral HTTP/JSON classifier. Points at the local inference server by
@@ -43,10 +40,10 @@ struct RemoteClassifier: Classifier {
     }
 
     private struct BrainMapResponse: Decodable {
-        let topRegions: [BrainRegion]
+        let impactProfile: [CorticalSystem]
 
         enum CodingKeys: String, CodingKey {
-            case topRegions = "top_regions"
+            case impactProfile = "impact_profile"
         }
     }
 
@@ -71,11 +68,11 @@ struct RemoteClassifier: Classifier {
 
     // MARK: - Interpretation (slow — call this off the interactive path)
 
-    func brainMap(for text: String) async throws -> [BrainRegion] {
+    func brainMap(for text: String) async throws -> [CorticalSystem] {
         let response: BrainMapResponse = try await post(
             path: "/brainmap", text: text, timeout: 300
         )
-        return response.topRegions
+        return response.impactProfile
     }
 
     // MARK: - Transport

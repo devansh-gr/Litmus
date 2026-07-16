@@ -229,6 +229,33 @@ SEMANTIC_ROIS = [
     "G_rectus", "G_subcallosal", "G_front_middle", "G_front_sup", "G_orbital",
 ]
 
+# The impact profile groups the curated ROIs into interpretable cortical SYSTEMS.
+# This is the visceral story the brain map exists to tell: how strongly the
+# content recruits each system above neutral text. (Detection is still the LLM's
+# job -- this is the "where it lands" visualisation.)
+CORTICAL_SYSTEMS = {
+    "Value / evaluation (orbitofrontal)": [
+        "G_front_inf-Orbital", "S_orbital-H_Shaped", "S_orbital_med-olfact",
+        "S_orbital_lateral", "G_orbital", "G_rectus", "G_subcallosal",
+    ],
+    "Language processing (inferior frontal)": [
+        "G_front_inf-Triangul", "G_front_inf-Opercular",
+    ],
+    "Executive / cognitive-load (dlPFC)": [
+        "G_front_middle", "G_front_sup",
+    ],
+}
+
+
+def _level(z: float) -> str:
+    if z >= 0.5:
+        return "high"
+    if z >= 0.15:
+        return "elevated"
+    if z <= -0.15:
+        return "below baseline"
+    return "low"
+
 
 @app.post("/brainmap")
 def brainmap(inp: TextIn):
@@ -284,23 +311,33 @@ def brainmap(inp: TextIn):
             regions.append({"region": name, "activation_z": round(z, 3)})
     regions.sort(key=lambda r: -r["activation_z"])
 
+    # The impact profile: mean engagement per cortical system, with a level.
+    profile = []
+    for system, rois in CORTICAL_SYSTEMS.items():
+        zs = [region_z(n) for n in rois]
+        zs = [z for z in zs if z is not None]
+        if not zs:
+            continue
+        z = float(np.mean(zs))
+        profile.append({"system": system, "z": round(z, 3), "level": _level(z)})
+    profile.sort(key=lambda p: -p["z"])
+
     engagement = float(np.mean([r["activation_z"] for r in regions])) if regions else 0.0
 
     return {
+        "impact_profile": profile,
         "value_cortex_engagement_z": round(engagement, 3),
-        "top_regions": regions[:6],
+        "headline_regions": regions[:4],
         "baseline_n": int(b["n"]),
         "n_vertices": int(vertex_mean.shape[0]),
-        "source": "TRIBE v2 (local) -> curated value/language-evaluation ROIs, "
-                  "z-scored vs neutral baseline",
-        "interpretation": "engagement of value (orbitofrontal) and language-"
-                          "evaluation (inferior frontal) cortex above neutral text. "
-                          "Validated d=0.95 emotional-vs-neutral (A7), consistent "
-                          "with published fMRI on emotional-word reading.",
+        "source": "TRIBE v2 (local) -> cortical impact profile, z-scored vs neutral baseline",
+        "interpretation": "how strongly the content recruits each cortical system "
+                          "above neutral text. Validated d=0.95 emotional-vs-neutral "
+                          "(A7), consistent with published fMRI on emotional-word reading.",
         "caveat": "predicted cortical BOLD, NOT a detector (the LLM is strictly "
-                  "better). NOT subcortical: cannot see amygdala/accumbens. "
-                  "Emotional text also drives sensorimotor cortex (TTS acoustics); "
-                  "we deliberately report only the semantic ROIs.",
+                  "better). NOT subcortical: cannot see amygdala/accumbens. We report "
+                  "only semantic systems (emotional text also drives TTS-acoustic "
+                  "sensorimotor cortex, which we exclude).",
     }
 
 
