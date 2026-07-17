@@ -4,34 +4,24 @@ DerivedData/
 *.xcodeproj
 *.xcworkspace
 xcuserdata/
-
-# XcodeGen regenerates the .xcodeproj from project.yml, so it is not committed.
-
-# Swift Package Manager
-.build/
+*.o
+*.swiftmodule
 
 # macOS
 .DS_Store
 
-# Compiled
-*.o
-*.swiftmodule
-
-# Python inference server (TRIBE v2)
+# Python inference server
 server/.venv/
 server/cache/
 server/vendor/
+server/baseline.npz
+server/baseline_partial.npz
 __pycache__/
 *.pyc
-server/a2_run.log
-server/a2_results.json
-server/a3_run.log
-server/a3_results.json
-server/a4_results.json
-server/a5_results.json
-server/server.log
-server/baseline.log
-server/baseline.npz
-server/app.log
-server/verify_result.txt
-server/*.sh
+
+# Runtime logs + experiment outputs
+server/*.log
+server/experiments/*.log
+server/experiments/*_results.json
+server/*.txt
+server/*_results.json

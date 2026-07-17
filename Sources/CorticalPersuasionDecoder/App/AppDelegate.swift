@@ -32,12 +32,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Floating verdict overlay (Milestone 4).
     private let overlay = OverlayController()
 
-    // NOTE: `SelectionTextCapture` (Accessibility polling) and `HotkeyManager`
-    // (Carbon global hotkey) still exist in the project but are intentionally
-    // NOT started here. The AX path can't read web/article body text (it only
-    // sees editable fields), and the ⌥⌘-style hotkeys collided with Chrome's
-    // DevTools shortcut. The pasteboard watcher below is the reliable universal
-    // path. Those files will be reused in later milestones.
+    // Capture is via the pasteboard watcher (select + ⌘C): it reads web/article
+    // body text — which the Accessibility API cannot — needs no permissions, and
+    // avoids the global-hotkey conflicts with app shortcuts. (Earlier AX-polling
+    // and Carbon-hotkey approaches were removed after those dead-ends.)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         report("Cortical Persuasion Decoder — Milestone 1 (capture spike)")
