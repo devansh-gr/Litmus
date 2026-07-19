@@ -101,6 +101,34 @@ final class OverlayController {
         )
     }
 
+    /// Show a transient notice (e.g. server offline) in the same floating style.
+    func showNotice(_ message: String, anchor: CGPoint) {
+        dismiss()
+        generation += 1
+        current = nil
+
+        let hosting = NSHostingView(rootView: NoticeCard(message: message))
+        hosting.layoutSubtreeIfNeeded()
+        let size = hosting.fittingSize
+
+        let panel = NSPanel(contentRect: NSRect(origin: .zero, size: size),
+                            styleMask: [.borderless, .nonactivatingPanel],
+                            backing: .buffered, defer: false)
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        panel.contentView = hosting
+        panel.setFrameOrigin(position(for: size, near: anchor))
+        panel.orderFrontRegardless()
+
+        self.panel = panel
+        self.hosting = nil   // notices don't get profile updates
+        installDismissMonitors()
+        scheduleAutoDismiss(after: 6)
+    }
+
     func dismiss() {
         dismissWork?.cancel(); dismissWork = nil
         if let globalMonitor { NSEvent.removeMonitor(globalMonitor); self.globalMonitor = nil }

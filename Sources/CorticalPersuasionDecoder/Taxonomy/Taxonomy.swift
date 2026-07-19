@@ -13,13 +13,17 @@ enum PersuasionVector: String, CaseIterable, Codable {
     case socialProofConformity       = "social-proof-conformity"
 }
 
-/// Maps a vector to the brain region it targets and the cognitive mechanism.
-/// Mechanisms cite the actual process (per project rule: neuroanatomy must be
-/// defensible, no "lizard brain" hand-waving).
+/// Display name + the cognitive *technique* a vector uses.
+///
+/// NOTE: this deliberately makes NO per-vector brain-region claim. An earlier
+/// version asserted fear→amygdala, dopamine→nucleus accumbens, etc., but our own
+/// experiments (A3) showed those vectors do NOT separate by region, and the model
+/// is cortex-only and can't see the amygdala. Any anatomy shown to the user comes
+/// only from the *measured* cortical impact profile (`/brainmap`), never from here.
 struct TaxonomyEntry {
     let vector: PersuasionVector
     let displayName: String
-    let brainRegion: String
+    /// How the technique acts on your thinking — a psychological claim, not anatomy.
     let mechanism: String
 }
 
@@ -27,36 +31,28 @@ enum Taxonomy {
     static let table: [PersuasionVector: TaxonomyEntry] = [
         .fearMongering: .init(
             vector: .fearMongering, displayName: "Fear-mongering",
-            brainRegion: "Amygdala",
-            mechanism: "Threat-salience detection drives rapid affective appraisal ahead of cortical evaluation."),
+            mechanism: "Substitutes a vivid threat for reasoned appraisal, pushing you to react before you evaluate."),
         .criticalThinkingSuppression: .init(
             vector: .criticalThinkingSuppression, displayName: "Critical-thinking suppression",
-            brainRegion: "Dorsolateral prefrontal cortex",
-            mechanism: "Working-memory / cognitive-load overload degrades deliberative reasoning."),
+            mechanism: "Discourages questioning or checking, so a claim is accepted without scrutiny."),
         .tribalInGroupBias: .init(
             vector: .tribalInGroupBias, displayName: "Tribal in-group bias",
-            brainRegion: "Medial PFC + anterior insula",
-            mechanism: "Self / in-group representation (mPFC) plus out-group affect (insula)."),
+            mechanism: "Frames it as us-versus-them, so group loyalty overrides the argument's merits."),
         .dopamineBait: .init(
             vector: .dopamineBait, displayName: "Dopamine bait",
-            brainRegion: "Nucleus accumbens",
-            mechanism: "Ventral-striatal reward-prediction and variable-ratio reinforcement."),
+            mechanism: "Dangles a reward or novelty to hijack attention toward the promised payoff."),
         .outrage: .init(
             vector: .outrage, displayName: "Outrage",
-            brainRegion: "Anterior cingulate cortex",
-            mechanism: "Conflict and affective-salience monitoring."),
+            mechanism: "Provokes moral anger at a target, which crowds out measured judgment and drives sharing."),
         .authorityAppeal: .init(
             vector: .authorityAppeal, displayName: "Authority appeal",
-            brainRegion: "Prefrontal cortex (deference)",
-            mechanism: "Executive evaluation offloaded to a perceived authority."),
+            mechanism: "Leans on experts or officials so their status substitutes for evidence you could check."),
         .falseUrgency: .init(
             vector: .falseUrgency, displayName: "False urgency",
-            brainRegion: "Amygdala + HPA axis",
-            mechanism: "Acute stress response narrows the deliberation window under time pressure."),
+            mechanism: "Imposes an artificial deadline so time pressure short-circuits deliberation."),
         .socialProofConformity: .init(
             vector: .socialProofConformity, displayName: "Social-proof conformity",
-            brainRegion: "Ventromedial prefrontal cortex",
-            mechanism: "Value signal updated toward group consensus."),
+            mechanism: "Signals that everyone is doing it, so fear of being left out replaces independent judgment."),
     ]
 
     /// Table is exhaustive over the enum, so this is total.

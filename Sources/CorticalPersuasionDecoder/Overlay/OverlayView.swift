@@ -1,5 +1,25 @@
 import SwiftUI
 
+/// A small transient notice (e.g. "inference server offline"), shown in the same
+/// floating panel style as the verdict card.
+struct NoticeCard: View {
+    let message: String
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text(message)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(width: 300, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.orange.opacity(0.4), lineWidth: 1))
+        .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+    }
+}
+
 /// The verdict card.
 ///
 /// IMPORTANT — what this does and does NOT claim:

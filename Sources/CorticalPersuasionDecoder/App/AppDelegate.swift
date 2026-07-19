@@ -25,6 +25,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastCapturedText: String?
     private var lastOverlayToken: Int = 0
 
+    /// Capture on/off (menu-toggled) so the user can stop analysing every copy.
+    private var captureEnabled = true
+    private weak var pauseItem: NSMenuItem?
+
     /// Menu-bar presence + region-capture trigger (Milestone 2).
     private var statusItem: NSStatusItem?
     private var regionSelector: RegionSelector?
@@ -61,6 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         capture.target = self
         menu.addItem(capture)
         menu.addItem(.separator())
+        let pause = NSMenuItem(title: "Pause capture", action: #selector(togglePause), keyEquivalent: "")
+        pause.target = self
+        menu.addItem(pause)
+        pauseItem = pause
         let quit = NSMenuItem(title: "Quit Cortical Persuasion Decoder",
                               action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
@@ -71,6 +79,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quitApp() {
         NSApp.terminate(nil)
+    }
+
+    @objc private func togglePause() {
+        captureEnabled.toggle()
+        pauseItem?.title = captureEnabled ? "Pause capture" : "Resume capture"
+        statusItem?.button?.title = captureEnabled ? "🧠" : "🧠⏸"
+        report(captureEnabled ? "▶️  capture resumed." : "⏸  capture paused.")
     }
 
     @objc private func captureRegion() {
@@ -132,8 +147,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         report("✂️  Ready — select any text and press ⌘C to capture it.")
     }
 
-    /// Capture → classify → look up brain region → print the label + show overlay.
+    /// Capture → classify → print the label + show overlay.
     private func handleCapturedText(_ text: String) {
+        guard captureEnabled else { return }
+        guard !SensitiveText.looksSensitive(text) else {
+            report("🔒 copied text looks like a secret (password/token/card) — skipped.")
+            return
+        }
         let oneLine = text.replacingOccurrences(of: "\n", with: " ⏎ ")
         let clipped = oneLine.count > 140 ? String(oneLine.prefix(140)) + "…" : oneLine
         report("✂️  copied (\(text.count) chars): \(clipped)")
@@ -148,6 +168,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             verdict = try await classifier.classify(ClassificationInput(text: text))
         } catch RemoteClassifierError.neutral {
             report("🧠 neutral — no persuasion vector detected.")
+            return
+        } catch is URLError {
+            // Can't reach the local server — tell the user visibly, not just in the log.
+            report("⚠️  inference server offline — run server/server.py")
+            await MainActor.run {
+                overlay.showNotice("Inference server offline.\nStart it:  server/server.py", anchor: anchor)
+            }
             return
         } catch {
             report("⚠️  classify failed: \(error.localizedDescription)")
