@@ -1,12 +1,13 @@
 # Cortical Persuasion Decoder
 
-A local, real-time "cognitive-manipulation x-ray" for macOS. Select any text
-(⌘C), and it names the **persuasion technique** the content uses — then, on
-demand, shows the **cortical impact profile**: which of your brain's cortical
+A local, real-time "cognitive-manipulation x-ray" for macOS. Select any text and
+press **⌘B**, and it names the **persuasion technique** the content uses — then,
+on demand, shows the **cortical impact profile**: which of your brain's cortical
 systems the content recruits.
 
 Everything runs **on your machine**. No cloud, no API keys, no telemetry — the
-text you highlight never leaves the Mac.
+text you analyze never leaves the Mac. (The ⌘B hotkey needs a one-time
+**Accessibility** grant so the app can read your selection.)
 
 ## Architecture — the two halves do what each is actually good at
 
@@ -35,7 +36,8 @@ offline dev, `RemoteClassifier` → the local server).
 ```
 Sources/CorticalPersuasionDecoder/   # the SwiftUI/AppKit app
   App/         entry point, menu bar, capture→classify→overlay wiring
-  Capture/     PasteboardWatcher (⌘C), RegionSelector + RegionCapture + OCR
+  Capture/     PasteboardCapture (⌘B → copy), RegionSelector + RegionCapture + OCR
+  Hotkey/      HotkeyMonitor (global ⌘B, non-consuming)
   Classifier/  Classifier protocol, MockClassifier, RemoteClassifier (HTTP)
   Overlay/     floating verdict card + cortical impact profile
   Taxonomy/    8-vector → brain-region → mechanism table
@@ -68,7 +70,8 @@ xcodegen generate
 xcodebuild -project CorticalPersuasionDecoder.xcodeproj -target CorticalPersuasionDecoder -configuration Debug build
 open build/Debug/CorticalPersuasionDecoder.app
 ```
-Then: select text anywhere + **⌘C** → verdict card appears. For the cortical
+Then grant Accessibility when prompted, select text anywhere + **⌘B** → verdict
+card appears (override the key with `CPD_HOTKEY=D` etc.). For the cortical
 profile, click the **🧠 menu bar → Deep-scan cortex**.
 
 ### Config (env)

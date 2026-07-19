@@ -74,6 +74,13 @@ SYSTEM = (
 
 app = FastAPI(title="Cortical Persuasion Decoder")
 
+
+@app.on_event("startup")
+def _prewarm():
+    # Load the detector at startup (in the background) so the first ⌘B doesn't
+    # eat a ~40s cold load in the request path. TRIBE v2 stays lazy (per-brainmap).
+    threading.Thread(target=get_llm, daemon=True).start()
+
 _lock = threading.Lock()
 _llm = None
 _tok = None

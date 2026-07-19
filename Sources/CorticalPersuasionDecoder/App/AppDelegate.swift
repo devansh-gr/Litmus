@@ -12,8 +12,9 @@ func report(_ message: String) {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
-    /// Primary Milestone 1 capture path: select text anywhere + ⌘C.
-    private var pasteboardWatcher: PasteboardWatcher?
+    /// Primary capture path: select text anywhere, press ⌘B to analyze it.
+    private var hotkeyMonitor: HotkeyMonitor?
+    private var accessibilityPollTimer: Timer?
 
     /// Detection: LLM (remote) by default, or the offline mock. See Config.
     private let classifier: Classifier = Config.makeClassifier()
@@ -36,18 +37,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Floating verdict overlay (Milestone 4).
     private let overlay = OverlayController()
 
-    // Capture is via the pasteboard watcher (select + ⌘C): it reads web/article
-    // body text — which the Accessibility API cannot — needs no permissions, and
-    // avoids the global-hotkey conflicts with app shortcuts. (Earlier AX-polling
-    // and Carbon-hotkey approaches were removed after those dead-ends.)
+    // Capture is triggered by ⌘B: an NSEvent global hotkey (non-consuming, so ⌘B
+    // still bolds in editors) synthesizes a copy to grab the selection — which
+    // reads web/article body the Accessibility API can't. Needs a one-time
+    // Accessibility grant (for the global monitor + synthetic keystroke).
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        report("Cortical Persuasion Decoder — Milestone 1 (capture spike)")
-        report("Interaction: select text in ANY app (Chrome article, PDF, native) and press ⌘C.")
-        report("It reads what you copied — no special permissions, no hotkey conflicts.")
-        report("Region OCR: click the 🧠 menu-bar icon → \"Capture Region\" to drag-select an area.")
-        startPasteboardWatch()
+        report("Cortical Persuasion Decoder")
+        report("Interaction: select text in ANY app (Chrome/Safari article, PDF, X…) and press ⌘B.")
+        report("Region OCR: 🧠 menu-bar icon → \"Capture Region\" to drag-select an area.")
         setupMenuBar()
+        ensureAccessibilityThenStart()
     }
 
     // MARK: - Menu bar (Milestone 2 trigger)
@@ -138,13 +138,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func startPasteboardWatch() {
-        let watcher = PasteboardWatcher { [weak self] text in
-            self?.handleCapturedText(text)
+    // MARK: - ⌘B hotkey (needs Accessibility)
+
+    private func ensureAccessibilityThenStart() {
+        if Permissions.isAccessibilityTrusted() {
+            startHotkey()
+            return
         }
-        watcher.start()
-        pasteboardWatcher = watcher
-        report("✂️  Ready — select any text and press ⌘C to capture it.")
+        report("⚠️  Accessibility permission needed for the ⌘B hotkey.")
+        report("    Approve the dialog, then enable this app under")
+        report("    System Settings ▸ Privacy & Security ▸ Accessibility. Waiting…")
+        Permissions.promptForAccessibility()
+        Permissions.openAccessibilitySettings()
+        accessibilityPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard Permissions.isAccessibilityTrusted() else { return }
+            timer.invalidate()
+            self?.accessibilityPollTimer = nil
+            report("✅ Accessibility granted.")
+            self?.startHotkey()
+        }
+    }
+
+    private func startHotkey() {
+        let monitor = HotkeyMonitor { [weak self] in self?.handleHotkey() }
+        monitor.start()
+        hotkeyMonitor = monitor
+        report("✂️  Ready — select any text and press ⌘B to analyze it.")
+    }
+
+    private func handleHotkey() {
+        guard captureEnabled else { return }
+        // Small delay so the physical ⌘B key-up doesn't collide with the synthetic ⌘C.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self else { return }
+            guard let text = PasteboardCapture.selectedTextViaCopy(), !text.isEmpty else {
+                report("⌘B: no text selected.")
+                return
+            }
+            self.handleCapturedText(text)
+        }
     }
 
     /// Capture → classify → print the label + show overlay.
@@ -169,12 +201,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch RemoteClassifierError.neutral {
             report("🧠 neutral — no persuasion vector detected.")
             return
-        } catch is URLError {
-            // Can't reach the local server — tell the user visibly, not just in the log.
-            report("⚠️  inference server offline — run server/server.py")
-            await MainActor.run {
-                overlay.showNotice("Inference server offline.\nStart it:  server/server.py", anchor: anchor)
+        } catch let urlError as URLError {
+            // A timeout means the server is up but the model is still warming —
+            // NOT offline. Only connection failures are truly "offline".
+            let message: String
+            switch urlError.code {
+            case .timedOut:
+                message = "Model still warming up — press ⌘B again in a moment."
+            case .cannotConnectToHost, .cannotFindHost,
+                 .networkConnectionLost, .cannotLoadFromNetwork:
+                message = "Inference server offline.\nStart it:  server/server.py"
+            default:
+                message = "Inference server error (\(urlError.code.rawValue))."
             }
+            report("⚠️  \(message)")
+            await MainActor.run { overlay.showNotice(message, anchor: anchor) }
             return
         } catch {
             report("⚠️  classify failed: \(error.localizedDescription)")

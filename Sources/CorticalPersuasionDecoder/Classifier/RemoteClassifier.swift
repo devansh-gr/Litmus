@@ -24,9 +24,9 @@ struct RemoteClassifier: Classifier {
     let endpoint: URL
     let timeout: TimeInterval
 
-    // 45s so a cold/busy model load on the local server doesn't time out the
+    // 60s so a cold/busy model load on the local server doesn't time out the
     // detection call (warm calls return in ~2-3s).
-    init(endpoint: URL? = nil, timeout: TimeInterval = 45) {
+    init(endpoint: URL? = nil, timeout: TimeInterval = 60) {
         let fromEnv = ProcessInfo.processInfo.environment["CPD_ENDPOINT_URL"]
             .flatMap(URL.init(string:))
         self.endpoint = endpoint ?? fromEnv ?? URL(string: "http://127.0.0.1:8765")!
