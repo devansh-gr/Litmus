@@ -11,9 +11,11 @@ text you analyze never leaves the Mac. (The ⌘B hotkey needs a one-time
 
 ## Architecture — the two halves do what each is actually good at
 
-- **Detection** (fast, ~3 s): a local **Llama-3.2-3B-Instruct** scores the
-  log-probability of each persuasion-vector label → the technique + a *calibrated*
-  confidence. This is the x-ray verdict.
+- **Detection** (fast, ~3 s): a local **Llama-3.2-3B-Instruct** (4-bit **MLX** by
+  default — ~2 GB, Apple-native) scores the log-probability of each
+  persuasion-vector label → the technique + a *calibrated* confidence, plus the
+  runner-up **mixture** (real persuasion is a blend). Verdicts are memoized. This
+  is the x-ray verdict.
 - **Interpretation** (opt-in, ~2 min): **Meta's TRIBE v2** (a foundation model of
   fMRI brain responses, trained on 700+ subjects) predicts cortical activation for
   the text, z-scored vs a neutral baseline and grouped into named systems
@@ -55,7 +57,7 @@ server/                              # the local inference server
 ```sh
 cd server
 uv venv --python 3.11 .venv
-uv pip install --python .venv/bin/python -e vendor/tribev2 fastapi uvicorn nilearn scipy
+uv pip install --python .venv/bin/python -e vendor/tribev2 fastapi uvicorn nilearn scipy mlx mlx-lm
 .venv/bin/python apply_patches.py         # CUDA-free (Apple Silicon) + offline-TTS patches
 .venv/bin/hf auth login                   # gated: accept meta-llama/Llama-3.2-3B on HF first
 .venv/bin/python build_baseline.py        # writes baseline.npz (~20 min, one-time)
@@ -78,7 +80,9 @@ profile, click the **🧠 menu bar → Deep-scan cortex**.
 - `CPD_CLASSIFIER=mock|remote` (default remote)
 - `CPD_ENDPOINT_URL` (default `http://127.0.0.1:8765`)
 - `CPD_MIN_CONFIDENCE` (default 30 — suppress weak verdicts)
-- `CPD_LLM` (default `meta-llama/Llama-3.2-3B-Instruct`)
+- `CPD_LLM_BACKEND=mlx|transformers` (default `mlx` — 4-bit, ~2 GB; `transformers` is fp32, ~6.5 GB)
+- `CPD_MLX_MODEL` (default `mlx-community/Llama-3.2-3B-Instruct-4bit`)
+- `CPD_LLM` (transformers backend model, default `meta-llama/Llama-3.2-3B-Instruct`)
 
 ## Requirements
 macOS 14+, Apple Silicon (uses MPS), full Xcode, Homebrew, `uv`, a Hugging Face

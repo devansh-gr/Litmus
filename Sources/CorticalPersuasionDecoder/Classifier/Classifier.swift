@@ -12,12 +12,28 @@ struct ClassificationInput {
     }
 }
 
+/// One vector with its probability — used for the runner-up mixture.
+struct VectorScore {
+    let vector: PersuasionVector
+    let probability: Double
+}
+
 /// A classification result. `confidence` is mandatory on every verdict (0.0–1.0)
-/// — no unqualified calls, per project rule.
+/// — no unqualified calls, per project rule. `alternatives` are the runner-up
+/// vectors (real persuasion is a mixture, not a single label).
 struct Verdict {
     let vector: PersuasionVector
     let confidence: Double
     let rationale: String?
+    let alternatives: [VectorScore]
+
+    init(vector: PersuasionVector, confidence: Double, rationale: String?,
+         alternatives: [VectorScore] = []) {
+        self.vector = vector
+        self.confidence = confidence
+        self.rationale = rationale
+        self.alternatives = alternatives
+    }
 }
 
 /// The seam that decouples capture from classification. Implementations:

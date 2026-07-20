@@ -33,10 +33,15 @@ struct RemoteClassifier: Classifier {
         self.timeout = timeout
     }
 
+    private struct Alt: Decodable {
+        let vector: String
+        let p: Double
+    }
     private struct ClassifyResponse: Decodable {
         let vector: String
         let confidence: Int
         let rationale: String?
+        let alternatives: [Alt]?
     }
 
     private struct BrainMapResponse: Decodable {
@@ -59,10 +64,15 @@ struct RemoteClassifier: Classifier {
             // The server answers "none" for neutral content, which has no vector.
             throw RemoteClassifierError.neutral
         }
+        let alternatives = (response.alternatives ?? []).compactMap { alt -> VectorScore? in
+            guard let v = PersuasionVector(rawValue: alt.vector) else { return nil }
+            return VectorScore(vector: v, probability: alt.p)
+        }
         return Verdict(
             vector: vector,
             confidence: Double(response.confidence) / 100.0,
-            rationale: response.rationale
+            rationale: response.rationale,
+            alternatives: alternatives
         )
     }
 

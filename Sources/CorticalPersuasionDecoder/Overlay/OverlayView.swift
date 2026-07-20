@@ -20,6 +20,12 @@ struct NoticeCard: View {
     }
 }
 
+/// A runner-up vector in the mixture line.
+struct MixtureItem {
+    let label: String
+    let pct: Int
+}
+
 /// The verdict card.
 ///
 /// IMPORTANT — what this does and does NOT claim:
@@ -34,6 +40,7 @@ struct VerdictCard: View {
     let mechanism: String
     let confidence: Double          // 0.0-1.0
     let rationale: String?
+    let mixture: [MixtureItem]      // runner-up vectors (real persuasion is a blend)
     let profile: [CorticalSystem]?  // non-nil => brain map done
     let regionsFailed: Bool
     let awaitingBrain: Bool         // true => a deep scan is in flight (spinner)
@@ -77,6 +84,13 @@ struct VerdictCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !mixture.isEmpty {
+                Text("also: " + mixture.map { "\($0.label) \($0.pct)%" }.joined(separator: " · "))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Divider().padding(.vertical, 2)
 

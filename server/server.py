@@ -21,6 +21,7 @@ import os
 import logging
 import re
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -78,14 +79,26 @@ app = FastAPI(title="Cortical Persuasion Decoder")
 @app.on_event("startup")
 def _prewarm():
     # Load the detector at startup (in the background) so the first ⌘B doesn't
-    # eat a ~40s cold load in the request path. TRIBE v2 stays lazy (per-brainmap).
-    threading.Thread(target=get_llm, daemon=True).start()
+    # eat a cold load in the request path. TRIBE v2 stays lazy (per-brainmap).
+    threading.Thread(target=warm_detector, daemon=True).start()
+
+# Detector backend: "mlx" (4-bit, ~2GB, Apple-native — default) or "transformers"
+# (fp32, ~6.5GB). MLX is far lighter, so it coexists with TRIBE without thrashing.
+LLM_BACKEND = os.environ.get("CPD_LLM_BACKEND", "mlx")
+MLX_MODEL = os.environ.get("CPD_MLX_MODEL", "mlx-community/Llama-3.2-3B-Instruct-4bit")
 
 _lock = threading.Lock()
 _llm = None
 _tok = None
+_mlx = None
 _tribe = None
 _atlas = None
+_classify_cache: dict[str, dict] = {}   # memoize verdicts by exact text
+
+# MLX's GPU stream is thread-local, so ALL detector work (load + inference) must
+# run on one dedicated thread — otherwise FastAPI's threadpool hops workers and
+# MLX raises "no Stream(gpu, N) in current thread". Also serialises requests.
+_detector = ThreadPoolExecutor(max_workers=1, thread_name_prefix="detector")
 
 
 class TextIn(BaseModel):
@@ -119,6 +132,71 @@ def get_llm():
             )
             log.info("LLM ready on %s (eager attn)", _device())
     return _llm, _tok
+
+
+def get_mlx():
+    global _mlx
+    with _lock:
+        if _mlx is None:
+            from mlx_lm import load
+            log.info("loading MLX %s ...", MLX_MODEL)
+            _mlx = load(MLX_MODEL)
+            log.info("MLX detector ready")
+    return _mlx
+
+
+def warm_detector():
+    """Load the active detector backend on the dedicated detector thread."""
+    _detector.submit(get_mlx if LLM_BACKEND == "mlx" else get_llm)
+
+
+def _chat_prompt(tok, text: str) -> str:
+    return tok.apply_chat_template(
+        [{"role": "system", "content": SYSTEM}, {"role": "user", "content": text}],
+        tokenize=False, add_generation_prompt=True,
+    )
+
+
+def _label_scores(text: str) -> list[float]:
+    """Length-normalised log P(label | prompt) for each vector, via the active
+    backend. Same scoring for both so accuracy/calibration are comparable."""
+    if LLM_BACKEND == "mlx":
+        import mlx.core as mx
+        model, tok = get_mlx()
+
+        def enc(s, special=True):
+            try:
+                return tok.encode(s, add_special_tokens=special)
+            except TypeError:
+                return tok._tokenizer.encode(s, add_special_tokens=special)
+
+        prompt_ids = enc(_chat_prompt(tok, text))
+        scores = []
+        for label in VECTORS:
+            lab_ids = enc(label, special=False)
+            ids = prompt_ids + lab_ids
+            logits = model(mx.array([ids]))[0]
+            lp = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
+            total = sum(lp[len(prompt_ids) + j - 1, tokid].item()
+                        for j, tokid in enumerate(lab_ids))
+            scores.append(total / len(lab_ids))
+        return scores
+
+    # transformers backend
+    model, tok = get_llm()
+    prompt_ids = tok(_chat_prompt(tok, text), return_tensors="pt").input_ids.to(_device())
+    scores = []
+    with torch.no_grad():
+        for label in VECTORS:
+            lab_ids = tok(label, add_special_tokens=False, return_tensors="pt").input_ids.to(_device())
+            ids = torch.cat([prompt_ids, lab_ids], dim=1)
+            logits = model(ids).logits[0]
+            logprobs = torch.log_softmax(logits[:-1].float(), dim=-1)
+            tgt = ids[0, 1:]
+            n_lab = lab_ids.shape[1]
+            lp = logprobs[-n_lab:].gather(1, tgt[-n_lab:].unsqueeze(1)).sum()
+            scores.append((lp / n_lab).item())
+    return scores
 
 
 def get_tribe():
@@ -182,44 +260,32 @@ def classify(inp: TextIn):
     calibrated confidence, which is what the project's "confidence is mandatory"
     rule actually demands.
     """
-    model, tok = get_llm()
-    msgs = [
-        {"role": "system", "content": SYSTEM},
-        {"role": "user", "content": inp.text},
-    ]
-    prompt = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
-    prompt_ids = tok(prompt, return_tensors="pt").input_ids.to(_device())
+    key = inp.text.strip()
+    if key in _classify_cache:                 # memoize exact-text repeats
+        return {**_classify_cache[key], "cached": True}
 
-    scores = []
-    with torch.no_grad():
-        for label in VECTORS:
-            lab_ids = tok(label, add_special_tokens=False, return_tensors="pt").input_ids.to(_device())
-            ids = torch.cat([prompt_ids, lab_ids], dim=1)
-            logits = model(ids).logits[0]
-            # log P(label tokens | prompt), length-normalised so long label names
-            # are not penalised.
-            logprobs = torch.log_softmax(logits[:-1].float(), dim=-1)
-            tgt = ids[0, 1:]
-            n_lab = lab_ids.shape[1]
-            lp = logprobs[-n_lab:].gather(1, tgt[-n_lab:].unsqueeze(1)).sum()
-            scores.append((lp / n_lab).item())
+    import math
+    scores = _detector.submit(_label_scores, inp.text).result()  # pinned thread (MLX)
+    m = max(scores)
+    exps = [math.exp(s - m) for s in scores]
+    z = sum(exps)
+    probs = [e / z for e in exps]
 
-    probs = torch.softmax(torch.tensor(scores), dim=0)
-    best = int(torch.argmax(probs))
-    vector = VECTORS[best]
-    confidence = int(round(float(probs[best]) * 100))
-
+    best = max(range(len(VECTORS)), key=lambda i: probs[i])
     ranked = sorted(
-        [{"vector": v, "p": round(float(p), 4)} for v, p in zip(VECTORS, probs)],
+        [{"vector": v, "p": round(p, 4)} for v, p in zip(VECTORS, probs)],
         key=lambda d: -d["p"],
     )
-    return {
-        "vector": vector,
-        "confidence": confidence,
-        "rationale": DEFINITIONS[vector],
+    result = {
+        "vector": VECTORS[best],
+        "confidence": int(round(probs[best] * 100)),
+        "rationale": DEFINITIONS[VECTORS[best]],
         "alternatives": ranked[1:4],
-        "source": "llama-3.2-3b-instruct (local, label log-prob scoring)",
+        "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, label log-prob scoring)",
     }
+    if len(_classify_cache) < 512:
+        _classify_cache[key] = result
+    return result
 
 
 # Curated VALUE + LANGUAGE-EVALUATION ROIs. Ranking ALL regions of a single

@@ -21,7 +21,8 @@ final class OverlayController {
     /// from a previous selection cannot overwrite a newer card.
     private var generation = 0
 
-    private var current: (title: String, mechanism: String, confidence: Double, rationale: String?)?
+    private var current: (title: String, mechanism: String, confidence: Double,
+                          rationale: String?, mixture: [MixtureItem])?
 
     /// `anchor` is a global AppKit point (bottom-left origin) near the selection.
     /// Returns a generation token to pass back to `updateRegions`.
@@ -30,7 +31,13 @@ final class OverlayController {
         dismiss()
         generation += 1
 
-        current = (entry.displayName, entry.mechanism, verdict.confidence, verdict.rationale)
+        let mixture = verdict.alternatives
+            .filter { $0.probability >= 0.08 }
+            .prefix(2)
+            .map { MixtureItem(label: Taxonomy.entry(for: $0.vector).displayName,
+                               pct: Int(($0.probability * 100).rounded())) }
+        current = (entry.displayName, entry.mechanism, verdict.confidence,
+                   verdict.rationale, Array(mixture))
         let card = makeCard(profile: nil, failed: false, awaiting: false)
 
         let hosting = NSHostingView(rootView: card)
@@ -89,12 +96,13 @@ final class OverlayController {
     }
 
     private func makeCard(profile: [CorticalSystem]?, failed: Bool, awaiting: Bool) -> VerdictCard {
-        let c = current ?? ("", "", 0, nil)
+        let c = current ?? ("", "", 0, nil, [])
         return VerdictCard(
             title: c.title,
             mechanism: c.mechanism,
             confidence: c.confidence,
             rationale: c.rationale,
+            mixture: c.mixture,
             profile: profile,
             regionsFailed: failed,
             awaitingBrain: awaiting
