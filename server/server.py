@@ -20,8 +20,10 @@ import json
 import os
 import logging
 import re
+import subprocess
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import numpy as np
@@ -73,14 +75,15 @@ SYSTEM = (
     + "\nAnswer with the technique name only."
 )
 
-app = FastAPI(title="Cortical Persuasion Decoder")
-
-
-@app.on_event("startup")
-def _prewarm():
-    # Load the detector at startup (in the background) so the first ⌘B doesn't
-    # eat a cold load in the request path. TRIBE v2 stays lazy (per-brainmap).
+@asynccontextmanager
+async def _lifespan(app):
+    # Load the detector at startup (in the background) so the first ⌘B doesn't eat
+    # a cold load in the request path. TRIBE v2 stays lazy (per-brainmap).
     threading.Thread(target=warm_detector, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="Cortical Persuasion Decoder", lifespan=_lifespan)
 
 # Detector backend: "mlx" (4-bit, ~2GB, Apple-native — default) or "transformers"
 # (fp32, ~6.5GB). MLX is far lighter, so it coexists with TRIBE without thrashing.
@@ -226,6 +229,21 @@ def _free_tribe():
         torch.mps.empty_cache()
 
 
+def _swap_pressure() -> float:
+    """Fraction of swap in use (0..1), 0 if unknown. Loading TRIBE (~7GB) when swap
+    is already near-full sends the machine into disk thrash, so /brainmap bails."""
+    try:
+        out = subprocess.run(["sysctl", "-n", "vm.swapusage"],
+                             capture_output=True, text=True, timeout=2).stdout
+        total = float(re.search(r"total = ([\d.]+)M", out).group(1))
+        used = float(re.search(r"used = ([\d.]+)M", out).group(1))
+        # Require an absolute floor so a small-but-full swap on a RAM-rich machine
+        # doesn't false-trip.
+        return (used / total) if (total and used > 10_000) else 0.0
+    except Exception:
+        return 0.0
+
+
 def get_atlas():
     """Destrieux parcellation on fsaverage5 -> matches TRIBE's 20484 vertices."""
     global _atlas
@@ -346,6 +364,11 @@ def brainmap(inp: TextIn):
        (r=0.83-0.90), so "fear targets the amygdala" would be fiction -- and this
        model cannot see the amygdala at all (cortex-only).
     """
+    pressure = _swap_pressure()
+    if pressure > 0.90:
+        return {"error": f"Low memory (swap {int(pressure * 100)}% full) — brain map "
+                         "skipped to avoid disk thrashing. Reboot to reclaim swap."}
+
     tribe = get_tribe()
     CACHE.mkdir(exist_ok=True)
     txt = CACHE / "live_input.txt"

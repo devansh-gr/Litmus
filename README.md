@@ -73,7 +73,10 @@ xcodebuild -project CorticalPersuasionDecoder.xcodeproj -target CorticalPersuasi
 open build/Debug/CorticalPersuasionDecoder.app
 ```
 Then grant Accessibility when prompted, select text anywhere + **⌘B** → verdict
-card appears (override the key with `CPD_HOTKEY=D` etc.). For the cortical
+card appears (override the key with `CPD_HOTKEY=D` etc.). **Ad-hoc builds:** the
+Accessibility grant is tied to the build's code hash, so after a rebuild ⌘B may
+silently stop — re-toggle the app under *System Settings ▸ Privacy & Security ▸
+Accessibility* (or sign with an Apple Developer cert for a stable identity). For the cortical
 profile, click the **🧠 menu bar → Deep-scan cortex**.
 
 ### Config (env)

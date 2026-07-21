@@ -30,6 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var captureEnabled = true
     private weak var pauseItem: NSMenuItem?
 
+    /// True while a classify or deep-scan is running — serialises GPU work (MLX
+    /// classify vs PyTorch brain-map both use Metal) and prevents request backlog.
+    private var isBusy = false
+
     /// Menu-bar presence + region-capture trigger (Milestone 2).
     private var statusItem: NSStatusItem?
     private var regionSelector: RegionSelector?
@@ -122,10 +126,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 report("🔤 OCR found no text in the selected region.")
                 return
             }
-            let oneLine = text.replacingOccurrences(of: "\n", with: " ⏎ ")
-            report("🔤 OCR: \(oneLine)")
-            // Anchor the card at the top-right corner of the captured region.
-            await classifyAndPresent(text, anchor: CGPoint(x: rect.maxX, y: rect.maxY))
+            // Route through the same guards as ⌘B (pause / secrets / trivial / busy),
+            // anchored at the region's top-right corner.
+            await MainActor.run {
+                self.analyze(text, anchor: CGPoint(x: rect.maxX, y: rect.maxY), source: "OCR")
+            }
         } catch {
             report("⚠️  region/OCR failed: \(error.localizedDescription)")
         }
@@ -164,6 +169,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         monitor.start()
         hotkeyMonitor = monitor
         report("✂️  Ready — select any text and press ⌘B to analyze it.")
+        // Ad-hoc builds: the Accessibility grant is tied to the code hash, so a
+        // rebuild can silently break ⌘B. If that happens, re-toggle this app under
+        // System Settings ▸ Privacy & Security ▸ Accessibility.
+        report("   (if ⌘B ever stops working after a rebuild, re-grant Accessibility.)")
     }
 
     private func handleHotkey() {
@@ -175,23 +184,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 report("⌘B: no text selected.")
                 return
             }
-            self.handleCapturedText(text)
+            self.analyze(text, anchor: NSEvent.mouseLocation, source: "copied")
         }
     }
 
-    /// Capture → classify → print the label + show overlay.
-    private func handleCapturedText(_ text: String) {
-        guard captureEnabled else { return }
-        guard !SensitiveText.looksSensitive(text) else {
-            report("🔒 copied text looks like a secret (password/token/card) — skipped.")
-            return
+    /// Shared gate for BOTH ⌘B and region-OCR: honor pause, skip secrets and
+    /// trivial/blank text, avoid overlapping GPU work, then classify. Must run on
+    /// the main thread. (Fixes region-bypass, blank input, Metal overlap, backlog.)
+    private func analyze(_ text: String, anchor: CGPoint, source: String) {
+        guard captureEnabled else { report("⏸  paused — \(source) ignored."); return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else {
+            report("· \(source): too short to analyze — skipped."); return
         }
-        let oneLine = text.replacingOccurrences(of: "\n", with: " ⏎ ")
+        guard !SensitiveText.looksSensitive(text) else {
+            report("🔒 \(source) looks like a secret (password/token/card) — skipped."); return
+        }
+        guard !isBusy else {
+            report("⏳ busy — \(source) ignored (a scan is running)."); return
+        }
+        let oneLine = trimmed.replacingOccurrences(of: "\n", with: " ⏎ ")
         let clipped = oneLine.count > 140 ? String(oneLine.prefix(140)) + "…" : oneLine
-        report("✂️  copied (\(text.count) chars): \(clipped)")
-        // The mouse is at the end of the just-made selection — a good anchor.
-        let anchor = NSEvent.mouseLocation
-        Task { await classifyAndPresent(text, anchor: anchor) }
+        report("✂️  \(source) (\(trimmed.count) chars): \(clipped)")
+        isBusy = true
+        Task {
+            await classifyAndPresent(trimmed, anchor: anchor)
+            await MainActor.run { self.isBusy = false }
+        }
     }
 
     private func classifyAndPresent(_ text: String, anchor: CGPoint) async {
@@ -246,13 +265,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Opt-in deep cortical scan (Milestone 5, slow path)
 
     @objc private func deepScanCortex() {
+        guard !isBusy else {
+            report("⏳ busy — wait for the current scan to finish."); return
+        }
         guard let brainMapper, let text = lastCapturedText else {
-            report("🧠 deep scan: nothing captured yet — select text + ⌘C first.")
+            report("🧠 deep scan: nothing captured yet — select text + ⌘B first.")
             return
         }
         let token = lastOverlayToken
         report("🧠 deep scan: modelling cortex for last selection (~2 min)…")
         overlay.beginBrainScan(token: token)
+        isBusy = true
         Task {
             do {
                 let profile = try await brainMapper.brainMap(for: text)
@@ -265,6 +288,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 report("   ↳ cortical map unavailable: \(error.localizedDescription)")
                 await MainActor.run { overlay.updateProfile(nil, failed: true, token: token) }
             }
+            await MainActor.run { self.isBusy = false }
         }
     }
 }

@@ -45,10 +45,12 @@ struct RemoteClassifier: Classifier {
     }
 
     private struct BrainMapResponse: Decodable {
-        let impactProfile: [CorticalSystem]
+        let impactProfile: [CorticalSystem]?
+        let error: String?
 
         enum CodingKeys: String, CodingKey {
             case impactProfile = "impact_profile"
+            case error
         }
     }
 
@@ -82,7 +84,10 @@ struct RemoteClassifier: Classifier {
         let response: BrainMapResponse = try await post(
             path: "/brainmap", text: text, timeout: 300
         )
-        return response.impactProfile
+        if let error = response.error {           // e.g. low-memory skip
+            throw RemoteClassifierError.server(error)
+        }
+        return response.impactProfile ?? []
     }
 
     // MARK: - Transport
@@ -114,12 +119,14 @@ enum RemoteClassifierError: Error, LocalizedError {
     case noText
     case neutral
     case badStatus(Int)
+    case server(String)
 
     var errorDescription: String? {
         switch self {
         case .noText: return "No text to classify."
         case .neutral: return "Classified as neutral — no persuasion vector."
         case .badStatus(let code): return "Inference server returned HTTP \(code)."
+        case .server(let message): return message
         }
     }
 }
