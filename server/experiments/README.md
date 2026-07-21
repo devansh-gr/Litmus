@@ -12,6 +12,7 @@ phase, kept for provenance/reproducibility. Not part of the running product.
 | `a4_text_baseline.py` | Does bag-of-words beat the brain map? | No (43% vs 75%) — but TF-IDF was a strawman; uninformative. |
 | `a5_llama_baseline.py` | Does the *Llama embedding* beat the brain map? | Yes, 100% vs 75% → the brain projection adds **no** detection power. |
 | `a6_offline_tts_check.py` | Is the gTTS→Google privacy leak gone? | Yes — offline macOS `say`, `(4, 20484)` still produced. |
+| `text_only_probe.py` | Does feeding TRIBE word-events *without* audio remove the TTS/auditory confound? | No — auditory is model-intrinsic (still d=1.72); but text-only is feasible, faster, drops all audio deps, and preserves the semantic signal (d=0.99). |
 | `a7_curated_roi.py` | Can *curated* semantic ROIs separate emotional per-sentence? | Yes — d=0.95, p=0.02 → the impact profile is honest. |
 
 Full narrative + literature verification live in the Obsidian vault
