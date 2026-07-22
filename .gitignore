@@ -14,8 +14,7 @@ xcuserdata/
 server/.venv/
 server/cache/
 server/vendor/
-server/baseline.npz
-server/baseline_partial.npz
+server/baseline*.npz
 __pycache__/
 *.pyc
 

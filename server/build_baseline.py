@@ -1,17 +1,21 @@
 """Build the per-vertex baseline that makes /brainmap meaningful.
 
-THE PROBLEM: TRIBE v2's text path synthesises speech, so raw activation for ANY
-sentence is dominated by primary auditory cortex ("there is speech") -- a TTS
-artifact, not content. We z-score new text against this baseline so only
-CONTENT-driven deviation survives.
+THE PROBLEM: even TRIBE v2's TEXT path (word events, no audio) predicts strong
+primary-auditory activation for ANY sentence -- that dominance is intrinsic to
+the model (trained on speech), not the input (I1). We z-score new text against
+this baseline so only CONTENT-driven deviation survives.
 
 THE BASELINE MUST BE NEUTRAL TEXT. If the baseline contains emotional sentences,
 z-scoring subtracts the emotional signal too, leaving only sensorimotor noise
 (learned the hard way). A neutral baseline makes emotional text deviate in the
 fronto-orbital / value regions that A2-A3 validated against published fMRI.
 
-CRASH-RESILIENT: checkpoints to baseline_partial.npz after every sentence and
-resumes on restart, so a hang costs at most one sentence.
+THE BASELINE MUST MATCH THE QUERY-TIME MODE. Set CPD_BRAINMAP_MODE the same way
+here as when serving (default "text"). The partial checkpoint and final file are
+mode-tagged so an audio baseline is never silently mixed with a text one.
+
+CRASH-RESILIENT: checkpoints after every sentence and resumes on restart, so a
+hang costs at most one sentence.
 """
 
 import time
@@ -20,9 +24,11 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from tribe_events import BRAINMAP_MODE, build_events, harden_tribe
+
 HERE = Path(__file__).parent
 CACHE = HERE / "cache"
-PARTIAL = HERE / "baseline_partial.npz"
+PARTIAL = HERE / f"baseline_partial_{BRAINMAP_MODE}.npz"
 FINAL = HERE / "baseline.npz"
 
 # Neutral / informational reference corpus. Deliberately varied in topic and
@@ -79,6 +85,9 @@ def main() -> None:
     model = TribeModel.from_pretrained(
         "facebook/tribev2", cache_folder=str(CACHE), device=device
     )
+    harden_tribe(model)  # num_workers=0 -> no forked-worker deadlock (froze at 2/30)
+    print(f"[mode] CPD_BRAINMAP_MODE={BRAINMAP_MODE} | num_workers={model.data.num_workers}",
+          flush=True)
 
     t0 = time.time()
     for i, sent in enumerate(NEUTRAL):
@@ -86,15 +95,17 @@ def main() -> None:
             continue
         txt = CACHE / f"neutral_baseline_{i}.txt"
         txt.write_text(sent)
-        events = model.get_events_dataframe(text_path=str(txt))
+        events = build_events(model, sent, str(txt))  # mode-dispatched (text|audio)
         preds, _ = model.predict(events=events, verbose=False)
         done[i] = np.asarray(preds).mean(axis=0)
         np.savez(PARTIAL, **{f"v{k}": v for k, v in done.items()})
         print(f"  {len(done)}/{len(NEUTRAL)}  ({time.time()-t0:.0f}s)", flush=True)
 
     X = np.stack([done[i] for i in range(len(NEUTRAL))])
-    np.savez(FINAL, mean=X.mean(axis=0), std=np.maximum(X.std(axis=0), 1e-9), n=len(NEUTRAL))
-    print(f"\n[saved] {FINAL}  from {len(NEUTRAL)} NEUTRAL sentences", flush=True)
+    np.savez(FINAL, mean=X.mean(axis=0), std=np.maximum(X.std(axis=0), 1e-9),
+             n=len(NEUTRAL), mode=BRAINMAP_MODE)
+    print(f"\n[saved] {FINAL}  from {len(NEUTRAL)} NEUTRAL sentences ({BRAINMAP_MODE} mode)",
+          flush=True)
 
 
 if __name__ == "__main__":

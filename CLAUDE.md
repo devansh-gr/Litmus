@@ -28,16 +28,26 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
   into a profile: Value(orbitofrontal) / Language(inferior-frontal) / Executive(dlPFC).
 - **The auditory dominance is model-intrinsic** (TRIBE trained on speech), not from the TTS
   audio — text-only input does NOT fix it (I1). Curated ROIs are mandatory either way.
+- **`/brainmap` now ships the TEXT-ONLY path by default** (`CPD_BRAINMAP_MODE=text`): synthetic
+  word events, NO TTS / NO WhisperX. Re-validated end-to-end against a text-only neutral
+  baseline — emotional vs neutral still separates at held-out **d=0.77** (large), carried by the
+  Language/inferior-frontal system (`verify_text_only_baseline.py`). The baseline MUST match the
+  mode (server refuses a mismatch); the old audio baseline is kept as `baseline_audio.npz`.
 - The z-score baseline (`baseline.npz`) **must be built from NEUTRAL text**; an emotional
   baseline cancels the very signal you want.
 
 ## Engineering gotchas — you WILL hit these
-- **Build:** full Xcode + `xcodegen generate` (project.yml → .xcodeproj, git-ignored) →
-  `xcodebuild -project … -target CorticalPersuasionDecoder -configuration Debug build`.
-  App is a background agent (LSUIElement), **ad-hoc signed, unsandboxed**.
-- **Ad-hoc signing ⇒ the Accessibility grant is tied to the code hash.** Every rebuild can
-  silently kill the ⌘B hotkey (no error). Re-toggle the app in System Settings ▸ Privacy &
-  Security ▸ Accessibility (or sign with an Apple Dev cert for a stable identity).
+- **Build:** `scripts/build.sh` (xcodegen generate → xcodebuild Debug → re-sign). App is a
+  background agent (LSUIElement), unsandboxed. Do NOT rely on Xcode's automatic ad-hoc signing.
+- **Stable signing is SOLVED (self-signed, no Apple ID).** Ad-hoc signing tied the Accessibility
+  (TCC) grant to the code hash, so every rebuild silently killed ⌘B. Fix: a persistent
+  self-signed identity **"CPD Local Signing"** (`scripts/make_signing_identity.sh`, run once —
+  creates + trusts a local code-signing cert). `scripts/sign_app.sh` re-signs the build with it,
+  giving a STABLE designated requirement (`identifier … and certificate leaf = H"b33a…"`) that
+  survives rebuilds → the grant sticks. `build.sh` chains all three. One-time cost: after the
+  FIRST stable-signed build the grant must be re-added once (the requirement changed from the old
+  ad-hoc hash); after that, rebuilds keep it. Falls back to ad-hoc with a warning if the identity
+  is absent (fresh checkout still runs).
 - **Detector = MLX 4-bit (~2GB) on purpose.** TRIBE hides its OWN 3B text-encoder (~7GB); a
   co-loaded fp32 detector + TRIBE ≈ 13GB → swap-thrash on the 24GB Mac. Server frees TRIBE
   after each `/brainmap`; keep the light MLX detector resident.
@@ -45,10 +55,16 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
   (`_detector` executor) or FastAPI's threadpool throws "no Stream(gpu,N) in current thread".
 - **Llama GQA breaks MPS** (24 Q vs 8 KV heads → mps_matmul "failed to infer result type").
   transformers backend needs `attn_implementation="eager"`; MLX handles it natively.
-- **All TRIBE patches live in `server/apply_patches.py`** (idempotent, run after any reinstall):
-  WhisperX float16→int8 (Apple CPU), DataLoader `num_workers`→0 (else a silent 4-hour deadlock),
-  device routing (audio encoder on MPS = 4m→3s), and **gTTS→offline `say`+ffmpeg** (gTTS
-  uploaded the highlighted text to Google — a privacy leak).
+- **`num_workers` MUST be forced to 0 AFTER `from_pretrained`.** The checkpoint's own config
+  resets `data.num_workers` to `N_CPUS` (~20) at load time, silently overriding the source
+  default — those forked DataLoader workers DEADLOCK on macOS (froze the baseline build at 2/30,
+  0% CPU, and spawn ~14 stuck children). `tribe_events.harden_tribe(model)` sets it back to 0 and
+  MUST run after every load (both `server.get_tribe()` and `build_baseline.py` call it). The
+  `apply_patches.py` source patch is necessary but NOT sufficient — the checkpoint wins.
+- **Other TRIBE patches live in `server/apply_patches.py`** (idempotent, run after any reinstall):
+  WhisperX float16→int8 (Apple CPU), device routing (audio encoder on MPS = 4m→3s), and
+  **gTTS→offline `say`+ffmpeg** (gTTS uploaded the highlighted text to Google — a privacy leak).
+  Note the default text-only path uses none of the audio patches; they matter only in `audio` mode.
 - Run Python probes with **`python -u`** — `nohup` buffers stdout and it looks hung at 0% CPU.
 - 24GB RAM: watch `sysctl vm.swapusage`. Heavy model churn maxes swap; only a reboot clears it.
   `/brainmap` self-skips when swap >90% and returns an error the card shows.
@@ -62,19 +78,23 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
 ## Run
 ```sh
 cd server && .venv/bin/python server.py            # wait for "MLX detector ready"
-open build/Debug/CorticalPersuasionDecoder.app     # (xcodebuild first if not built)
+./scripts/build.sh                                 # xcodegen + xcodebuild + stable re-sign
+open build/Debug/CorticalPersuasionDecoder.app
 ```
 Env: `CPD_CLASSIFIER=mock|remote`, `CPD_LLM_BACKEND=mlx|transformers`, `CPD_HOTKEY=B`,
-`CPD_MIN_CONFIDENCE=30`, `CPD_ENDPOINT_URL`.
+`CPD_MIN_CONFIDENCE=30`, `CPD_ENDPOINT_URL`, `CPD_BRAINMAP_MODE=text|audio` (default `text`;
+rebuild `baseline.npz` with the matching mode via `build_baseline.py`).
 
 ## Layout & detail
 `Sources/` Swift app (App / Capture / Classifier / Overlay / Taxonomy / Support / Hotkey).
-`server/` FastAPI server, `build_baseline.py`, `apply_patches.py`, `vendor/tribev2`.
-`server/experiments/` the A1–A7 + text_only validation scripts (README table = results).
+`server/` FastAPI server, `tribe_events.py` (mode dispatch + `harden_tribe`), `build_baseline.py`,
+`apply_patches.py`, `vendor/tribev2`.
+`server/experiments/` the A1–A7 + text-only validation scripts (README table = results).
+`scripts/` `make_signing_identity.sh` · `sign_app.sh` · `build.sh`.
 Full narrative + literature checks: Obsidian vault `03 Projects/Cortical_Persuasion_Decoder/`.
 Repo: github.com/devansh-gr/Media_Emotion_Detector (private).
 
 ## Open options (undecided — ask before doing)
-Switch `/brainmap` to text-only (faster; needs a neutral text-only baseline rebuild) ·
-subcortical training / Track B (weeks, interpretation-only, parked) · stable code-signing
-(needs Apple ID) · confidence-calibration study · browser extension · vision-LLM for images.
+Subcortical training / Track B (weeks, interpretation-only, parked) · confidence-calibration
+study · browser extension · vision-LLM for images.
+(DONE, no longer options: text-only `/brainmap` is the default; stable self-signed code-signing.)

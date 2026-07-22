@@ -31,6 +31,8 @@ import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from tribe_events import BRAINMAP_MODE, build_events, harden_tribe
+
 HERE = Path(__file__).parent
 CACHE = HERE / "cache"
 # 3B detector (accurate: 5/5 in testing; the 1B mislabels neutral text). The 24GB
@@ -212,7 +214,8 @@ def get_tribe():
             _tribe = TribeModel.from_pretrained(
                 "facebook/tribev2", cache_folder=str(CACHE), device=_device()
             )
-            log.info("TRIBE v2 ready")
+            harden_tribe(_tribe)  # num_workers=0: checkpoint resets it to ~20 -> deadlock
+            log.info("TRIBE v2 ready (num_workers=%s)", _tribe.data.num_workers)
     return _tribe
 
 
@@ -375,7 +378,9 @@ def brainmap(inp: TextIn):
     txt.write_text(inp.text)
 
     try:
-        events = tribe.get_events_dataframe(text_path=str(txt))
+        # Default "text" mode injects synthetic word events (no TTS/WhisperX); the
+        # baseline is built the same way. See tribe_events.py / experiment I1.
+        events = build_events(tribe, inp.text, str(txt))
         preds, _ = tribe.predict(events=events)
         vertex_mean = np.asarray(preds).mean(axis=0)   # (20484,)
     finally:
@@ -388,6 +393,13 @@ def brainmap(inp: TextIn):
     if not base_path.exists():
         return {"error": "baseline.npz missing -- run build_baseline.py first"}
     b = np.load(base_path)
+    # The baseline is only valid for the mode it was built in (text vs audio give
+    # different absolute activations). Refuse a mismatch rather than z-score garbage.
+    base_mode = str(b["mode"]) if "mode" in b.files else "audio"
+    if base_mode != BRAINMAP_MODE:
+        return {"error": f"baseline.npz was built in '{base_mode}' mode but the server "
+                         f"is running in '{BRAINMAP_MODE}' mode. Rebuild with "
+                         f"CPD_BRAINMAP_MODE={BRAINMAP_MODE} python build_baseline.py."}
     zvert = (vertex_mean - b["mean"]) / b["std"]   # deviation from neutral baseline
 
     labels, annot = get_atlas()
@@ -426,7 +438,9 @@ def brainmap(inp: TextIn):
         "headline_regions": regions[:4],
         "baseline_n": int(b["n"]),
         "n_vertices": int(vertex_mean.shape[0]),
-        "source": "TRIBE v2 (local) -> cortical impact profile, z-scored vs neutral baseline",
+        "mode": BRAINMAP_MODE,
+        "source": f"TRIBE v2 (local, {BRAINMAP_MODE} path) -> cortical impact profile, "
+                  "z-scored vs neutral baseline",
         "interpretation": "how strongly the content recruits each cortical system "
                           "above neutral text. Validated d=0.95 emotional-vs-neutral "
                           "(A7), consistent with published fMRI on emotional-word reading.",
