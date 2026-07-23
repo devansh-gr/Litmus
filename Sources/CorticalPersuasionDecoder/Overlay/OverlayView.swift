@@ -42,20 +42,20 @@ struct MixtureItem {
 
 // MARK: - Mini brain
 
-/// A stylized LATERAL cortex (frontal lobe at the left) that glows over the
-/// frontal systems the content engages. Intensities come from the MEASURED impact
-/// profile when a deep-scan has run; before that it shows the *typical* persuasion
-/// cortex (value + language) at a fixed low glow — a general fact about persuasive
-/// language (experiment A7), NOT a per-vector anatomical claim. Positions are
-/// approximate on purpose ("roughly is okay").
+/// A real lateral-brain drawing (see `BrainArt`, CC0) that glows over the frontal
+/// systems the content engages. Intensity is the MEASURED impact profile after a
+/// deep-scan; before that it shows the *typical* persuasion cortex (value +
+/// language) at a fixed low glow — an A7-backed general fact about persuasive
+/// language, NOT a per-vector anatomical claim. Region positions are approximate.
 struct MiniBrainView: View {
     let profile: [CorticalSystem]?
 
+    // Frontal-lobe hotspots in normalized viewBox coords (frontal lobe is at left).
     private struct Region { let key: String; let at: CGPoint; let typical: Double }
     private static let regions: [Region] = [
-        .init(key: "dlpfc",            at: CGPoint(x: 0.35, y: 0.30), typical: 0.20),  // executive
-        .init(key: "inferior frontal", at: CGPoint(x: 0.25, y: 0.48), typical: 0.55),  // language
-        .init(key: "orbitofrontal",    at: CGPoint(x: 0.28, y: 0.63), typical: 0.62),  // value
+        .init(key: "dlpfc",            at: CGPoint(x: 0.19, y: 0.34), typical: 0.20),  // executive
+        .init(key: "inferior frontal", at: CGPoint(x: 0.22, y: 0.54), typical: 0.55),  // language
+        .init(key: "orbitofrontal",    at: CGPoint(x: 0.25, y: 0.66), typical: 0.62),  // value
     ]
 
     private var measured: Bool { profile != nil }
@@ -73,74 +73,36 @@ struct MiniBrainView: View {
 
     var body: some View {
         Canvas { ctx, size in
-            let brain = Self.brainPath(size)
+            let vb = BrainArt.viewBox
+            let s = min(size.width / vb.width, size.height / vb.height)
+            let tf = CGAffineTransform(translationX: (size.width - vb.width * s) / 2,
+                                       y: (size.height - vb.height * s) / 2).scaledBy(x: s, y: s)
+            let body = BrainArt.body.applying(tf)
+            let lines = BrainArt.lines.applying(tf)
 
-            ctx.fill(brain, with: .color(.primary.opacity(0.06)))
+            // Soft, theme-aware body fill so the glows read through.
+            ctx.fill(body, with: .color(.primary.opacity(0.06)))
 
             // Region glows, clipped to the cortex silhouette.
             ctx.drawLayer { layer in
-                layer.clip(to: brain)
+                layer.clip(to: body)
                 for r in Self.regions {
                     let t = intensity(r)
                     guard t > 0.03 else { continue }
                     let c = heat(t)
-                    let center = CGPoint(x: r.at.x * size.width, y: r.at.y * size.height)
-                    let rad = min(size.width, size.height) * (0.20 + 0.18 * t)
+                    let center = CGPoint(x: r.at.x * vb.width, y: r.at.y * vb.height).applying(tf)
+                    let rad = min(size.width, size.height) * (0.26 + 0.22 * t)
                     let rect = CGRect(x: center.x - rad, y: center.y - rad, width: rad * 2, height: rad * 2)
                     layer.fill(Path(ellipseIn: rect),
-                               with: .radialGradient(Gradient(colors: [c.opacity(0.9), c.opacity(0)]),
+                               with: .radialGradient(Gradient(colors: [c.opacity(0.95), c.opacity(0)]),
                                                      center: center, startRadius: 0, endRadius: rad))
                 }
             }
 
-            // Sulci texture + outline on top.
-            for arc in Self.sulci(size) {
-                ctx.stroke(arc, with: .color(.secondary.opacity(0.28)), lineWidth: 0.8)
-            }
-            ctx.stroke(brain, with: .color(.secondary.opacity(0.55)),
-                       style: StrokeStyle(lineWidth: 1.3, lineJoin: .round))
-
-            // Tiny locator dots so cool regions are still readable.
-            for r in Self.regions {
-                let center = CGPoint(x: r.at.x * size.width, y: r.at.y * size.height)
-                let d = 2.4
-                ctx.fill(Path(ellipseIn: CGRect(x: center.x - d, y: center.y - d, width: d * 2, height: d * 2)),
-                         with: .color(.primary.opacity(0.28)))
-            }
+            // Outline + gyri on top, in the theme's foreground colour.
+            ctx.fill(lines, with: .color(.primary.opacity(0.62)))
         }
         .accessibilityHidden(true)
-    }
-
-    /// Left-facing lateral cerebrum + cerebellum + brainstem, in `size` coords.
-    private static func brainPath(_ size: CGSize) -> Path {
-        let w = size.width, h = size.height
-        let P = { (x: CGFloat, y: CGFloat) in CGPoint(x: x * w, y: y * h) }
-        var p = Path()
-        p.move(to: P(0.12, 0.52))
-        p.addCurve(to: P(0.32, 0.14), control1: P(0.12, 0.28), control2: P(0.18, 0.16))
-        p.addCurve(to: P(0.74, 0.14), control1: P(0.46, 0.05), control2: P(0.62, 0.05))
-        p.addCurve(to: P(0.90, 0.42), control1: P(0.86, 0.18), control2: P(0.93, 0.30))
-        p.addCurve(to: P(0.70, 0.64), control1: P(0.89, 0.56), control2: P(0.82, 0.63))
-        p.addCurve(to: P(0.30, 0.66), control1: P(0.58, 0.66), control2: P(0.42, 0.69))
-        p.addCurve(to: P(0.12, 0.52), control1: P(0.20, 0.65), control2: P(0.11, 0.60))
-        p.closeSubpath()
-        p.addEllipse(in: CGRect(x: 0.66 * w, y: 0.56 * h, width: 0.21 * w, height: 0.22 * h))  // cerebellum
-        p.addPath(Path(roundedRect: CGRect(x: 0.44 * w, y: 0.64 * h, width: 0.10 * w, height: 0.20 * h),
-                       cornerRadius: 0.03 * w))                                                  // brainstem
-        return p
-    }
-
-    private static func sulci(_ size: CGSize) -> [Path] {
-        let w = size.width, h = size.height
-        let P = { (x: CGFloat, y: CGFloat) in CGPoint(x: x * w, y: y * h) }
-        func arc(_ m: CGPoint, _ c1: CGPoint, _ c2: CGPoint, _ e: CGPoint) -> Path {
-            var a = Path(); a.move(to: m); a.addCurve(to: e, control1: c1, control2: c2); return a
-        }
-        return [
-            arc(P(0.31, 0.22), P(0.24, 0.34), P(0.40, 0.40), P(0.35, 0.54)),
-            arc(P(0.50, 0.15), P(0.44, 0.36), P(0.60, 0.42), P(0.53, 0.60)),
-            arc(P(0.68, 0.18), P(0.62, 0.36), P(0.78, 0.42), P(0.67, 0.58)),
-        ]
     }
 }
 
@@ -252,7 +214,7 @@ struct VerdictCard: View {
     private var brainSection: some View {
         HStack(alignment: .center, spacing: 14) {
             MiniBrainView(profile: regionsFailed ? nil : profile)
-                .frame(width: 128, height: 100)
+                .frame(width: 138, height: 96)
                 .opacity(regionsFailed ? 0.35 : 1)
 
             VStack(alignment: .leading, spacing: 6) {
