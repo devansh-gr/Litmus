@@ -216,6 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let oneLine = trimmed.replacingOccurrences(of: "\n", with: " ⏎ ")
         let clipped = oneLine.count > 140 ? String(oneLine.prefix(140)) + "…" : oneLine
         report("✂️  \(source) (\(trimmed.count) chars): \(clipped)")
+        overlay.showNotice("Analyzing…", anchor: anchor)   // instant feedback so a 1–4s scan doesn't look dead
         isBusy = true
         Task {
             await classifyAndPresent(trimmed, anchor: anchor)
@@ -229,6 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             verdict = try await classifier.classify(ClassificationInput(text: text))
         } catch RemoteClassifierError.neutral {
             report("🧠 neutral — no persuasion vector detected.")
+            await MainActor.run { overlay.showNotice("No manipulation detected ✓", anchor: anchor) }
             return
         } catch let urlError as URLError {
             // A timeout means the server is up but the model is still warming —
@@ -251,12 +253,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        guard verdict.confidence >= Config.confidenceThreshold else {
-            let pct = Int((verdict.confidence * 100).rounded())
-            report("🧠 \(verdict.vector.rawValue) at \(pct)% — below threshold, suppressed.")
-            return
-        }
-
+        // No confidence threshold: always show the verdict (even weak/low-confidence),
+        // so ⌘B never silently no-ops. The confidence number itself conveys strength.
         let entry = Taxonomy.entry(for: verdict.vector)
         let pct = Int((verdict.confidence * 100).rounded())
         report("🧠 \(entry.displayName)   [confidence \(pct)%]")
