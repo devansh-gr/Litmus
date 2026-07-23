@@ -3,11 +3,21 @@ import os
 
 let log = Logger(subsystem: "ai.zeonsystems.corticalpersuasiondecoder", category: "capture")
 
-/// Writes to both stderr (visible when run from Terminal / the Xcode console) and
-/// the unified log (visible in Console.app, filtered by the subsystem above).
+/// Writes to stderr (Terminal/Xcode console), the unified log (Console.app), and a
+/// plain log file — the file is the only one visible when launched via `open`.
+let cpdLogFile = (NSHomeDirectory() as NSString)
+    .appendingPathComponent("Library/Logs/CorticalPersuasionDecoder.log")
+
 func report(_ message: String) {
     FileHandle.standardError.write(Data(("[CPD] " + message + "\n").utf8))
     log.log("\(message, privacy: .public)")
+    let line = "[\(Date())] \(message)\n"
+    let url = URL(fileURLWithPath: cpdLogFile)
+    if let fh = try? FileHandle(forWritingTo: url) {
+        fh.seekToEndOfFile(); try? fh.write(contentsOf: Data(line.utf8)); try? fh.close()
+    } else {
+        try? Data(line.utf8).write(to: url)
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
