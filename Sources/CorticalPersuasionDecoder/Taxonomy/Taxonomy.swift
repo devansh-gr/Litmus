@@ -11,6 +11,9 @@ enum PersuasionVector: String, CaseIterable, Codable {
     case authorityAppeal             = "authority-appeal"
     case falseUrgency                = "false-urgency"
     case socialProofConformity       = "social-proof-conformity"
+    case hypeHopeMongering           = "hype-hope-mongering"
+    case fomo                        = "fomo"
+    case manufacturedAwe             = "manufactured-awe"
 }
 
 /// Display name + the cognitive *technique* a vector uses.
@@ -53,6 +56,15 @@ enum Taxonomy {
         .socialProofConformity: .init(
             vector: .socialProofConformity, displayName: "Social-proof conformity",
             mechanism: "Signals that everyone is doing it, so fear of being left out replaces independent judgment."),
+        .hypeHopeMongering: .init(
+            vector: .hypeHopeMongering, displayName: "Hype / hope-mongering",
+            mechanism: "Inflates an exciting or utopian upside so desire and optimism outrun scrutiny of the claim."),
+        .fomo: .init(
+            vector: .fomo, displayName: "FOMO",
+            mechanism: "Warns you'll be left behind if you don't act, so anxiety about missing out drives adoption."),
+        .manufacturedAwe: .init(
+            vector: .manufacturedAwe, displayName: "Manufactured awe",
+            mechanism: "Frames it as revolutionary and unprecedented, so awe overwhelms your skepticism."),
     ]
 
     /// Table is exhaustive over the enum, so this is total.

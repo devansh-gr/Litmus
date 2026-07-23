@@ -53,6 +53,9 @@ VECTORS = [
     "authority-appeal",
     "false-urgency",
     "social-proof-conformity",
+    "hype-hope-mongering",
+    "fomo",
+    "manufactured-awe",
     "none",
 ]
 
@@ -67,6 +70,9 @@ DEFINITIONS = {
     "authority-appeal": "leans on experts, officials, science or authority to settle it",
     "false-urgency": "imposes a deadline or time pressure: act now, expires, last chance",
     "social-proof-conformity": "everyone else is doing it, don't be left out, join the crowd",
+    "hype-hope-mongering": "sells an exciting or utopian upside — this will change your life or the world — to make you want in",
+    "fomo": "plays on fear of being left behind or missing the future if you don't get on board now",
+    "manufactured-awe": "inflates something as revolutionary, unprecedented or world-changing to overwhelm skepticism",
     "none": "neutral, factual or informational; no manipulation",
 }
 
