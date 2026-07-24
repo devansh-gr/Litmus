@@ -94,6 +94,13 @@ rebuild `baseline.npz` with the matching mode via `build_baseline.py`).
 Full narrative + literature checks: Obsidian vault `03 Projects/Cortical_Persuasion_Decoder/`.
 Repo: github.com/devansh-gr/Media_Emotion_Detector (private).
 
+## Known issues (TODO)
+- **Capture Region (OCR → classify) does NOT work** (confirmed 2026-07-23). The 🧠 menu ▸
+  "Capture Region" path — drag-select → ScreenCaptureKit screenshot → Vision OCR → classify —
+  fails to produce a verdict. Suspect Screen-Recording permission / SCScreenshotManager capture
+  or the OCR step; deferred, needs debugging. Everything else works: ⌘B classify, Deep-scan
+  cortex (re-presents its card now), Pause capture, Quit.
+
 ## Open options (undecided — ask before doing)
 Subcortical training / Track B (weeks, interpretation-only, parked) · confidence-calibration
 study · browser extension · vision-LLM for images.
