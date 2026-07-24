@@ -98,6 +98,12 @@ app = FastAPI(title="Cortical Persuasion Decoder", lifespan=_lifespan)
 LLM_BACKEND = os.environ.get("CPD_LLM_BACKEND", "mlx")
 MLX_MODEL = os.environ.get("CPD_MLX_MODEL", "mlx-community/Llama-3.2-3B-Instruct-4bit")
 
+# Confidence sharpening. With 12 candidate labels a raw softmax dilutes the winner
+# (a clear false-urgency landed at ~20%), which reads as unsure. Dividing the
+# scores by a temperature < 1 sharpens the distribution so the top vector reports
+# an ASSERTIVE confidence. Lower = more assertive. Override with CPD_CONFIDENCE_TEMP.
+CONFIDENCE_TEMP = float(os.environ.get("CPD_CONFIDENCE_TEMP", "0.25"))
+
 _lock = threading.Lock()
 _llm = None
 _tok = None
@@ -294,7 +300,7 @@ def classify(inp: TextIn):
     import math
     scores = _detector.submit(_label_scores, inp.text).result()  # pinned thread (MLX)
     m = max(scores)
-    exps = [math.exp(s - m) for s in scores]
+    exps = [math.exp((s - m) / CONFIDENCE_TEMP) for s in scores]  # T<1 => assertive
     z = sum(exps)
     probs = [e / z for e in exps]
 

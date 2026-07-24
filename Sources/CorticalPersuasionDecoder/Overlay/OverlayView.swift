@@ -131,8 +131,8 @@ struct VerdictCard: View {
 
     private var accent: Color {
         switch confidence {
-        case ..<0.34: return .secondary
-        case ..<0.67: return .orange
+        case ..<0.25: return .secondary
+        case ..<0.50: return .orange
         default:      return .red
         }
     }
@@ -239,10 +239,10 @@ struct VerdictCard: View {
                         Text("modelling cortex…").font(.caption2).foregroundStyle(.tertiary)
                     }
                 } else {
-                    Text("Rough map — value + language cortex.")
+                    Text("Driving your value + language cortex.")
                         .font(.caption2).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Label("Deep-scan (🧠) to measure this text", systemImage: "scope")
+                    Label("Deep-scan (🧠) to map it precisely", systemImage: "scope")
                         .font(.system(size: 9)).foregroundStyle(.tertiary)
                 }
             }
