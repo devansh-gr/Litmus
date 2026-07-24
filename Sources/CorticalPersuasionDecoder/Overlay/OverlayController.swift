@@ -28,9 +28,6 @@ final class OverlayController {
     /// Returns a generation token to pass back to `updateRegions`.
     @discardableResult
     func show(verdict: Verdict, entry: TaxonomyEntry, anchor: CGPoint) -> Int {
-        dismiss()
-        generation += 1
-
         let mixture = verdict.alternatives
             .filter { $0.probability >= 0.08 }
             .prefix(2)
@@ -38,9 +35,25 @@ final class OverlayController {
                                pct: Int(($0.probability * 100).rounded())) }
         current = (entry.displayName, entry.mechanism, verdict.confidence,
                    verdict.rationale, Array(mixture))
-        let card = makeCard(profile: nil, failed: false, awaiting: false)
+        return showCard(awaiting: false, anchor: anchor)
+    }
 
-        let hosting = NSHostingView(rootView: card)
+    /// Re-present the LAST verdict — used by a menu-triggered deep-scan, since
+    /// opening the menu bar dismisses the on-screen card. Returns a fresh token to
+    /// drive `beginBrainScan`/`updateProfile`, or nil if there's nothing to show.
+    @discardableResult
+    func reshowLastVerdict(anchor: CGPoint) -> Int? {
+        guard current != nil else { return nil }
+        return showCard(awaiting: true, anchor: anchor)
+    }
+
+    /// Present a verdict panel from the stored `current`. `awaiting` shows the
+    /// brain-scan spinner state immediately.
+    private func showCard(awaiting: Bool, anchor: CGPoint) -> Int {
+        dismiss()
+        generation += 1
+
+        let hosting = NSHostingView(rootView: makeCard(profile: nil, failed: false, awaiting: awaiting))
         hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
 

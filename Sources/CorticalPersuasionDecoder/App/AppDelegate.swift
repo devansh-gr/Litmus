@@ -280,8 +280,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             report("🧠 deep scan: nothing captured yet — select text + ⌘B first.")
             return
         }
-        let token = lastOverlayToken
-        report("🧠 deep scan: modelling cortex for last selection (~2 min)…")
+        // The verdict card was dismissed when the menu opened, so re-present it
+        // (near the cursor) to host the result; fall back to the old token if it's
+        // somehow still up.
+        let token = overlay.reshowLastVerdict(anchor: NSEvent.mouseLocation) ?? lastOverlayToken
+        report("🧠 deep scan: modelling cortex for last selection (~30s)…")
         overlay.beginBrainScan(token: token)
         isBusy = true
         Task {
