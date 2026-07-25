@@ -10,7 +10,9 @@ struct NoticeCard: View {
         if message.contains("✓")            { return ("checkmark.seal.fill", .green) }
         if m.contains("analy")              { return ("sparkles", .blue) }
         if m.contains("warm")               { return ("hourglass", .orange) }
-        if m.contains("offline") || m.contains("error") { return ("exclamationmark.triangle.fill", .orange) }
+        if m.contains("screen recording") || m.contains("enable it") { return ("rectangle.dashed.badge.record", .orange) }
+        if m.contains("offline") || m.contains("error") || m.contains("fail")
+            || m.contains("no readable") { return ("exclamationmark.triangle.fill", .orange) }
         return ("info.circle.fill", .secondary)
     }
 

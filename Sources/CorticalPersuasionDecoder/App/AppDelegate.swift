@@ -103,10 +103,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func captureRegion() {
-        guard CGPreflightScreenCaptureAccess() else {
-            report("⚠️  Screen Recording permission needed. Approve the dialog, then enable this app under")
-            report("    System Settings ▸ Privacy & Security ▸ Screen Recording, and try again.")
-            CGRequestScreenCaptureAccess()
+        // Anchor notices near the cursor (the menu-bar click point).
+        let anchor = NSEvent.mouseLocation
+        guard Permissions.isScreenRecordingTrusted() else {
+            report("⚠️  Screen Recording permission needed for Capture Region.")
+            report("    Enable this app under System Settings ▸ Privacy & Security ▸ Screen Recording, then REOPEN it.")
+            // Critical UX: without an on-screen notice this looked like a dead click.
+            overlay.showNotice("Screen Recording is off. Enable it for this app in System Settings, then reopen the app.",
+                               anchor: anchor)
+            Permissions.requestScreenRecording()       // system dialog (first request only)
+            Permissions.openScreenRecordingSettings()   // jump straight to the pane
             return
         }
         report("🖼️  Drag to select a region… (Esc to cancel)")
@@ -124,6 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func captureRegionAndClassify(_ rect: CGRect) async {
+        let anchor = CGPoint(x: rect.maxX, y: rect.maxY)
         do {
             let image = try await RegionCapture.capture(globalRect: rect)
             let url = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -134,15 +141,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let text = try OCRService.recognizeText(in: image)
             guard !text.isEmpty else {
                 report("🔤 OCR found no text in the selected region.")
+                await MainActor.run { self.overlay.showNotice("No readable text in that region.", anchor: anchor) }
                 return
             }
             // Route through the same guards as ⌘B (pause / secrets / trivial / busy),
             // anchored at the region's top-right corner.
             await MainActor.run {
-                self.analyze(text, anchor: CGPoint(x: rect.maxX, y: rect.maxY), source: "OCR")
+                self.analyze(text, anchor: anchor, source: "OCR")
             }
         } catch {
             report("⚠️  region/OCR failed: \(error.localizedDescription)")
+            await MainActor.run {
+                self.overlay.showNotice("Capture failed: \(error.localizedDescription)", anchor: anchor)
+            }
         }
     }
 
