@@ -81,6 +81,13 @@ cd server && .venv/bin/python server.py            # wait for "MLX detector read
 ./scripts/build.sh                                 # xcodegen + xcodebuild + stable re-sign
 open build/Debug/CorticalPersuasionDecoder.app
 ```
+**The server runs 24/7 via a launchd agent** (`scripts/launchd/ai.zeonsystems.cpd.server.plist`,
+installed at `~/Library/LaunchAgents/`): `RunAtLoad` + `KeepAlive` → starts at login and respawns
+on crash; logs to `~/Library/Logs/cpd_server.log`; port 8765. So you normally do NOT hand-run
+`server.py` — that would double-bind the port. Manage it with launchctl (gui/$(id -u) domain):
+`bootstrap`/`bootout` to install/remove, `kickstart -k …/ai.zeonsystems.cpd.server` to restart.
+It's a LaunchAgent, so it runs while the user is logged in (not at the login screen). The **🧠
+menu-bar icon is the APP**, a separate process; the server is headless with no icon.
 Env: `CPD_CLASSIFIER=mock|remote`, `CPD_LLM_BACKEND=mlx|transformers`, `CPD_HOTKEY=B`,
 `CPD_MIN_CONFIDENCE=30`, `CPD_ENDPOINT_URL`, `CPD_BRAINMAP_MODE=text|audio` (default `text`;
 rebuild `baseline.npz` with the matching mode via `build_baseline.py`).
