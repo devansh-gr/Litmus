@@ -73,10 +73,18 @@ final class OverlayController {
         self.hosting = hosting
 
         installDismissMonitors()
-        // Generous timeout: the brain map can take ~30s+ to arrive.
-        scheduleAutoDismiss(after: 60)
+        // While awaiting a deep scan the card must outlive the brain map, which can
+        // take ~2 min on a cold TRIBE reload (server timeout is 300s). A fixed 60s
+        // here dismissed the card first, so updateProfile's `panel != nil` guard
+        // then silently dropped the result — "deep scan does nothing".
+        scheduleAutoDismiss(after: awaiting ? Self.awaitingTimeout : Self.normalTimeout)
         return generation
     }
+
+    /// Auto-dismiss windows: short for a plain verdict, long enough to outlast a
+    /// cold brain-map (>300s server timeout) while a deep scan is in flight.
+    private static let normalTimeout: TimeInterval = 60
+    private static let awaitingTimeout: TimeInterval = 360
 
     /// Switch the current card into the "scanning cortex" state (spinner). Called
     /// when the user opts into a deep scan from the menu.
@@ -84,6 +92,9 @@ final class OverlayController {
         guard token == generation, let hosting else { return }
         hosting.rootView = makeCard(profile: nil, failed: false, awaiting: true)
         resizeToFit()
+        // A deep scan can be triggered on an already-open card (whose short timer is
+        // running) — extend it so the map isn't dropped mid-flight.
+        scheduleAutoDismiss(after: Self.awaitingTimeout)
     }
 
     /// Fill in the cortical impact profile once TRIBE v2 returns. `token` must
@@ -92,6 +103,8 @@ final class OverlayController {
         guard token == generation, let hosting, panel != nil else { return }
         hosting.rootView = makeCard(profile: profile, failed: failed, awaiting: false)
         resizeToFit()
+        // Result is in — revert the long deep-scan window to the normal linger.
+        scheduleAutoDismiss(after: Self.normalTimeout)
     }
 
     /// Re-fit the panel to the current card, keeping the top-left corner pinned.
@@ -185,6 +198,10 @@ final class OverlayController {
     }
 
     private func scheduleAutoDismiss(after seconds: TimeInterval) {
+        // Cancel any pending dismissal first: re-arming (deep scan extends, then the
+        // result reverts) would otherwise leave the earlier, shorter timer live and
+        // it would dismiss the card out from under the new deadline.
+        dismissWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.dismiss() }
         dismissWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
