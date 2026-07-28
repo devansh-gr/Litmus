@@ -64,13 +64,20 @@ final class OverlayController {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        // NOT .transient: a transient panel is hidden whenever its owning app is
+        // inactive, and this LSUIElement agent is essentially never active — that
+        // silently hid the verdict card ("scans, but nothing pops up").
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentView = hosting
         panel.setFrameOrigin(position(for: size, near: anchor))
         panel.orderFrontRegardless()
 
         self.panel = panel
         self.hosting = hosting
+
+        let f = panel.frame
+        report("🃏 card presented: visible=\(panel.isVisible) appActive=\(NSApp.isActive) "
+             + "at \(Int(f.minX)),\(Int(f.minY)) \(Int(f.width))×\(Int(f.height))")
 
         installDismissMonitors()
         // While awaiting a deep scan the card must outlive the brain map, which can
@@ -152,7 +159,10 @@ final class OverlayController {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.level = .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        // NOT .transient: a transient panel is hidden whenever its owning app is
+        // inactive, and this LSUIElement agent is essentially never active — that
+        // silently hid the verdict card ("scans, but nothing pops up").
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentView = hosting
         panel.setFrameOrigin(position(for: size, near: anchor))
         panel.orderFrontRegardless()

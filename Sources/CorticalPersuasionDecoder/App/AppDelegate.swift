@@ -201,14 +201,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleHotkey() {
         guard captureEnabled else { return }
+        guard !isBusy else { report("⏳ busy — ⌘B ignored (a scan is running)."); return }
+        // Instant feedback the moment ⌘B is pressed — BEFORE the ~0.3s copy + classify —
+        // so the user always sees something is happening. Anchor is captured now (the
+        // mouse may move during the scan).
+        let anchor = NSEvent.mouseLocation
+        overlay.showNotice("Analyzing…", anchor: anchor)
         // Small delay so the physical ⌘B key-up doesn't collide with the synthetic ⌘C.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self else { return }
             guard let text = PasteboardCapture.selectedTextViaCopy(), !text.isEmpty else {
                 report("⌘B: no text selected.")
+                self.overlay.showNotice("No text selected — highlight something first.", anchor: anchor)
                 return
             }
-            self.analyze(text, anchor: NSEvent.mouseLocation, source: "copied")
+            self.analyze(text, anchor: anchor, source: "copied")
         }
     }
 
