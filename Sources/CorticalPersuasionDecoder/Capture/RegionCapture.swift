@@ -36,8 +36,13 @@ enum RegionCapture {
             throw RegionCaptureError.noDisplay
         }
 
+        // Exclude our OWN windows (e.g. a still-compositing selection overlay) so the
+        // shot is the clean underlying content, not our blue dimming layer.
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let ownWindows = content.windows.filter { $0.owningApplication?.processID == ownPID }
+
         // Full-display screenshot at native resolution.
-        let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
+        let filter = SCContentFilter(display: scDisplay, excludingWindows: ownWindows)
         let config = SCStreamConfiguration()
         config.width = Int(CGFloat(scDisplay.width) * scale)
         config.height = Int(CGFloat(scDisplay.height) * scale)

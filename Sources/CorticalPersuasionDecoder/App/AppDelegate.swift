@@ -131,6 +131,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func captureRegionAndClassify(_ rect: CGRect) async {
         let anchor = CGPoint(x: rect.maxX, y: rect.maxY)
+        // Let the selection overlay finish disappearing before the screenshot, so we
+        // capture the underlying text rather than our blue dimming layer.
+        try? await Task.sleep(nanoseconds: 120_000_000)
         do {
             let image = try await RegionCapture.capture(globalRect: rect)
             let url = URL(fileURLWithPath: NSTemporaryDirectory())
