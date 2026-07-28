@@ -21,6 +21,10 @@
         <string>text</string>
         <key>CPD_CONFIDENCE_TEMP</key>
         <string>0.25</string>
+        <!-- Keep TRIBE warm 2 min after a deep scan so back-to-back scans skip the
+             ~7GB reload. Self-protecting: scans can't start while swap > 90%. -->
+        <key>CPD_TRIBE_WARM_SECS</key>
+        <string>120</string>
     </dict>
 
     <!-- Start at login and keep it alive: relaunch if it ever exits/crashes. -->

@@ -104,13 +104,23 @@ MLX_MODEL = os.environ.get("CPD_MLX_MODEL", "mlx-community/Llama-3.2-3B-Instruct
 # an ASSERTIVE confidence. Lower = more assertive. Override with CPD_CONFIDENCE_TEMP.
 CONFIDENCE_TEMP = float(os.environ.get("CPD_CONFIDENCE_TEMP", "0.25"))
 
+# Keep TRIBE resident for this many seconds after a /brainmap so back-to-back deep
+# scans skip the ~7GB reload (the reload is most of the ~15s a warm scan takes).
+# 0 = free immediately (safest on a low-RAM machine). The warm window is self-
+# protecting: a scan can't start while swap > 90%, so TRIBE only lingers when RAM
+# is actually healthy.
+TRIBE_WARM_SECS = float(os.environ.get("CPD_TRIBE_WARM_SECS", "0"))
+
 _lock = threading.Lock()
 _llm = None
 _tok = None
 _mlx = None
 _tribe = None
 _atlas = None
+_baseline = None                        # cached baseline.npz arrays (mean/std/n/mode)
+_free_timer = None                      # idle timer that frees TRIBE after the warm window
 _classify_cache: dict[str, dict] = {}   # memoize verdicts by exact text
+_brainmap_cache: dict[str, dict] = {}   # memoize cortical profiles by exact text
 
 # MLX's GPU stream is thread-local, so ALL detector work (load + inference) must
 # run on one dedicated thread — otherwise FastAPI's threadpool hops workers and
@@ -242,6 +252,44 @@ def _free_tribe():
     gc.collect()
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
+
+
+def _schedule_free_tribe():
+    """Free TRIBE now, or after an idle window if CPD_TRIBE_WARM_SECS > 0 so
+    consecutive deep scans skip the reload. The timer is cancelled at the start of
+    every /brainmap (see _cancel_free_timer), so it can never fire mid-scan."""
+    global _free_timer
+    if TRIBE_WARM_SECS <= 0:
+        _free_tribe()
+        return
+    with _lock:
+        if _free_timer is not None:
+            _free_timer.cancel()
+        _free_timer = threading.Timer(TRIBE_WARM_SECS, _free_tribe)
+        _free_timer.daemon = True
+        _free_timer.start()
+
+
+def _cancel_free_timer():
+    global _free_timer
+    with _lock:
+        if _free_timer is not None:
+            _free_timer.cancel()
+            _free_timer = None
+
+
+def _get_baseline():
+    """Load baseline.npz once and cache its arrays (avoids re-reading ~160KB of
+    per-vertex mean/std on every scan). Rebuilding the baseline needs a restart."""
+    global _baseline
+    with _lock:
+        if _baseline is None:
+            p = HERE / "baseline.npz"
+            if not p.exists():
+                return None
+            z = np.load(p)
+            _baseline = {k: z[k] for k in z.files}
+    return _baseline
 
 
 def _swap_pressure() -> float:
@@ -379,11 +427,18 @@ def brainmap(inp: TextIn):
        (r=0.83-0.90), so "fear targets the amygdala" would be fiction -- and this
        model cannot see the amygdala at all (cortex-only).
     """
+    # Exact-text memoization: a repeated scan (e.g. the same demo sentence) returns
+    # instantly with NO model load — so it works even under memory pressure.
+    key = inp.text.strip()
+    if key in _brainmap_cache:
+        return {**_brainmap_cache[key], "cached": True}
+
     pressure = _swap_pressure()
     if pressure > 0.90:
         return {"error": f"Low memory (swap {int(pressure * 100)}% full) — brain map "
                          "skipped to avoid disk thrashing. Reboot to reclaim swap."}
 
+    _cancel_free_timer()   # a warm-window timer must not free TRIBE mid-scan
     tribe = get_tribe()
     CACHE.mkdir(exist_ok=True)
     txt = CACHE / "live_input.txt"
@@ -397,17 +452,16 @@ def brainmap(inp: TextIn):
         vertex_mean = np.asarray(preds).mean(axis=0)   # (20484,)
     finally:
         # TRIBE v2 carries a 3B text-encoder + audio encoders (~7GB). Free it after
-        # each call so the resident footprint stays just the 3B detector, keeping
-        # the interactive /classify fast on a 24GB machine.
-        _free_tribe()
+        # each call (or after the warm window) so the resident footprint stays just
+        # the 3B detector, keeping the interactive /classify fast on a 24GB machine.
+        _schedule_free_tribe()
 
-    base_path = HERE / "baseline.npz"
-    if not base_path.exists():
+    b = _get_baseline()
+    if b is None:
         return {"error": "baseline.npz missing -- run build_baseline.py first"}
-    b = np.load(base_path)
     # The baseline is only valid for the mode it was built in (text vs audio give
     # different absolute activations). Refuse a mismatch rather than z-score garbage.
-    base_mode = str(b["mode"]) if "mode" in b.files else "audio"
+    base_mode = str(b["mode"]) if "mode" in b else "audio"
     if base_mode != BRAINMAP_MODE:
         return {"error": f"baseline.npz was built in '{base_mode}' mode but the server "
                          f"is running in '{BRAINMAP_MODE}' mode. Rebuild with "
@@ -444,7 +498,7 @@ def brainmap(inp: TextIn):
 
     engagement = float(np.mean([r["activation_z"] for r in regions])) if regions else 0.0
 
-    return {
+    result = {
         "impact_profile": profile,
         "value_cortex_engagement_z": round(engagement, 3),
         "headline_regions": regions[:4],
@@ -461,6 +515,9 @@ def brainmap(inp: TextIn):
                   "only semantic systems (emotional text also drives TTS-acoustic "
                   "sensorimotor cortex, which we exclude).",
     }
+    if len(_brainmap_cache) < 256:
+        _brainmap_cache[key] = result
+    return result
 
 
 if __name__ == "__main__":
