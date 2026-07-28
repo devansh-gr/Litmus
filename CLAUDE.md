@@ -90,7 +90,19 @@ It's a LaunchAgent, so it runs while the user is logged in (not at the login scr
 menu-bar icon is the APP**, a separate process; the server is headless with no icon.
 Env: `CPD_CLASSIFIER=mock|remote`, `CPD_LLM_BACKEND=mlx|transformers`, `CPD_HOTKEY=B`,
 `CPD_MIN_CONFIDENCE=30`, `CPD_ENDPOINT_URL`, `CPD_BRAINMAP_MODE=text|audio` (default `text`;
-rebuild `baseline.npz` with the matching mode via `build_baseline.py`).
+rebuild `baseline.npz` with the matching mode via `build_baseline.py`),
+`CPD_TRIBE_WARM_SECS` (keep TRIBE resident N s after a `/brainmap` so back-to-back deep
+scans skip the ~7GB reload; launchd default 120, code default 0 = free immediately).
+
+## Deep-scan performance
+`/brainmap` is ~15s when RAM is healthy — most of it is the ~7GB TRIBE reload (freed after
+each call). Two levers, both safe: (1) an **exact-text result cache** (`_brainmap_cache`) — a
+repeated scan returns instantly with NO model load, checked *before* the swap guard so it
+works even under memory pressure; (2) **`CPD_TRIBE_WARM_SECS`** keeps TRIBE resident for a
+window so consecutive scans skip the reload — self-protecting because a scan can't start while
+swap > 90%. `baseline.npz` is also cached in memory (`_get_baseline`; rebuilding it needs a
+server restart). NOTE: none of this runs while swap is maxed — `/brainmap` returns a "reboot to
+reclaim swap" error; measure warm-vs-cold only after a reboot.
 
 ## Layout & detail
 `Sources/` Swift app (App / Capture / Classifier / Overlay / Taxonomy / Support / Hotkey).
@@ -100,6 +112,16 @@ rebuild `baseline.npz` with the matching mode via `build_baseline.py`).
 `scripts/` `make_signing_identity.sh` · `sign_app.sh` · `build.sh`.
 Full narrative + literature checks: Obsidian vault `03 Projects/Cortical_Persuasion_Decoder/`.
 Repo: github.com/devansh-gr/Media_Emotion_Detector (private).
+
+## Demo (how to film it)
+Lead with the magic: highlight manipulative text → ⌘B → verdict card. Then range (3 tactics),
+a neutral control ("No manipulation detected ✓"), then the Deep-scan wow, then the on-device
+close. Use a keystroke visualizer (KeyCastr) + Focus/DND + Screen Studio. **Don't demo Capture
+Region** (broken). Warm the deep-scan with a throwaway scan first (or reboot if swap is high).
+Verified example texts: `Act now or lose everything forever.` → false-urgency ~99%; `This will
+completely change your life and the entire world forever.` → hype ~93%; `Everyone is switching,
+don't get left behind.` → fomo ~78%; a plain factual sentence → neutral. Full playbook +
+shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `docs/`.
 
 ## Known issues (TODO)
 - **Capture Region (OCR → classify) does NOT work** (confirmed 2026-07-23). The 🧠 menu ▸
