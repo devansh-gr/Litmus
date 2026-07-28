@@ -1,0 +1,314 @@
+<style>
+  :root {
+    --ground:#EDF1F5; --surface:#FFFFFF; --surface-2:#F5F8FB;
+    --ink:#0E141B; --ink-soft:#55616F; --ink-faint:#8592A1;
+    --line:#D3DBE4; --line-soft:#E3E9EF;
+    --signal:#0B6F8C; --signal-bright:#0B7E9E; --activation:#C8431F; --amber:#A9720C; --good:#2E7D57;
+    --serif:ui-serif,"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,-apple-system,system-ui,"Segoe UI","Helvetica Neue",sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --r:5px; --shadow:0 1px 2px rgba(14,20,27,.06), 0 8px 26px rgba(14,20,27,.07);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0A0E13; --surface:#121A22; --surface-2:#0E151C;
+    --ink:#E7EDF3; --ink-soft:#98A6B4; --ink-faint:#6B7A89;
+    --line:#223140; --line-soft:#1A2530;
+    --signal:#37C6E8; --signal-bright:#52D3F1; --activation:#FF6B45; --amber:#E8A72E; --good:#4FBE8B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 32px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="light"]{
+    --ground:#EDF1F5; --surface:#FFFFFF; --surface-2:#F5F8FB;
+    --ink:#0E141B; --ink-soft:#55616F; --ink-faint:#8592A1;
+    --line:#D3DBE4; --line-soft:#E3E9EF;
+    --signal:#0B6F8C; --signal-bright:#0B7E9E; --activation:#C8431F; --amber:#A9720C; --good:#2E7D57;
+    --shadow:0 1px 2px rgba(14,20,27,.06), 0 8px 26px rgba(14,20,27,.07);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0A0E13; --surface:#121A22; --surface-2:#0E151C;
+    --ink:#E7EDF3; --ink-soft:#98A6B4; --ink-faint:#6B7A89;
+    --line:#223140; --line-soft:#1A2530;
+    --signal:#37C6E8; --signal-bright:#52D3F1; --activation:#FF6B45; --amber:#E8A72E; --good:#4FBE8B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 32px rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .page{max-width:1080px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 110px;}
+  code{font-family:var(--mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--line-soft);padding:.06em .36em;border-radius:3px;}
+  a{color:var(--signal-bright);}
+  :focus-visible{outline:2px solid var(--signal-bright);outline-offset:3px;border-radius:2px;}
+  ::selection{background:color-mix(in oklab,var(--signal) 30%,transparent);}
+
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--signal-bright);display:flex;align-items:center;gap:10px;margin:0 0 16px;}
+  .eyebrow::before{content:"";width:22px;height:1px;background:var(--signal-bright);}
+
+  /* header */
+  header{padding:56px 0 28px;border-bottom:1px solid var(--line);position:relative;}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4.6vw,46px);line-height:1.06;letter-spacing:-.02em;margin:0 0 16px;max-width:20ch;text-wrap:balance;}
+  .sub{font-size:18px;color:var(--ink-soft);max-width:60ch;margin:0 0 22px;}
+  .themebtn{position:absolute;top:56px;right:0;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--surface);color:var(--ink-soft);border:1px solid var(--line);border-radius:var(--r);padding:7px 11px;cursor:pointer;}
+  .themebtn:hover{color:var(--ink);border-color:var(--signal-bright);}
+  .facts{display:flex;flex-wrap:wrap;gap:8px;}
+  .fact{font-family:var(--mono);font-size:12px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:5px 12px;}
+  .fact b{color:var(--ink);font-weight:600;}
+
+  h2{font-family:var(--serif);font-weight:600;font-size:clamp(22px,3vw,28px);letter-spacing:-.015em;margin:0;}
+  .sechead{display:flex;align-items:baseline;gap:14px;margin:56px 0 8px;}
+  .sechead .n{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);}
+  .sechead .rule{flex:1;height:1px;background:var(--line-soft);}
+  .lead{color:var(--ink-soft);max-width:64ch;margin:14px 0 24px;}
+
+  /* ---------- System map ---------- */
+  .sysmap{display:grid;grid-template-columns:1fr 150px 1fr;gap:0;align-items:stretch;margin:8px 0 10px;}
+  .proc{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0;overflow:hidden;box-shadow:var(--shadow);}
+  .proc__head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+  .proc__badge{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border-radius:20px;font-weight:600;}
+  .proc.app{border-top:3px solid var(--signal-bright);}
+  .proc.app .proc__badge{color:var(--signal-bright);border:1px solid color-mix(in oklab,var(--signal) 45%,var(--line));}
+  .proc.srv{border-top:3px solid var(--activation);}
+  .proc.srv .proc__badge{color:var(--activation);border:1px solid color-mix(in oklab,var(--activation) 45%,var(--line));}
+  .proc__title{font-family:var(--sans);font-weight:650;font-size:14.5px;}
+  .proc__sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);margin-left:auto;}
+  .proc__body{padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .unit{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r);padding:9px 11px;}
+  .unit .u{font-family:var(--mono);font-size:11px;color:var(--signal-bright);letter-spacing:.03em;display:block;margin-bottom:3px;}
+  .proc.srv .unit .u{color:var(--activation);}
+  .unit .x{font-size:12.5px;color:var(--ink-soft);line-height:1.35;}
+
+  .wire{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:0 6px;}
+  .wire__pipe{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;}
+  .wire__label{font-family:var(--mono);font-size:10.5px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:3px 9px;white-space:nowrap;}
+  .wire__arrow{font-family:var(--mono);font-size:13px;letter-spacing:-1px;width:100%;text-align:center;}
+  .wire__arrow.out{color:var(--signal-bright);}
+  .wire__arrow.back{color:var(--activation);}
+  .wire__tiny{font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);}
+
+  .maptag{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin:6px 0 0;text-align:center;}
+
+  /* ---------- Flow lanes ---------- */
+  .lane{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:14px 0;box-shadow:var(--shadow);}
+  .lane__head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .lane__key{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:20px;}
+  .lane.fast .lane__key{color:var(--signal-bright);border:1px solid color-mix(in oklab,var(--signal) 45%,var(--line));}
+  .lane.deep .lane__key{color:var(--activation);border:1px solid color-mix(in oklab,var(--activation) 45%,var(--line));}
+  .lane__name{font-weight:650;font-size:15px;}
+  .lane__time{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-faint);}
+  .steps{display:flex;flex-wrap:wrap;gap:7px;align-items:center;}
+  .step{display:flex;align-items:center;gap:9px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r);padding:8px 11px;font-size:13px;color:var(--ink);flex:0 1 auto;}
+  .step .si{font-family:var(--mono);font-size:10px;color:var(--ink-faint);font-variant-numeric:tabular-nums;}
+  .step b{font-weight:600;}
+  .arrow{color:var(--ink-faint);font-family:var(--mono);font-size:14px;}
+
+  /* ---------- Model comparison ---------- */
+  .models{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0;}
+  .model{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;box-shadow:var(--shadow);}
+  .model.det{border-left:3px solid var(--signal-bright);}
+  .model.interp{border-left:3px solid var(--activation);}
+  .model h3{margin:0 0 3px;font-family:var(--sans);font-weight:650;font-size:16px;}
+  .model .role{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
+  .model.det .role{color:var(--signal-bright);}
+  .model.interp .role{color:var(--activation);}
+  .model dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13.5px;}
+  .model dt{font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .model dd{margin:0;color:var(--ink-soft);}
+  .model dd b{color:var(--ink);font-weight:600;}
+
+  .verdict-note{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--good);border-radius:var(--r);padding:14px 16px;margin:20px 0;max-width:64ch;}
+  .verdict-note .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--good);margin-bottom:6px;}
+  .verdict-note p{margin:0;font-size:14.5px;color:var(--ink-soft);}
+  .verdict-note b{color:var(--ink);}
+
+  /* ---------- File map ---------- */
+  .filemap{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin:8px 0;}
+  .fm{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;box-shadow:var(--shadow);}
+  .fm .p{font-family:var(--mono);font-size:12px;color:var(--signal-bright);margin-bottom:5px;word-break:break-word;}
+  .fm.srv .p{color:var(--activation);}
+  .fm .d{font-size:13px;color:var(--ink-soft);line-height:1.4;}
+  .grouplabel{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:24px 0 10px;}
+
+  /* ---------- Stack ---------- */
+  .stack{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;}
+  .chip{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;}
+  .chip b{color:var(--ink);font-weight:600;}
+
+  .foot{border-top:1px solid var(--line);margin-top:64px;padding-top:24px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);line-height:1.7;}
+
+  @media (max-width:760px){
+    .sysmap{grid-template-columns:1fr;}
+    .wire{flex-direction:row;padding:14px 0;}
+    .wire__pipe{flex-direction:row;}
+    .models{grid-template-columns:1fr;}
+  }
+</style>
+
+<div class="page">
+  <header>
+    <button class="themebtn" id="themebtn">◐ Theme</button>
+    <p class="eyebrow">System Architecture</p>
+    <h1>Cortical Persuasion Decoder — how the bad boy is wired</h1>
+    <p class="sub">A background Mac app and a local AI server, cooperating over one loopback port. Two models, two jobs, zero data leaving the machine. Here's the whole shape on one page.</p>
+    <div class="facts">
+      <span class="fact"><b>Swift</b> + SwiftUI/AppKit app</span>
+      <span class="fact"><b>Python</b> FastAPI server</span>
+      <span class="fact">on-device · <b>no cloud</b></span>
+      <span class="fact">loopback <b>:8765</b></span>
+    </div>
+  </header>
+
+  <!-- ===== 1. System map ===== -->
+  <div class="sechead"><span class="n">01</span><h2>The two-process map</h2><span class="rule"></span></div>
+  <p class="lead">The thing you see (the 🧠 menu-bar icon) is a lightweight <strong>app</strong>. The brains live in a separate, always-on <strong>server</strong>. The app never holds a model — it just sends text and draws the answer. Keeping them apart means the app can rebuild or crash without ever reloading a multi-gigabyte model.</p>
+
+  <div class="sysmap">
+    <div class="proc app">
+      <div class="proc__head"><span class="proc__badge">App</span><span class="proc__title">🧠 Menu-bar agent</span><span class="proc__sub">background</span></div>
+      <div class="proc__body">
+        <div class="unit"><span class="u">Capture</span><span class="x">⌘B hotkey → grabs your highlighted text (via a silent copy)</span></div>
+        <div class="unit"><span class="u">Guards</span><span class="x">skip secrets, blanks, and overlapping scans</span></div>
+        <div class="unit"><span class="u">Overlay</span><span class="x">the floating verdict card + mini brain</span></div>
+        <div class="unit"><span class="u">Menu</span><span class="x">Deep-scan · Capture Region · Pause · Quit</span></div>
+      </div>
+    </div>
+
+    <div class="wire" aria-hidden="true">
+      <div class="wire__pipe">
+        <span class="wire__label">POST /classify</span>
+        <span class="wire__arrow out">━━━▶</span>
+        <span class="wire__arrow back">◀━━━</span>
+        <span class="wire__tiny">verdict JSON</span>
+      </div>
+      <div class="wire__pipe">
+        <span class="wire__label">POST /brainmap</span>
+        <span class="wire__arrow out">━━━▶</span>
+        <span class="wire__arrow back">◀━━━</span>
+        <span class="wire__tiny">brain profile</span>
+      </div>
+    </div>
+
+    <div class="proc srv">
+      <div class="proc__head"><span class="proc__badge">Server</span><span class="proc__title">Local AI service</span><span class="proc__sub">launchd · 24/7</span></div>
+      <div class="proc__body">
+        <div class="unit"><span class="u">Detector</span><span class="x">Llama-3.2-3B (4-bit) — names the tactic + confidence</span></div>
+        <div class="unit"><span class="u">TRIBE v2</span><span class="x">Meta fMRI model — predicts the cortical response</span></div>
+        <div class="unit"><span class="u">Baseline</span><span class="x">"normal" brain reference to compare against</span></div>
+        <div class="unit"><span class="u">Atlas</span><span class="x">groups the response into readable brain systems</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="maptag">Two OS processes · one JSON conversation over 127.0.0.1 · nothing else on the network</p>
+
+  <!-- ===== 2. The two flows ===== -->
+  <div class="sechead"><span class="n">02</span><h2>What happens when you use it</h2><span class="rule"></span></div>
+  <p class="lead">Two paths. The fast one runs on every ⌘B. The slow one is opt-in from the menu, because rendering a brain map is heavy.</p>
+
+  <div class="lane fast">
+    <div class="lane__head"><span class="lane__key">⌘B</span><span class="lane__name">Detect — the everyday path</span><span class="lane__time">~2–3s</span></div>
+    <div class="steps">
+      <span class="step"><span class="si">1</span><b>Highlight</b> text anywhere</span><span class="arrow">▶</span>
+      <span class="step"><span class="si">2</span>Press <b>⌘B</b>, app grabs it</span><span class="arrow">▶</span>
+      <span class="step"><span class="si">3</span>Send to <b>/classify</b></span><span class="arrow">▶</span>
+      <span class="step"><span class="si">4</span>LLM <b>names the tactic</b></span><span class="arrow">▶</span>
+      <span class="step"><span class="si">5</span><b>Card pops up</b> with confidence</span>
+    </div>
+  </div>
+
+  <div class="lane deep">
+    <div class="lane__head"><span class="lane__key">🧠</span><span class="lane__name">Deep-scan — where it lands in cortex</span><span class="lane__time">~15s–2min</span></div>
+    <div class="steps">
+      <span class="step"><span class="si">1</span>Pick <b>Deep-scan</b> from menu</span><span class="arrow">▶</span>
+      <span class="step"><span class="si">2</span>Send to <b>/brainmap</b></span><span class="arrow">▶</span>
+      <span class="step"><span class="si">3</span>TRIBE <b>predicts cortex</b></span><span class="arrow">▶</span>
+      <span class="step"><span class="si">4</span>Compare vs <b>normal</b></span><span class="arrow">▶</span>
+      <span class="step"><span class="si">5</span><b>Brain systems</b> light up on the card</span>
+    </div>
+  </div>
+
+  <!-- ===== 3. Two models ===== -->
+  <div class="sechead"><span class="n">03</span><h2>Two models, two jobs</h2><span class="rule"></span></div>
+  <p class="lead">The core design decision: the detector is the judge, the brain model is the illustrator. They're never swapped — proven by experiment that the text model detects better, and the brain model can only show, not decide.</p>
+
+  <div class="models">
+    <div class="model det">
+      <h3>The Detector</h3>
+      <div class="role">Judge · always resident</div>
+      <dl>
+        <dt>Model</dt><dd>Llama-3.2-3B Instruct <b>(4-bit)</b></dd>
+        <dt>Job</dt><dd>Names the persuasion tactic + a real confidence</dd>
+        <dt>Size</dt><dd><b>~2 GB</b>, stays loaded for speed</dd>
+        <dt>Speed</dt><dd>~2–3s per verdict</dd>
+        <dt>Why</dt><dd>The <b>better detector</b> — text beats the brain map</dd>
+      </dl>
+    </div>
+    <div class="model interp">
+      <h3>TRIBE v2</h3>
+      <div class="role">Illustrator · loaded on demand</div>
+      <dl>
+        <dt>Model</dt><dd>Meta's fMRI foundation model</dd>
+        <dt>Job</dt><dd>Predicts <b>where in cortex</b> the words land</dd>
+        <dt>Size</dt><dd><b>~7 GB</b>, loaded &amp; freed per scan</dd>
+        <dt>Speed</dt><dd>~15s warm, ~2min cold</dd>
+        <dt>Why</dt><dd><b>Never a detector</b> — visceral picture only</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="verdict-note">
+    <div class="l">The honesty rule baked into the wiring</div>
+    <p>TRIBE only sees the <b>cortex</b>, not deep structures like the amygdala. So the UI says "engages your value / language-evaluation cortex," never "fires your fear center." The architecture is built to <b>never overclaim</b>.</p>
+  </div>
+
+  <!-- ===== 4. Component map ===== -->
+  <div class="sechead"><span class="n">04</span><h2>Where each piece lives</h2><span class="rule"></span></div>
+  <p class="lead">The codebase, at a glance — what each part is responsible for.</p>
+
+  <div class="grouplabel">App · Swift (Sources/)</div>
+  <div class="filemap">
+    <div class="fm"><div class="p">App/AppDelegate</div><div class="d">The orchestrator — menu bar, permissions, ⌘B handling, the shared guard gate.</div></div>
+    <div class="fm"><div class="p">Capture/PasteboardCapture</div><div class="d">Grabs your selection with a silent copy, then restores your clipboard.</div></div>
+    <div class="fm"><div class="p">Capture/Region · OCR</div><div class="d">Screenshot a region and read its text (the deferred path).</div></div>
+    <div class="fm"><div class="p">Hotkey/HotkeyMonitor</div><div class="d">The global ⌘B listener that doesn't steal the keystroke.</div></div>
+    <div class="fm"><div class="p">Classifier/RemoteClassifier</div><div class="d">Talks to the server — the seam between app and AI.</div></div>
+    <div class="fm"><div class="p">Overlay/OverlayController</div><div class="d">The floating verdict card + brain glow, and its timing.</div></div>
+    <div class="fm"><div class="p">Taxonomy/Taxonomy</div><div class="d">The tactic names + plain-English mechanisms (no anatomy).</div></div>
+    <div class="fm"><div class="p">Support/SensitiveText</div><div class="d">Screens out passwords, keys, and card numbers before analysis.</div></div>
+  </div>
+
+  <div class="grouplabel">Server · Python (server/)</div>
+  <div class="filemap">
+    <div class="fm srv"><div class="p">server.py</div><div class="d">The FastAPI service — both endpoints, the scoring, the brain pipeline.</div></div>
+    <div class="fm srv"><div class="p">tribe_events.py</div><div class="d">Feeds text to TRIBE without audio, and the anti-deadlock hardening.</div></div>
+    <div class="fm srv"><div class="p">build_baseline.py</div><div class="d">Builds the "normal brain" reference from 30 neutral sentences.</div></div>
+    <div class="fm srv"><div class="p">apply_patches.py</div><div class="d">Makes TRIBE run on Apple Silicon and kills the Google-upload leak.</div></div>
+    <div class="fm srv"><div class="p">experiments/</div><div class="d">The A1–A7 research scripts that proved the whole approach.</div></div>
+    <div class="fm srv"><div class="p">launchd agent</div><div class="d">Keeps the server alive 24/7 and respawns it on crash.</div></div>
+  </div>
+
+  <!-- ===== 5. Stack ===== -->
+  <div class="sechead"><span class="n">05</span><h2>The stack</h2><span class="rule"></span></div>
+  <div class="stack">
+    <span class="chip"><b>Swift</b> · SwiftUI · AppKit</span>
+    <span class="chip"><b>Python</b> · FastAPI · uvicorn</span>
+    <span class="chip"><b>MLX</b> 4-bit (Apple GPU)</span>
+    <span class="chip"><b>Llama-3.2-3B</b> Instruct</span>
+    <span class="chip"><b>TRIBE v2</b> · PyTorch · Metal</span>
+    <span class="chip"><b>Vision</b> OCR · ScreenCaptureKit</span>
+    <span class="chip"><b>launchd</b> · self-signed cert</span>
+    <span class="chip">100% <b>on-device</b></span>
+  </div>
+
+  <div class="foot">
+    Cortical Persuasion Decoder · architecture overview · detection = local Llama-3.2-3B · interpretation = TRIBE v2 · everything on-device, zero telemetry.<br>
+    Companion to the full field manual (origins, experiments, and pivots).
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement, btn=document.getElementById("themebtn");
+  function dark(){var t=root.getAttribute("data-theme");return t?t==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;}
+  function label(){btn.textContent=(dark()?"☾ ":"☀ ")+"Theme";}
+  btn.addEventListener("click",function(){root.setAttribute("data-theme",dark()?"light":"dark");label();});
+  label();
+})();
+</script>
