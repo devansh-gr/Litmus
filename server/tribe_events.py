@@ -18,6 +18,7 @@ the audio-path baseline is preserved as baseline_audio.npz for reference.
 """
 
 import os
+import re
 
 import pandas as pd
 
@@ -35,7 +36,9 @@ def text_only_events(text: str) -> pd.DataFrame:
     """
     from tribev2.demo_utils import get_audio_and_text_events
 
-    words = text.replace(",", "").replace(".", "").split()
+    # Strip ALL punctuation (not just , and .) so glued punctuation and
+    # punctuation-only selections ("...", "!!!") don't leak in or crash downstream.
+    words = re.sub(r"[^\w\s]", " ", text).split()
     if not words:
         raise ValueError("no words to build events from")
     rows = [
