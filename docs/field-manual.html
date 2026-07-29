@@ -583,6 +583,11 @@ best = <span class="tok-f">max</span>(<span class="tok-f">range</span>(<span cla
         <details class="check"><summary>Check yourself — why score labels instead of generating one?</summary>
           <div class="ans">Scoring gives you a <strong>closed set</strong> (the model can only pick from the 12 real techniques — no drift into invented labels) and a <strong>genuine probability</strong> for each, because you read the model's own log-probabilities rather than a number it made up. Generation gave neither: it drifted between labels and its "confidence" was a constant. The whole "confidence is mandatory" rule depends on this.</div>
         </details>
+
+        <div class="callout callout--pivot">
+          <div class="callout__label">Making it instant</div>
+          <p>Scoring 12 labels naively meant 12 forward passes, each re-reading the whole ~350-token prompt — about <strong>4 seconds</strong> per ⌘B. The fix: process the shared prompt <em>once</em> into a KV cache, then let each label continue from that cached state. Same verdicts, <strong>~450ms</strong> — a 9× speedup that's what makes ⌘B feel instant.</p>
+        </div>
       </div>
     </section>
 
@@ -748,21 +753,21 @@ Authority=<span class="cool">CPD Local Signing</span>     <span class="dim"># st
           <div class="module__idx"><b>Module 08</b> <span>Testing</span><span class="rule"></span></div>
           <h2 id="m8h">How we actually know it works</h2>
         </div>
-        <p>This is the honest accounting the manual was started for. There are <strong>two different questions</strong> hiding inside "does it work," and they have different answers.</p>
+        <p>This is the honest accounting the manual was started for. There were <strong>two different questions</strong> inside "does it work" — and the second one now has a much better answer than it used to.</p>
 
         <div class="flow" aria-label="Two kinds of validation">
-          <div class="flow__node det"><span class="n">The algorithm</span><span class="d"><strong>Validated.</strong> The A1–A7 / I1 / I1b suite is a real experiment battery with effect sizes, held-out data, and a theoretical backbone (A5).</span></div>
-          <div class="flow__node interp"><span class="n">The app code</span><span class="d"><strong>No automated tests.</strong> Validation has been manual — log inspection, curl latency checks, reading the code.</span></div>
+          <div class="flow__node det"><span class="n">The algorithm</span><span class="d"><strong>Validated two ways.</strong> The A1–A7 / I1 / I1b research battery <em>and</em> a live benchmark — 72 labeled examples through the real detector: <strong>86.1%</strong>, with trustworthy confidence (82% right vs 63% wrong).</span></div>
+          <div class="flow__node interp"><span class="n">The app code</span><span class="d"><strong>Now has a test suite.</strong> pytest (contract, behavior, taxonomy-drift, robustness) + Swift self-tests for OCR and the secret guard. The UI itself still isn't auto-tested end-to-end.</span></div>
         </div>
 
-        <p>So when a bug fix ships — like the recent one where a cold deep-scan longer than 60s had its result silently dropped by the card's auto-dismiss — it's <strong>correct by reasoning and it compiles</strong>, but it has not been proven live by clicking through a slow scan and watching the result land. That gap is real and worth naming.</p>
+        <p>The benchmark is the detector's honest report card. It's what caught that <code>manufactured-awe</code> was <strong>0%</strong> recall (indistinguishable from hype) — fixing the two definitions took the whole system <strong>76.4% → 86.1%</strong>. It also names the remaining weak seam: <code>false-urgency</code> over-fires, because "act now / before it's gone" is a cue several techniques share.</p>
 
         <div class="callout callout--why">
-          <div class="callout__label">What real tests would add</div>
-          <p>Unit tests for the pure logic (the <code>SensitiveText</code> heuristics, the softmax sharpening, the z-score math), a contract test that the Swift <code>Verdict</code> decoder matches the server's JSON, and one end-to-end smoke test that drives ⌘B → verdict card. The experiment suite proves the <em>idea</em>; these would protect the <em>implementation</em> from regressions.</p>
+          <div class="callout__label">The discipline this builds in</div>
+          <p>Every accuracy claim now traces to <code>server/tests/run_eval.py</code>, and a latency change (the 9× KV-cache win) was only accepted <em>because</em> the benchmark proved verdicts stayed byte-identical. The taxonomy-drift test guards the server↔app contract; the robustness tests guarantee weird input never crashes. The idea was proven by experiment — now the implementation is protected from regressions too.</p>
         </div>
 
-        <p>The takeaway for anyone learning this system: trust the algorithm claims — they're earned by experiment. Treat the app plumbing as well-reasoned but lightly tested, and verify live before relying on any single path.</p>
+        <p>The takeaway for anyone learning this system: the claims here are earned — by experiment <em>and</em> by a suite you can re-run (<code>pytest tests/</code>, <code>python tests/run_eval.py</code>). The one part still worth verifying by hand is the live UI path end-to-end.</p>
 
         <div class="foot">
           <p>Cortical Persuasion Decoder · field manual · detection = local MLX Llama-3.2-3B · interpretation = TRIBE v2 · on-device, zero telemetry.<br>
