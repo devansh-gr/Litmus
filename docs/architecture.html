@@ -280,6 +280,7 @@
     <div class="fm srv"><div class="p">build_baseline.py</div><div class="d">Builds the "normal brain" reference from 30 neutral sentences.</div></div>
     <div class="fm srv"><div class="p">apply_patches.py</div><div class="d">Makes TRIBE run on Apple Silicon and kills the Google-upload leak.</div></div>
     <div class="fm srv"><div class="p">experiments/</div><div class="d">The A1–A7 research scripts that proved the whole approach.</div></div>
+    <div class="fm srv"><div class="p">tests/ · bench/</div><div class="d">Labeled eval + accuracy harness, pytest suite, latency bench — the 86.1% report card.</div></div>
     <div class="fm srv"><div class="p">launchd agent</div><div class="d">Keeps the server alive 24/7 and respawns it on crash.</div></div>
   </div>
 
@@ -296,9 +297,26 @@
     <span class="chip">100% <b>on-device</b></span>
   </div>
 
+  <!-- ===== 6. Performance & testing ===== -->
+  <div class="sechead"><span class="n">06</span><h2>Performance &amp; testing</h2><span class="rule"></span></div>
+  <p class="lead">The detector is fast and now has a real report card.</p>
+  <div class="facts" style="margin-bottom:18px">
+    <span class="fact"><b>~450ms</b> per ⌘B (was ~4s)</span>
+    <span class="fact"><b>~1ms</b> cached repeat</span>
+    <span class="fact"><b>86.1%</b> benchmark accuracy</span>
+    <span class="fact">confidence <b>82%</b> right / <b>63%</b> wrong</span>
+  </div>
+  <div class="filemap">
+    <div class="fm"><div class="p">KV-cache reuse</div><div class="d">The shared prompt is processed once, not 12× — a 9× classify speedup, verdicts unchanged.</div></div>
+    <div class="fm srv"><div class="p">run_eval.py</div><div class="d">72 labeled examples → accuracy, per-vector recall/precision, confusions, calibration.</div></div>
+    <div class="fm srv"><div class="p">pytest suite</div><div class="d">Contract, behavior, taxonomy-drift guard, robustness. Skips if the server is down.</div></div>
+    <div class="fm"><div class="p">Swift self-tests</div><div class="d">OCR round-trip + the secret guard, compiled against the real sources.</div></div>
+  </div>
+  <p class="lead" style="margin-top:6px">Weak seam the benchmark exposes: <code>false-urgency</code> over-fires on shared urgency cues ("act now", "before it's gone") — surfaced honestly via the card's "also:" mixture line rather than hidden.</p>
+
   <div class="foot">
     Cortical Persuasion Decoder · architecture overview · detection = local Llama-3.2-3B · interpretation = TRIBE v2 · everything on-device, zero telemetry.<br>
-    Companion to the full field manual (origins, experiments, and pivots).
+    Companion to the full field manual (origins, experiments, and pivots). Updated 2026-07-29.
   </div>
 </div>
 
