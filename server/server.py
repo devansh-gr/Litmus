@@ -175,8 +175,16 @@ def get_mlx():
 
 
 def warm_detector():
-    """Load the active detector backend on the dedicated detector thread."""
+    """Load the active detector backend on the dedicated detector thread, and pre-warm
+    the small CPU-only brain-map assets (atlas + baseline) so the FIRST deep-scan
+    doesn't pay their load in the request path. Neither holds GPU/large RAM, so this is
+    safe to do at startup and does NOT pull in the ~7GB TRIBE model."""
     _detector.submit(get_mlx if LLM_BACKEND == "mlx" else get_llm)
+    try:
+        get_atlas()
+        _get_baseline()
+    except Exception as e:  # noqa: BLE001 — a warm failure must not block the detector
+        log.info("brain-map asset pre-warm skipped: %s", e)
 
 
 def _chat_prompt(tok, text: str) -> str:
