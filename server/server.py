@@ -119,6 +119,7 @@ _tribe = None
 _atlas = None
 _baseline = None                        # cached baseline.npz arrays (mean/std/n/mode)
 _free_timer = None                      # idle timer that frees TRIBE after the warm window
+_label_ids_mlx = None                   # precomputed label token-ids (constant across requests)
 _classify_cache: dict[str, dict] = {}   # memoize verdicts by exact text
 _brainmap_cache: dict[str, dict] = {}   # memoize cortical profiles by exact text
 
@@ -189,6 +190,7 @@ def _label_scores(text: str) -> list[float]:
     backend. Same scoring for both so accuracy/calibration are comparable."""
     if LLM_BACKEND == "mlx":
         import mlx.core as mx
+        global _label_ids_mlx
         model, tok = get_mlx()
 
         def enc(s, special=True):
@@ -197,10 +199,40 @@ def _label_scores(text: str) -> list[float]:
             except TypeError:
                 return tok._tokenizer.encode(s, add_special_tokens=special)
 
+        # Label token-ids never change — tokenize them once.
+        if _label_ids_mlx is None:
+            _label_ids_mlx = [enc(v, special=False) for v in VECTORS]
+
         prompt_ids = enc(_chat_prompt(tok, text))
+
+        # KV-cache reuse: the prompt prefix (~350 tokens of system + text) is shared by
+        # all 12 labels. Process it ONCE, then score each label by continuing from the
+        # cached prefix state and trimming back between labels — instead of re-running
+        # the full prefix 12x (~10x less forward compute). Verdicts are identical.
+        try:
+            from mlx_lm.models.cache import make_prompt_cache, trim_prompt_cache
+        except Exception:  # noqa: BLE001 — fall back to the simple path if API moved
+            make_prompt_cache = None
+
+        if make_prompt_cache is not None:
+            cache = make_prompt_cache(model)
+            prefix_last = model(mx.array([prompt_ids]), cache=cache)[0][-1]
+            prefix_last = prefix_last - mx.logsumexp(prefix_last)   # log P(next | prefix)
+            scores = []
+            for lab_ids in _label_ids_mlx:
+                total = prefix_last[lab_ids[0]]                     # P(first label token)
+                if len(lab_ids) > 1:
+                    lg = model(mx.array([lab_ids[:-1]]), cache=cache)[0]
+                    lg = lg - mx.logsumexp(lg, axis=-1, keepdims=True)
+                    rows = mx.arange(len(lab_ids) - 1)
+                    total = total + lg[rows, mx.array(lab_ids[1:])].sum()
+                    trim_prompt_cache(cache, len(lab_ids) - 1)     # rewind to prefix state
+                scores.append((total / len(lab_ids)).item())
+            return scores
+
+        # Fallback: one full forward pass per label (original method).
         scores = []
-        for label in VECTORS:
-            lab_ids = enc(label, special=False)
+        for lab_ids in _label_ids_mlx:
             ids = prompt_ids + lab_ids
             logits = model(mx.array([ids]))[0]
             lp = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
