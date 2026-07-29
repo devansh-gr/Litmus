@@ -119,6 +119,7 @@ _tribe = None
 _atlas = None
 _baseline = None                        # cached baseline.npz arrays (mean/std/n/mode)
 _free_timer = None                      # idle timer that frees TRIBE after the warm window
+_scan_active = False                    # True while a /brainmap holds TRIBE (blocks free)
 _label_ids_mlx = None                   # precomputed label token-ids (constant across requests)
 _classify_cache: dict[str, dict] = {}   # memoize verdicts by exact text
 _brainmap_cache: dict[str, dict] = {}   # memoize cortical profiles by exact text
@@ -280,6 +281,8 @@ def _free_tribe():
     import gc
 
     with _lock:
+        if _scan_active:
+            return   # a scan is mid-flight; its finally will re-arm the free timer
         _tribe = None
     gc.collect()
     if torch.backends.mps.is_available():
@@ -470,11 +473,15 @@ def brainmap(inp: TextIn):
         return {"error": f"Low memory (swap {int(pressure * 100)}% full) — brain map "
                          "skipped to avoid disk thrashing. Reboot to reclaim swap."}
 
-    _cancel_free_timer()   # a warm-window timer must not free TRIBE mid-scan
+    global _scan_active
+    with _lock:
+        _scan_active = True    # set BEFORE cancel so a firing timer can't free mid-scan
+    _cancel_free_timer()
     tribe = get_tribe()
     CACHE.mkdir(exist_ok=True)
     txt = CACHE / "live_input.txt"
-    txt.write_text(inp.text)
+    if BRAINMAP_MODE == "audio":
+        txt.write_text(inp.text)   # only the audio path reads this file
 
     try:
         # Default "text" mode injects synthetic word events (no TTS/WhisperX); the
@@ -482,7 +489,11 @@ def brainmap(inp: TextIn):
         events = build_events(tribe, inp.text, str(txt))
         preds, _ = tribe.predict(events=events)
         vertex_mean = np.asarray(preds).mean(axis=0)   # (20484,)
+    except ValueError as e:
+        return {"error": f"nothing analyzable in the selection ({e})"}
     finally:
+        with _lock:
+            _scan_active = False
         # TRIBE v2 carries a 3B text-encoder + audio encoders (~7GB). Free it after
         # each call (or after the warm window) so the resident footprint stays just
         # the 3B detector, keeping the interactive /classify fast on a 24GB machine.
