@@ -121,11 +121,18 @@ final class OverlayController {
         let newSize = hosting.fittingSize
         let frame = panel.frame
         let topY = frame.maxY
-        panel.setFrame(
-            NSRect(x: frame.minX, y: topY - newSize.height,
-                   width: newSize.width, height: newSize.height),
-            display: true
-        )
+        var newFrame = NSRect(x: frame.minX, y: topY - newSize.height,
+                              width: newSize.width, height: newSize.height)
+        // A deep scan makes the card taller; without re-clamping it can spill below
+        // the screen and clip the brain-profile rows. Keep it on-screen.
+        let screen = NSScreen.screens.first { $0.frame.intersects(newFrame) } ?? NSScreen.main
+        if let visible = screen?.visibleFrame {
+            if newFrame.maxX > visible.maxX { newFrame.origin.x = visible.maxX - newFrame.width - 8 }
+            if newFrame.minX < visible.minX { newFrame.origin.x = visible.minX + 8 }
+            if newFrame.minY < visible.minY { newFrame.origin.y = visible.minY + 8 }
+            if newFrame.maxY > visible.maxY { newFrame.origin.y = visible.maxY - newFrame.height - 8 }
+        }
+        panel.setFrame(newFrame, display: true)
     }
 
     private func makeCard(profile: [CorticalSystem]?, failed: Bool, awaiting: Bool) -> VerdictCard {
