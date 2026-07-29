@@ -114,9 +114,20 @@ Swift · SwiftUI · AppKit — Python · FastAPI · uvicorn — MLX 4-bit (Apple
 TRIBE v2 · PyTorch · Metal — Vision OCR · ScreenCaptureKit — launchd · self-signed cert — 100%
 on-device.
 
+## Performance & testing
+
+- **Classify is ~450ms** (p50), down from ~4s: the prompt's KV-cache is reused across the 12
+  label scorings instead of re-processing the prompt 12×. Cached repeats ~1ms.
+- **Benchmark: 86.1%** on a 72-example labeled set (`server/tests/`), with trustworthy confidence
+  (82% correct vs 63% wrong). Weak seam: `false-urgency` over-fires on shared urgency cues.
+- **Test suite:** pytest (contract / behavior / taxonomy-drift / robustness), the `run_eval.py`
+  accuracy harness, a latency bench, and Swift self-tests for OCR + the secret guard.
+
 ## Status
 
-- ✅ **Works:** ⌘B detection, deep-scan brain map, the always-on server, stable permissions.
-- ⚠️ **Broken/deferred:** Capture Region (screenshot → OCR → analyze).
-- 📌 **Honest gap:** the *algorithm* is validated by real experiments; the *app code* has no
-  automated tests yet — validation there has been hands-on.
+- ✅ **Works:** ⌘B detection (instant feedback), deep-scan brain map, **Capture Region** (needs
+  Screen Recording granted), the always-on server, stable permissions, and menu QoL (last verdict /
+  recent history / copy / analyze-clipboard).
+- 📌 **Honest gaps:** the *algorithm* is validated by experiments **and** now by the eval/benchmark
+  suite; the Swift *app UI* still has no automated UI tests (logic is covered by the self-tests).
+  Deep-scan latency needs a reboot to re-measure (swap was maxed during the last sprint).
