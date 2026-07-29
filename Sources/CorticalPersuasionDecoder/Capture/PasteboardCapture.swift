@@ -20,9 +20,14 @@ enum PasteboardCapture {
             RunLoop.current.run(mode: .default, before: Date(timeIntervalSinceNow: 0.01))
         }
 
+        // If changeCount never moved, the frontmost app didn't service ⌘C — nothing
+        // was selected. Reading the pasteboard now would return STALE clipboard
+        // contents and classify them as if they were the selection. Treat as no-op.
+        let didCopy = pasteboard.changeCount != changeCountBefore
         let copied = pasteboard.string(forType: .string)
         restore(pasteboard, from: saved)
-        return (copied?.isEmpty ?? true) ? nil : copied
+        guard didCopy, let copied, !copied.isEmpty else { return nil }
+        return copied
     }
 
     private static func snapshot(_ pasteboard: NSPasteboard) -> [NSPasteboardItem] {
