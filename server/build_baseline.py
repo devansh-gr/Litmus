@@ -18,6 +18,7 @@ CRASH-RESILIENT: checkpoints after every sentence and resumes on restart, so a
 hang costs at most one sentence.
 """
 
+import hashlib
 import time
 from pathlib import Path
 
@@ -73,13 +74,22 @@ def main() -> None:
 
     CACHE.mkdir(exist_ok=True)
 
+    # Fingerprint the corpus so a resume can't silently reuse vectors from a DIFFERENT
+    # NEUTRAL list (checkpoints are keyed by index; editing a sentence would otherwise
+    # keep the stale vector at that index).
+    fp = hashlib.sha256("\0".join(NEUTRAL).encode()).hexdigest()
+
     done: dict[int, np.ndarray] = {}
     if PARTIAL.exists():
         d = np.load(PARTIAL)
-        for k in d.files:
-            if k.startswith("v"):
-                done[int(k[1:])] = d[k]
-        print(f"resuming: {len(done)}/{len(NEUTRAL)} already computed", flush=True)
+        stored_fp = str(d["fingerprint"]) if "fingerprint" in d.files else ""
+        if stored_fp == fp:
+            for k in d.files:
+                if k.startswith("v"):
+                    done[int(k[1:])] = d[k]
+            print(f"resuming: {len(done)}/{len(NEUTRAL)} already computed", flush=True)
+        else:
+            print("NEUTRAL list changed since last run — discarding stale checkpoint.", flush=True)
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     model = TribeModel.from_pretrained(
@@ -98,7 +108,7 @@ def main() -> None:
         events = build_events(model, sent, str(txt))  # mode-dispatched (text|audio)
         preds, _ = model.predict(events=events, verbose=False)
         done[i] = np.asarray(preds).mean(axis=0)
-        np.savez(PARTIAL, **{f"v{k}": v for k, v in done.items()})
+        np.savez(PARTIAL, fingerprint=fp, **{f"v{k}": v for k, v in done.items()})
         print(f"  {len(done)}/{len(NEUTRAL)}  ({time.time()-t0:.0f}s)", flush=True)
 
     X = np.stack([done[i] for i in range(len(NEUTRAL))])
