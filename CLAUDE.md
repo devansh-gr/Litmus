@@ -116,19 +116,36 @@ Repo: github.com/devansh-gr/Media_Emotion_Detector (private).
 ## Demo (how to film it)
 Lead with the magic: highlight manipulative text → ⌘B → verdict card. Then range (3 tactics),
 a neutral control ("No manipulation detected ✓"), then the Deep-scan wow, then the on-device
-close. Use a keystroke visualizer (KeyCastr) + Focus/DND + Screen Studio. **Don't demo Capture
-Region** (broken). Warm the deep-scan with a throwaway scan first (or reboot if swap is high).
+close. Use a keystroke visualizer (KeyCastr) + Focus/DND + Screen Studio. Capture Region now
+works too (needs Screen Recording granted). Warm the deep-scan with a throwaway scan first (or
+reboot if swap is high).
 Verified example texts: `Act now or lose everything forever.` → false-urgency ~99%; `This will
 completely change your life and the entire world forever.` → hype ~93%; `Everyone is switching,
 don't get left behind.` → fomo ~78%; a plain factual sentence → neutral. Full playbook +
 shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `docs/`.
 
+## Testing & benchmark (server/tests/)
+- **Detector benchmark:** `python tests/run_eval.py` runs 72 labeled examples through `/classify`
+  → accuracy, per-vector recall/precision, confusions, confidence calibration, p50/p95.
+  **Current: 86.1%** (see `tests/RESULTS.md`). Weak seam: `false-urgency` over-fires (shared
+  "now/before it's gone" cues). CI gate: exits ≠0 below 70%.
+- **pytest** (`tests/`, 15 green): contract (JSON shape the Swift decoder needs), behavior
+  (neutral→none, clear cases confident, determinism), taxonomy-sync (server VECTORS == Swift
+  enum — drift guard), robustness (long/emoji/unicode/whitespace + /health). Hit the live server,
+  skip if it's down. `pip install -r tests/requirements-test.txt` for pytest.
+- **Latency bench:** `python bench/latency_bench.py` (cold/warm/cached). Classify p50 ~450ms
+  after the KV-cache fix (was ~4s).
+- **Swift self-tests** (`scripts/`, no permission/server needed): `ocr_selftest.swift` (OCR round-trip)
+  and `sensitive_selftest.swift` (secret guard) — compile with `swiftc` against the real sources.
+
 ## Known issues (TODO)
-- **Capture Region (OCR → classify) does NOT work** (confirmed 2026-07-23). The 🧠 menu ▸
-  "Capture Region" path — drag-select → ScreenCaptureKit screenshot → Vision OCR → classify —
-  fails to produce a verdict. Suspect Screen-Recording permission / SCScreenshotManager capture
-  or the OCR step; deferred, needs debugging. Everything else works: ⌘B classify, Deep-scan
-  cortex (re-presents its card now), Pause capture, Quit.
+- **Capture Region now WORKS** (2026-07-29). It was blocked by (a) Screen Recording not granted
+  and (b) the `.transient` overlay bug (the card was hidden because this LSUIElement app is never
+  "active"). Both fixed; the pipeline logs a successful drag-select → screenshot → OCR → verdict.
+  Clean-shot fixes (exclude own windows + 120ms settle) landed too. If it regresses, re-grant
+  Screen Recording and REOPEN the app. Everything works: ⌘B classify (instant "Analyzing…"),
+  Deep-scan, Capture Region, Pause, Quit, + menu QoL (last verdict / recent history / copy /
+  analyze-clipboard).
 
 ## Open options (undecided — ask before doing)
 Subcortical training / Track B (weeks, interpretation-only, parked) · confidence-calibration
