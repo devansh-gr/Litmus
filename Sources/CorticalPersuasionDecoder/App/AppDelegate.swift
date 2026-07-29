@@ -8,15 +8,21 @@ let log = Logger(subsystem: "ai.zeonsystems.corticalpersuasiondecoder", category
 let cpdLogFile = (NSHomeDirectory() as NSString)
     .appendingPathComponent("Library/Logs/CorticalPersuasionDecoder.log")
 
+/// Serialises the file append so concurrent report() calls from background Tasks
+/// and the main thread can't interleave / garble log lines.
+private let cpdLogQueue = DispatchQueue(label: "ai.zeonsystems.cpd.log")
+
 func report(_ message: String) {
     FileHandle.standardError.write(Data(("[CPD] " + message + "\n").utf8))
     log.log("\(message, privacy: .public)")
     let line = "[\(Date())] \(message)\n"
-    let url = URL(fileURLWithPath: cpdLogFile)
-    if let fh = try? FileHandle(forWritingTo: url) {
-        fh.seekToEndOfFile(); try? fh.write(contentsOf: Data(line.utf8)); try? fh.close()
-    } else {
-        try? Data(line.utf8).write(to: url)
+    cpdLogQueue.async {
+        let url = URL(fileURLWithPath: cpdLogFile)
+        if let fh = try? FileHandle(forWritingTo: url) {
+            fh.seekToEndOfFile(); try? fh.write(contentsOf: Data(line.utf8)); try? fh.close()
+        } else {
+            try? Data(line.utf8).write(to: url)
+        }
     }
 }
 
@@ -270,7 +276,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await MainActor.run { overlay.showNotice(message, anchor: anchor) }
             return
         } catch {
+            // Everything else (bad HTTP status, JSON decode, server error) used to
+            // only log — the "Analyzing…" notice just faded and ⌘B looked dead.
             report("⚠️  classify failed: \(error.localizedDescription)")
+            await MainActor.run {
+                overlay.showNotice("Couldn't analyze that — \(error.localizedDescription)", anchor: anchor)
+            }
             return
         }
 
@@ -284,11 +295,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Show the card immediately with the LLM verdict. The cortical brain map
         // is OPT-IN (it takes ~2 min), triggered from the 🧠 menu — we do NOT
         // auto-run it on every selection.
-        let token = await MainActor.run {
-            overlay.show(verdict: verdict, entry: entry, anchor: anchor)
+        // Show the card AND record the deep-scan state on the main actor together —
+        // deepScanCortex reads these on the main thread, so writing them off-thread
+        // (as before) was a data race.
+        await MainActor.run {
+            let token = overlay.show(verdict: verdict, entry: entry, anchor: anchor)
+            self.lastCapturedText = text
+            self.lastOverlayToken = token
         }
-        lastCapturedText = text
-        lastOverlayToken = token
     }
 
     // MARK: - Opt-in deep cortical scan (Milestone 5, slow path)
@@ -301,10 +315,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             report("🧠 deep scan: nothing captured yet — select text + ⌘B first.")
             return
         }
-        // The verdict card was dismissed when the menu opened, so re-present it
-        // (near the cursor) to host the result; fall back to the old token if it's
-        // somehow still up.
-        let token = overlay.reshowLastVerdict(anchor: NSEvent.mouseLocation) ?? lastOverlayToken
+        // The verdict card was dismissed when the menu opened, so re-present it to
+        // host the result. If there's nothing to re-present (a notice cleared it),
+        // abort with a clear message instead of using a stale token whose result
+        // would be silently dropped by the generation guard.
+        guard let token = overlay.reshowLastVerdict(anchor: NSEvent.mouseLocation) else {
+            report("🧠 deep scan: nothing to scan — press ⌘B on some text first.")
+            overlay.showNotice("Nothing to deep-scan yet — press ⌘B on text first.",
+                               anchor: NSEvent.mouseLocation)
+            return
+        }
         report("🧠 deep scan: modelling cortex for last selection (~30s)…")
         overlay.beginBrainScan(token: token)
         isBusy = true
