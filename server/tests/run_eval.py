@@ -49,6 +49,7 @@ def main() -> int:
     ap.add_argument("--endpoint", default="http://127.0.0.1:8765")
     ap.add_argument("--data", default=str(DEFAULT_DATA))
     ap.add_argument("--json", default=None, help="dump results as JSON to this path")
+    ap.add_argument("--markdown", default=None, help="write a markdown report to this path")
     args = ap.parse_args()
 
     rows = load(Path(args.data))
@@ -127,6 +128,24 @@ def main() -> int:
             "results": results,
         }, indent=2))
         print(f"\nwrote {args.json}")
+
+    if args.markdown:
+        lines = [f"# Detector benchmark\n",
+                 f"**Accuracy: {correct}/{total} = {acc:.1%}**  ·  "
+                 f"confidence correct {mh:.0f}% / wrong {mm:.0f}%  ·  p50 {p50*1000:.0f}ms\n",
+                 "| vector | recall | precision | support |",
+                 "|---|---|---|---|"]
+        for label in sorted(per_label):
+            sup = per_label[label]["support"]
+            rec = per_label[label]["correct"] / sup if sup else 0.0
+            prc = per_label[label]["correct"] / predicted_count[label] if predicted_count[label] else 0.0
+            lines.append(f"| {label} | {rec:.0%} | {prc:.0%} | {sup} |")
+        if confusions:
+            lines.append("\n**Worst confusions**\n")
+            for (g, p), n in confusions.most_common(8):
+                lines.append(f"- `{g}` → `{p}` ×{n}")
+        Path(args.markdown).write_text("\n".join(lines) + "\n")
+        print(f"wrote {args.markdown}")
 
     return 0 if acc >= 0.70 else 1
 
