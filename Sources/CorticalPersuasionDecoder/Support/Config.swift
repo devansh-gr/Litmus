@@ -27,10 +27,4 @@ enum Config {
     static func makeBrainMapper() -> RemoteClassifier? {
         backend == .remote ? RemoteClassifier() : nil
     }
-
-    /// Verdicts below this confidence are suppressed (no overlay).
-    static var confidenceThreshold: Double {
-        ProcessInfo.processInfo.environment["CPD_MIN_CONFIDENCE"]
-            .flatMap(Double.init).map { $0 / 100.0 } ?? 0.30
-    }
 }

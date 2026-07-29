@@ -89,7 +89,7 @@ on crash; logs to `~/Library/Logs/cpd_server.log`; port 8765. So you normally do
 It's a LaunchAgent, so it runs while the user is logged in (not at the login screen). The **🧠
 menu-bar icon is the APP**, a separate process; the server is headless with no icon.
 Env: `CPD_CLASSIFIER=mock|remote`, `CPD_LLM_BACKEND=mlx|transformers`, `CPD_HOTKEY=B`,
-`CPD_MIN_CONFIDENCE=30`, `CPD_ENDPOINT_URL`, `CPD_BRAINMAP_MODE=text|audio` (default `text`;
+`CPD_ENDPOINT_URL`, `CPD_BRAINMAP_MODE=text|audio` (default `text`;
 rebuild `baseline.npz` with the matching mode via `build_baseline.py`),
 `CPD_TRIBE_WARM_SECS` (keep TRIBE resident N s after a `/brainmap` so back-to-back deep
 scans skip the ~7GB reload; launchd default 120, code default 0 = free immediately).
