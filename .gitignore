@@ -24,3 +24,5 @@ server/experiments/*.log
 server/experiments/*_results.json
 server/*.txt
 server/*_results.json
+server/tests/data/last_eval.json
+server/tests/**/__pycache__/
