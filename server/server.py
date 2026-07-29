@@ -70,9 +70,9 @@ DEFINITIONS = {
     "authority-appeal": "leans on experts, officials, science or authority to settle it",
     "false-urgency": "imposes a deadline or time pressure: act now, expires, last chance",
     "social-proof-conformity": "everyone else is doing it, don't be left out, join the crowd",
-    "hype-hope-mongering": "sells an exciting or utopian upside — this will change your life or the world — to make you want in",
+    "hype-hope-mongering": "promises an exciting personal upside or better future to make you want in: it will improve your life, make you money, or fix your problems",
     "fomo": "plays on fear of being left behind or missing the future if you don't get on board now",
-    "manufactured-awe": "inflates something as revolutionary, unprecedented or world-changing to overwhelm skepticism",
+    "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
     "none": "neutral, factual or informational; no manipulation",
 }
 

@@ -2,6 +2,26 @@
 
 Run `python tests/run_eval.py` against the live server to regenerate.
 
+## Current (2026-07-29, after latency + taxonomy fixes)
+
+**Overall accuracy: 62/72 = 86.1%** (+9.7 pts). **p50 latency 446ms → cached ~1ms** (KV-cache reuse).
+
+| vector | recall | precision | Δ from baseline |
+|---|---|---|---|
+| manufactured-awe | **100%** | **100%** | **0% → 100% recall** (definition sharpened) |
+| hype-hope-mongering | 100% | 75% | +17 recall |
+| outrage / tribal / authority-appeal / dopamine* / crit-think* | 67–100% | 100% | precision up (awe no longer leaks) |
+| false-urgency | 100% | 60% | unchanged (still the over-firing catch-all) |
+| none | 83% | 100% | unchanged |
+
+What fixed it: `manufactured-awe` and `hype-hope-mongering` had near-identical definitions
+("change the world" vs "world-changing"). Rewrote them to separate the axis — **hype = personal
+future upside/benefit** ("want in, improve your life") vs **awe = grandeur of the thing itself**
+("revolutionary, unprecedented, greatest-ever"). Remaining weak seam: `false-urgency` still
+absorbs fomo/fear/dopamine when urgency words are present (a genuinely shared surface cue).
+
+---
+
 ## Baseline (2026-07-29, before latency + taxonomy fixes)
 
 **Overall accuracy: 55/72 = 76.4%** on the 72-example eval set (6 per vector).
