@@ -14,7 +14,9 @@ NEUTRAL = [
 CLEAR = [
     ("Act now, this offer expires in ten minutes!", "false-urgency"),
     ("Top scientists agree this is the only correct approach.", "authority-appeal"),
-    ("If we don't act, millions will die and everything will collapse.", "fear-mongering"),
+    # NOTE: a clean fear example with NO urgency cue ("act now"). Sentences that mix
+    # fear + a deadline land on false-urgency — a real, documented overlap (RESULTS.md).
+    ("A terrifying new disease is spreading uncontrollably toward your town.", "fear-mongering"),
 ]
 
 
