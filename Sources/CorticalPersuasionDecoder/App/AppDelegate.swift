@@ -26,7 +26,15 @@ func report(_ message: String) {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+
+    /// A completed scan, kept so the menu can re-show it, copy it, or list history.
+    private struct Scan { let text: String; let entry: TaxonomyEntry; let verdict: Verdict }
+    private var lastScan: Scan?
+    private var history: [Scan] = []          // most-recent-first, capped at 8
+    private weak var lastItem: NSMenuItem?
+    private weak var copyItem: NSMenuItem?
+    private weak var recentItem: NSMenuItem?
 
     /// Primary capture path: select text anywhere, press ⌘B to analyze it.
     private var hotkeyMonitor: HotkeyMonitor?
@@ -76,6 +84,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = "🧠"
         let menu = NSMenu()
+        menu.autoenablesItems = false   // we manage enabled state in menuNeedsUpdate
+        menu.delegate = self
+
+        let last = NSMenuItem(title: "No scans yet", action: #selector(showLastScan), keyEquivalent: "")
+        last.target = self
+        menu.addItem(last)
+        lastItem = last
+
+        let copy = NSMenuItem(title: "Copy last verdict", action: #selector(copyLastVerdict), keyEquivalent: "c")
+        copy.target = self
+        menu.addItem(copy)
+        copyItem = copy
+
+        let clip = NSMenuItem(title: "Analyze clipboard", action: #selector(analyzeClipboard), keyEquivalent: "")
+        clip.target = self
+        menu.addItem(clip)
+
+        let recent = NSMenuItem(title: "Recent", action: nil, keyEquivalent: "")
+        recent.submenu = NSMenu()
+        menu.addItem(recent)
+        recentItem = recent
+
+        menu.addItem(.separator())
         let deepScan = NSMenuItem(title: "Deep-scan cortex (last selection)",
                                   action: #selector(deepScanCortex), keyEquivalent: "")
         deepScan.target = self
@@ -95,6 +126,84 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quit)
         item.menu = menu
         statusItem = item
+    }
+
+    // MARK: - Dynamic menu (last verdict + recent history)
+
+    /// Refresh the last-verdict / recent items each time the menu opens.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        if let s = lastScan {
+            lastItem?.title = "Show: \(s.entry.displayName) · \(pctString(s.verdict))"
+            lastItem?.isEnabled = true
+            copyItem?.isEnabled = true
+        } else {
+            lastItem?.title = "No scans yet"
+            lastItem?.isEnabled = false
+            copyItem?.isEnabled = false
+        }
+        let sub = NSMenu()
+        sub.autoenablesItems = false
+        if history.isEmpty {
+            let empty = NSMenuItem(title: "— none —", action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            sub.addItem(empty)
+        } else {
+            for (i, s) in history.enumerated() {
+                let it = NSMenuItem(title: "\(s.entry.displayName) · \(pctString(s.verdict))  —  \(snippet(s.text))",
+                                    action: #selector(showHistoryItem(_:)), keyEquivalent: "")
+                it.target = self
+                it.tag = i
+                sub.addItem(it)
+            }
+        }
+        recentItem?.submenu = sub
+        recentItem?.isEnabled = !history.isEmpty
+    }
+
+    private func pctString(_ v: Verdict) -> String { "\(Int((v.confidence * 100).rounded()))%" }
+
+    private func snippet(_ s: String) -> String {
+        let one = s.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces)
+        return one.count > 32 ? String(one.prefix(32)) + "…" : one
+    }
+
+    /// Record a completed scan for the menu (last + history). Main thread.
+    private func recordScan(text: String, entry: TaxonomyEntry, verdict: Verdict) {
+        let scan = Scan(text: text, entry: entry, verdict: verdict)
+        lastScan = scan
+        history.insert(scan, at: 0)
+        if history.count > 8 { history.removeLast() }
+    }
+
+    @objc private func showLastScan() {
+        guard let s = lastScan else { return }
+        overlay.show(verdict: s.verdict, entry: s.entry, anchor: NSEvent.mouseLocation)
+        lastCapturedText = s.text
+    }
+
+    @objc private func showHistoryItem(_ sender: NSMenuItem) {
+        guard history.indices.contains(sender.tag) else { return }
+        let s = history[sender.tag]
+        overlay.show(verdict: s.verdict, entry: s.entry, anchor: NSEvent.mouseLocation)
+        lastCapturedText = s.text
+    }
+
+    @objc private func copyLastVerdict() {
+        guard let s = lastScan else { return }
+        var text = "\(s.entry.displayName) (\(pctString(s.verdict))) — \(s.entry.mechanism)"
+        if let r = s.verdict.rationale { text += "\nWhy: \(r)" }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(text, forType: .string)
+        report("📋 copied last verdict to clipboard.")
+    }
+
+    @objc private func analyzeClipboard() {
+        guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else {
+            overlay.showNotice("Clipboard is empty — copy some text first.", anchor: NSEvent.mouseLocation)
+            return
+        }
+        analyze(text, anchor: NSEvent.mouseLocation, source: "clipboard")
     }
 
     @objc private func quitApp() {
@@ -302,6 +411,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let token = overlay.show(verdict: verdict, entry: entry, anchor: anchor)
             self.lastCapturedText = text
             self.lastOverlayToken = token
+            self.recordScan(text: text, entry: entry, verdict: verdict)
         }
     }
 
