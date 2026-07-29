@@ -173,6 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         lastScan = scan
         history.insert(scan, at: 0)
         if history.count > 8 { history.removeLast() }
+        statusItem?.button?.toolTip = "Last: \(entry.displayName) · \(pctString(verdict))"
     }
 
     @objc private func showLastScan() {
@@ -213,7 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func togglePause() {
         captureEnabled.toggle()
         pauseItem?.title = captureEnabled ? "Pause capture" : "Resume capture"
-        statusItem?.button?.title = captureEnabled ? "🧠" : "🧠⏸"
+        refreshStatusIcon()
         report(captureEnabled ? "▶️  capture resumed." : "⏸  capture paused.")
     }
 
@@ -354,10 +355,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         report("✂️  \(source) (\(trimmed.count) chars): \(clipped)")
         overlay.showNotice("Analyzing…", anchor: anchor)   // instant feedback so a 1–4s scan doesn't look dead
         isBusy = true
+        refreshStatusIcon()
         Task {
             await classifyAndPresent(trimmed, anchor: anchor)
-            await MainActor.run { self.isBusy = false }
+            await MainActor.run { self.isBusy = false; self.refreshStatusIcon() }
         }
+    }
+
+    /// Reflect state in the menu-bar icon: idle 🧠, paused 🧠⏸, scanning 🧠…
+    private func refreshStatusIcon() {
+        statusItem?.button?.title = isBusy ? "🧠…" : (captureEnabled ? "🧠" : "🧠⏸")
     }
 
     private func classifyAndPresent(_ text: String, anchor: CGPoint) async {
@@ -438,6 +445,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         report("🧠 deep scan: modelling cortex for last selection (~30s)…")
         overlay.beginBrainScan(token: token)
         isBusy = true
+        refreshStatusIcon()
         Task {
             do {
                 let profile = try await brainMapper.brainMap(for: text)
@@ -450,7 +458,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 report("   ↳ cortical map unavailable: \(error.localizedDescription)")
                 await MainActor.run { overlay.updateProfile(nil, failed: true, token: token) }
             }
-            await MainActor.run { self.isBusy = false }
+            await MainActor.run { self.isBusy = false; self.refreshStatusIcon() }
         }
     }
 }
