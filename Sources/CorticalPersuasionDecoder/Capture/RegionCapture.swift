@@ -31,8 +31,9 @@ enum RegionCapture {
         let displayID = screen.displayID
 
         let content = try await SCShareableContent.current
-        guard let scDisplay = content.displays.first(where: { $0.displayID == displayID })
-                ?? content.displays.first else {
+        // Require the SAME display the selection was on. Falling back to an arbitrary
+        // display would screenshot one screen and crop with another's geometry.
+        guard let scDisplay = content.displays.first(where: { $0.displayID == displayID }) else {
             throw RegionCaptureError.noDisplay
         }
 
