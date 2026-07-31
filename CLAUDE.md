@@ -6,8 +6,12 @@ it renders a **cortical impact profile** — which brain systems the content eng
 Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no telemetry.
 
 ## Architecture — each model does only what it's actually good at
-- **Detection = local LLM** (Llama-3.2-3B-Instruct, 4-bit **MLX**). Scores log-prob of each of
-  8 vector labels + `none` → argmax + calibrated confidence. This is the verdict.
+- **Detection = local LLM** (Llama-3.2-3B-Instruct, 4-bit **MLX**), **two-stage**: (1) a yes/no
+  **manipulation gate** (`GATE_SYSTEM`) — benign text (greetings, requests, facts, reviews) → `none`;
+  (2) only if it passes, score log-prob of each vector label → argmax + calibrated confidence.
+  The gate exists because a single 12-way classifier forced greetings into "hype 84%"; tuned on
+  `tests/realistic_set.jsonl` (60% benign) → 20/20 manipulation caught, 27/30 benign ignored.
+  Threshold `CPD_GATE_NONE_THRESHOLD` (0.5, swept). This is the verdict.
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
