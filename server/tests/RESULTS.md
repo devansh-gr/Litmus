@@ -21,16 +21,18 @@ manipulation).
 | metric | before (single-shot) | after (two-stage gate) |
 |---|---|---|
 | "Hello! How can I help you today?" | hype 84% | **none 99%** |
-| realistic set — benign → none (precision) | ~23/30 (7 FPs) | **29/30 (97%)** |
-| realistic set — manipulation caught (recall) | — | **19/20 (95%)** |
-| benign set (greetings/helpful) → none | ~2/16 | **15/16** |
-| manipulation-only benchmark (72, unrepresentative) | 86.1% | 72.2% |
+| realistic set — benign → none (precision) | ~23/30 (7 FPs) | **27/30 (90%)** |
+| realistic set — manipulation caught (recall) | — | **20/20 (100%)** |
+| benign set (greetings/helpful) → none | ~2/16 | **16/16 (100%)** |
+| manipulation-only benchmark (72, unrepresentative) | 86.1% | 75.0% |
 | classify latency (p50) | ~450ms | ~650ms (2 model calls) |
 
-On the **realistic** mix the detector is now both precise (3% false-positive) and sensitive (95%
-of manipulation caught). The lower manipulation-only number reflects that eval's harder/subtler
+On the **realistic** mix the detector now catches **all** manipulation (20/20) with a 10% benign
+false-positive rate (3/30). The lower manipulation-only number reflects that eval's harder/subtler
 examples, not real usage. Gate threshold swept → **0.5 optimal** (raising it trades benign
-precision for ~1pt eval). Guarded by `test_benign.py` + `test_realistic.py`.
+precision for ~1pt eval). Remaining weak spot: technique *labels* among caught manipulation still
+confuse the false-urgency / fomo / dopamine cluster (the "also:" mixture line surfaces this).
+Guarded by `test_benign.py` + `test_realistic.py`.
 
 ---
 
