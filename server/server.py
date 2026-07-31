@@ -101,10 +101,13 @@ GATE_SYSTEM = (
     "it by Thursday\") — personal opinions and reviews, congratulations, and friendly or "
     "helpful talk. A warm, positive, or helpful tone by itself is 'no'.\n"
     "Answer 'yes' if the wording tries to pressure, scare, hype, guilt, rush, divide "
-    "us-versus-them, invoke authority or the crowd to end doubt, dangle a reward, or push "
-    "the reader toward a belief, feeling, purchase, or action. The difference is intent to "
-    "influence: \"the sale ends Friday\" is no, but \"hurry, the sale ends Friday, don't "
-    "miss out!\" is yes.\n"
+    "us-versus-them, dangle a reward, or push the reader toward a belief, feeling, "
+    "purchase, or action. Also 'yes' when it cites experts, studies, or the crowd to SHUT "
+    "DOWN doubt (\"experts agree, so the debate is over\", \"the only correct approach\", "
+    "\"nothing left to question\") — as opposed to just reporting a fact (\"a study "
+    "examined sleep\" is no).\n"
+    "The difference is intent to influence: \"the sale ends Friday\" is no, but \"hurry, "
+    "the sale ends Friday, don't miss out!\" is yes.\n"
     "Answer with a single word: yes or no."
 )
 
