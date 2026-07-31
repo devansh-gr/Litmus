@@ -588,6 +588,31 @@ best = <span class="tok-f">max</span>(<span class="tok-f">range</span>(<span cla
           <div class="callout__label">Making it instant</div>
           <p>Scoring 12 labels naively meant 12 forward passes, each re-reading the whole ~350-token prompt — about <strong>4 seconds</strong> per ⌘B. The fix: process the shared prompt <em>once</em> into a KV cache, then let each label continue from that cached state. Same verdicts, <strong>~450ms</strong> — a 9× speedup that's what makes ⌘B feel instant.</p>
         </div>
+
+        <div class="kicker">The false-positive trap → a two-stage gate</div>
+        <p>Highlighting a Google AI Overview's friendly <em>"Hello! How can I help you today?"</em> reported <strong>"Hype 84%"</strong>. The reason is structural: a single 12-way classifier <em>must</em> pick a label, so it forces benign, upbeat, or helpful text toward its nearest tactic. Worse, every prompt tweak just slid the whole none/manipulation boundary — fix greetings and you start missing real manipulation.</p>
+        <p>The fix is to split the decision. <strong>Stage 1</strong> is a clean yes/no <em>gate</em> — "is this actually trying to persuade or manipulate?" — where benign text (greetings, questions, requests, plain facts, reviews) answers <em>no</em> and becomes <code>none</code>. <strong>Stage 2</strong>, the unchanged 12-way technique classifier, runs only if the gate says yes. The line is drawn by <em>intent</em>: "the sale ends Friday" is ordinary; "hurry, the sale ends Friday, don't miss out!" is manipulation.</p>
+        <div class="callout callout--why">
+          <div class="callout__label">Why two stages, not a better prompt</div>
+          <p>A binary gate is a far easier, cleaner decision than diluting "none" across a 12-way softmax. Tuned against a <em>realistic</em> mix (60% benign — how people actually highlight), it now catches <strong>20/20</strong> manipulation while correctly ignoring <strong>27/30</strong> benign lines. The one honest cost: a second short model pass (~450ms → ~650ms).</p>
+        </div>
+
+        <div class="lab">
+          <div class="lab__bar"><span class="lab__dot"></span><span class="lab__title">Lab 3b · the gate in action</span><span class="lab__kind">curl ×2</span></div>
+          <div class="lab__body">
+            <div class="lab__cmd">
+              <span class="lab__prompt">$</span>
+              <pre data-cmd="curl -s -X POST http://127.0.0.1:8765/classify -H 'Content-Type: application/json' -d '{&quot;text&quot;:&quot;Hello! How can I help you today?&quot;}'; echo; curl -s -X POST http://127.0.0.1:8765/classify -H 'Content-Type: application/json' -d '{&quot;text&quot;:&quot;Hurry, this deal disappears at midnight!&quot;}'">curl ... -d '{"text":"Hello! How can I help you today?"}'
+curl ... -d '{"text":"Hurry, this deal disappears at midnight!"}'</pre>
+              <button class="copy" type="button">copy</button>
+            </div>
+            <div class="lab__out">
+              <div class="oh">you should see</div>
+<pre><span class="cool">"none"</span>                 99%   <span class="dim"># gate says: not manipulation</span>
+<span class="hot">"false-urgency"</span>       100%   <span class="dim"># gate says yes → technique</span></pre>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -756,11 +781,11 @@ Authority=<span class="cool">CPD Local Signing</span>     <span class="dim"># st
         <p>This is the honest accounting the manual was started for. There were <strong>two different questions</strong> inside "does it work" — and the second one now has a much better answer than it used to.</p>
 
         <div class="flow" aria-label="Two kinds of validation">
-          <div class="flow__node det"><span class="n">The algorithm</span><span class="d"><strong>Validated two ways.</strong> The A1–A7 / I1 / I1b research battery <em>and</em> a live benchmark — 72 labeled examples through the real detector: <strong>86.1%</strong>, with trustworthy confidence (82% right vs 63% wrong).</span></div>
+          <div class="flow__node det"><span class="n">The algorithm</span><span class="d"><strong>Validated two ways.</strong> The A1–A7 / I1 / I1b research battery <em>and</em> live benchmarks. On a realistic mix (60% benign) the two-stage detector catches <strong>20/20</strong> manipulation and correctly ignores <strong>27/30</strong> benign lines.</span></div>
           <div class="flow__node interp"><span class="n">The app code</span><span class="d"><strong>Now has a test suite.</strong> pytest (contract, behavior, taxonomy-drift, robustness) + Swift self-tests for OCR and the secret guard. The UI itself still isn't auto-tested end-to-end.</span></div>
         </div>
 
-        <p>The benchmark is the detector's honest report card. It's what caught that <code>manufactured-awe</code> was <strong>0%</strong> recall (indistinguishable from hype) — fixing the two definitions took the whole system <strong>76.4% → 86.1%</strong>. It also names the remaining weak seam: <code>false-urgency</code> over-fires, because "act now / before it's gone" is a cue several techniques share.</p>
+        <p>The benchmarks are the detector's honest report card. One caught that <code>manufactured-awe</code> was <strong>0%</strong> recall (indistinguishable from hype) — fixing the two definitions took the manipulation-only set <strong>76.4% → 86.1%</strong>. A second, <em>realistic</em> set (mostly benign) then exposed a bigger problem — friendly greetings flagged as hype — which drove the two-stage gate (Module 3). The remaining seam is honest: the <code>false-urgency</code> / <code>fomo</code> tactic <em>labels</em> still overlap, surfaced via the card's "also:" line rather than hidden.</p>
 
         <div class="callout callout--why">
           <div class="callout__label">The discipline this builds in</div>

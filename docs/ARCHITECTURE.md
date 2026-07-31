@@ -55,8 +55,14 @@ server holds both and stays warm across sessions.
 
 | Path | Trigger | What happens | Speed |
 |---|---|---|---|
-| **Detect** | ⌘B (every time) | grab selection → `/classify` → LLM names the tactic → verdict card | ~2–3s |
+| **Detect** | ⌘B (every time) | grab selection → `/classify` → **gate** ("is this manipulation at all?") → if yes, name the tactic → verdict card (else "no manipulation") | ~0.5–0.7s |
 | **Deep-scan** | 🧠 menu (opt-in) | `/brainmap` → TRIBE predicts cortex → compare vs neutral → brain systems light up | ~15s–2min |
+
+**Detection is two-stage.** A single 12-way classifier forced *every* input toward its nearest
+label, so a friendly greeting became "Hype 84%". Now a clean yes/no **gate** decides "is this
+trying to persuade or manipulate?" first — benign text (greetings, requests, facts, reviews) →
+*none*; only if it passes does the 12-way technique classifier run. On a realistic mix (60%
+benign) this catches **all** manipulation with a ~10% false-positive rate.
 
 ## The two models
 
@@ -116,12 +122,14 @@ on-device.
 
 ## Performance & testing
 
-- **Classify is ~450ms** (p50), down from ~4s: the prompt's KV-cache is reused across the 12
-  label scorings instead of re-processing the prompt 12×. Cached repeats ~1ms.
-- **Benchmark: 86.1%** on a 72-example labeled set (`server/tests/`), with trustworthy confidence
-  (82% correct vs 63% wrong). Weak seam: `false-urgency` over-fires on shared urgency cues.
-- **Test suite:** pytest (contract / behavior / taxonomy-drift / robustness), the `run_eval.py`
-  accuracy harness, a latency bench, and Swift self-tests for OCR + the secret guard.
+- **Classify is ~0.5–0.7s** (p50): the prompt's KV-cache is reused across label scorings instead
+  of re-processing the prompt each time; the two-stage gate adds a second short pass. Cached ~1ms.
+- **Realistic benchmark** (`realistic_set.jsonl`, 60% benign — the true usage mix): **20/20
+  manipulation caught, 27/30 benign correctly ignored**. Greetings/facts/requests no longer
+  misfire. (The older 72-example manipulation-only set reads 75% — it's harder/unrepresentative.)
+- **Test suite:** pytest (contract / behavior / benign & realistic false-positive guards /
+  taxonomy-drift / robustness), the `run_eval.py` accuracy harness, a latency bench, and Swift
+  self-tests for OCR + the secret guard.
 
 ## Status
 
