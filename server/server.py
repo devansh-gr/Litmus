@@ -88,6 +88,10 @@ SYSTEM = (
 # helpful sentence as hype. yes/no label tokens (rather than repeating the loaded word
 # "manipulation") keep the log-prob scoring from being primed toward one answer.
 GATE_LABELS = ("no", "yes")
+# Route to `none` only when the gate is at least this confident it's NOT manipulation.
+# Higher = the gate must be more sure before it calls something benign, so more borderline
+# text flows to the technique classifier (recovers manipulation recall, costs benign precision).
+GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.5"))
 GATE_SYSTEM = (
     "You check text for persuasion. Is the text below trying to pressure, sell to, "
     "scare, guilt, hype, or push the reader toward a belief or action?\n"
@@ -417,7 +421,7 @@ def classify(inp: TextIn):
     # helpful/friendly phrasing) from being forced into the nearest manipulation label.
     gate = _detector.submit(_label_scores, inp.text, GATE_SYSTEM, GATE_LABELS).result()
     gp = dict(zip(GATE_LABELS, softmax(gate)))
-    if gp["no"] >= gp["yes"]:
+    if gp["no"] >= GATE_NONE_THRESHOLD:
         result = {
             "vector": "none",
             "confidence": int(round(gp["no"] * 100)),
