@@ -93,10 +93,18 @@ GATE_LABELS = ("no", "yes")
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
 GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.5"))
 GATE_SYSTEM = (
-    "You check text for persuasion. Is the text below trying to pressure, sell to, "
-    "scare, guilt, hype, or push the reader toward a belief or action?\n"
-    "Greetings, questions, small talk, friendly or helpful replies, and plain factual "
-    "statements are NOT — a warm or upbeat tone alone counts as not.\n"
+    "Decide if the text is trying to MANIPULATE or PERSUADE the reader, versus just "
+    "communicating normally.\n"
+    "Answer 'no' for ordinary communication: greetings, questions, requests (\"could you "
+    "send the file\"), instructions, plain facts and information — including NEUTRAL "
+    "mentions of dates, deadlines, prices, or numbers (\"the sale ends Friday\", \"review "
+    "it by Thursday\") — personal opinions and reviews, congratulations, and friendly or "
+    "helpful talk. A warm, positive, or helpful tone by itself is 'no'.\n"
+    "Answer 'yes' if the wording tries to pressure, scare, hype, guilt, rush, divide "
+    "us-versus-them, invoke authority or the crowd to end doubt, dangle a reward, or push "
+    "the reader toward a belief, feeling, purchase, or action. The difference is intent to "
+    "influence: \"the sale ends Friday\" is no, but \"hurry, the sale ends Friday, don't "
+    "miss out!\" is yes.\n"
     "Answer with a single word: yes or no."
 )
 

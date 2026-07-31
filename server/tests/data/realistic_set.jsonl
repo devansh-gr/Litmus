@@ -1,0 +1,50 @@
+{"text": "The Earth completes one rotation approximately every 24 hours.", "label": "none"}
+{"text": "The library is open from 9am to 8pm on weekdays.", "label": "none"}
+{"text": "Python is a high-level programming language first released in 1991.", "label": "none"}
+{"text": "To reset your password, click the link in the email we sent you.", "label": "none"}
+{"text": "The recipe serves four and takes about 30 minutes to prepare.", "label": "none"}
+{"text": "Quarterly revenue rose 4% compared to the same period last year.", "label": "none"}
+{"text": "The train to Boston departs from platform 6 at 9:45am.", "label": "none"}
+{"text": "Hey, are we still on for lunch tomorrow?", "label": "none"}
+{"text": "Thanks for the update, I'll take a look this afternoon.", "label": "none"}
+{"text": "No problem at all, happy to help whenever you need.", "label": "none"}
+{"text": "Could you send me the file when you get a chance?", "label": "none"}
+{"text": "That makes sense, let's go with your suggestion.", "label": "none"}
+{"text": "Hope you have a relaxing weekend!", "label": "none"}
+{"text": "I really enjoyed the new album, especially the last track.", "label": "none"}
+{"text": "The hotel was clean and the staff were friendly.", "label": "none"}
+{"text": "I think that meeting could have been an email, honestly.", "label": "none"}
+{"text": "Highly recommend the pasta if you visit — it was delicious.", "label": "none"}
+{"text": "The laptop has 16GB of RAM and a 512GB solid-state drive.", "label": "none"}
+{"text": "This jacket is water-resistant and comes in three colors.", "label": "none"}
+{"text": "The documentary covers the history of jazz in New Orleans.", "label": "none"}
+{"text": "The sale ends this Friday at 5pm.", "label": "none"}
+{"text": "A recent study in Nature examined sleep and memory.", "label": "none"}
+{"text": "Everyone at the reunion seemed to have a good time.", "label": "none"}
+{"text": "This new phone is genuinely impressive and well built.", "label": "none"}
+{"text": "You might find this article helpful for your research.", "label": "none"}
+{"text": "We're excited to announce our office will reopen on Monday.", "label": "none"}
+{"text": "Please review the attached report before Thursday.", "label": "none"}
+{"text": "Congrats on the promotion — you earned it!", "label": "none"}
+{"text": "The weather forecast shows rain for the weekend.", "label": "none"}
+{"text": "Let me know if you'd like me to explain any part further.", "label": "none"}
+{"text": "URGENT: your account will be suspended unless you verify now.", "label": "false-urgency"}
+{"text": "Only 2 left in stock — order in the next 10 minutes!", "label": "false-urgency"}
+{"text": "Doctors don't want you to know this one simple trick.", "label": "critical-thinking-suppression"}
+{"text": "Wake up and stop believing the mainstream narrative.", "label": "critical-thinking-suppression"}
+{"text": "They are coming for everything you have worked for.", "label": "fear-mongering"}
+{"text": "This crisis will wipe out your savings if you don't act.", "label": "fear-mongering"}
+{"text": "Join the thousands who have already transformed their lives.", "label": "social-proof-conformity"}
+{"text": "Everyone is investing in this — don't be the one left behind.", "label": "fomo"}
+{"text": "The elites will never let people like us win.", "label": "tribal-in-group-bias"}
+{"text": "It is disgraceful how they treated those workers — be outraged.", "label": "outrage"}
+{"text": "Nine out of ten experts endorse this, so the debate is over.", "label": "authority-appeal"}
+{"text": "Claim your free exclusive bonus before it is gone forever!", "label": "dopamine-bait"}
+{"text": "This revolutionary breakthrough will change humanity forever.", "label": "hype-hope-mongering"}
+{"text": "Behold the most groundbreaking invention in a century.", "label": "manufactured-awe"}
+{"text": "Last chance — enrollment closes tonight and won't reopen.", "label": "false-urgency"}
+{"text": "Don't miss out on the opportunity of a lifetime.", "label": "fomo"}
+{"text": "Real patriots know what the enemy is really planning.", "label": "tribal-in-group-bias"}
+{"text": "Spin now for your guaranteed instant cash prize!", "label": "dopamine-bait"}
+{"text": "Studies prove it works, so there is nothing left to question.", "label": "authority-appeal"}
+{"text": "You'll be left in the dust while everyone else gets rich.", "label": "fomo"}
