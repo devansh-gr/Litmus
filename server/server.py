@@ -73,7 +73,7 @@ DEFINITIONS = {
     "hype-hope-mongering": "promises an exciting personal upside or better future to make you want in: it will improve your life, make you money, or fix your problems",
     "fomo": "plays on fear of being left behind or missing the future if you don't get on board now",
     "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
-    "none": "neutral, factual or informational; no manipulation",
+    "none": "neutral, factual or informational; a greeting, question, or ordinary conversation; no manipulation",
 }
 
 SYSTEM = (
@@ -81,6 +81,19 @@ SYSTEM = (
     "the text. The techniques are:\n"
     + "\n".join(f"- {k}: {v}" for k, v in DEFINITIONS.items())
     + "\nAnswer with the technique name only."
+)
+
+# Stage-1 binary gate: "is this manipulation at all?". A clean 2-way decision at the
+# none boundary avoids the failure where the 12-way softmax labels a greeting or a
+# helpful sentence as hype. yes/no label tokens (rather than repeating the loaded word
+# "manipulation") keep the log-prob scoring from being primed toward one answer.
+GATE_LABELS = ("no", "yes")
+GATE_SYSTEM = (
+    "You check text for persuasion. Is the text below trying to pressure, sell to, "
+    "scare, guilt, hype, or push the reader toward a belief or action?\n"
+    "Greetings, questions, small talk, friendly or helpful replies, and plain factual "
+    "statements are NOT — a warm or upbeat tone alone counts as not.\n"
+    "Answer with a single word: yes or no."
 )
 
 @asynccontextmanager
@@ -120,7 +133,7 @@ _atlas = None
 _baseline = None                        # cached baseline.npz arrays (mean/std/n/mode)
 _free_timer = None                      # idle timer that frees TRIBE after the warm window
 _scan_active = False                    # True while a /brainmap holds TRIBE (blocks free)
-_label_ids_mlx = None                   # precomputed label token-ids (constant across requests)
+_label_ids_cache: dict = {}             # precomputed label token-ids per label set
 _classify_cache: dict[str, dict] = {}   # memoize verdicts by exact text
 _brainmap_cache: dict[str, dict] = {}   # memoize cortical profiles by exact text
 
@@ -187,19 +200,22 @@ def warm_detector():
         log.info("brain-map asset pre-warm skipped: %s", e)
 
 
-def _chat_prompt(tok, text: str) -> str:
+def _chat_prompt(tok, text: str, system: str) -> str:
     return tok.apply_chat_template(
-        [{"role": "system", "content": SYSTEM}, {"role": "user", "content": text}],
+        [{"role": "system", "content": system}, {"role": "user", "content": text}],
         tokenize=False, add_generation_prompt=True,
     )
 
 
-def _label_scores(text: str) -> list[float]:
-    """Length-normalised log P(label | prompt) for each vector, via the active
-    backend. Same scoring for both so accuracy/calibration are comparable."""
+def _label_scores(text: str, system: str = None, labels=None) -> list[float]:
+    """Length-normalised log P(label | prompt) for each label under `system`, via the
+    active backend. Parameterised so the same scorer drives both the manipulation gate
+    (2 labels) and the technique classifier (11 labels)."""
+    system = system if system is not None else SYSTEM
+    labels = list(labels) if labels is not None else list(VECTORS)
+    ck = tuple(labels)
     if LLM_BACKEND == "mlx":
         import mlx.core as mx
-        global _label_ids_mlx
         model, tok = get_mlx()
 
         def enc(s, special=True):
@@ -208,11 +224,12 @@ def _label_scores(text: str) -> list[float]:
             except TypeError:
                 return tok._tokenizer.encode(s, add_special_tokens=special)
 
-        # Label token-ids never change — tokenize them once.
-        if _label_ids_mlx is None:
-            _label_ids_mlx = [enc(v, special=False) for v in VECTORS]
+        # Label token-ids never change — tokenize each label set once.
+        if ck not in _label_ids_cache:
+            _label_ids_cache[ck] = [enc(v, special=False) for v in labels]
+        _label_ids_mlx = _label_ids_cache[ck]
 
-        prompt_ids = enc(_chat_prompt(tok, text))
+        prompt_ids = enc(_chat_prompt(tok, text, system))
 
         # KV-cache reuse: the prompt prefix (~350 tokens of system + text) is shared by
         # all 12 labels. Process it ONCE, then score each label by continuing from the
@@ -252,10 +269,10 @@ def _label_scores(text: str) -> list[float]:
 
     # transformers backend
     model, tok = get_llm()
-    prompt_ids = tok(_chat_prompt(tok, text), return_tensors="pt").input_ids.to(_device())
+    prompt_ids = tok(_chat_prompt(tok, text, system), return_tensors="pt").input_ids.to(_device())
     scores = []
     with torch.no_grad():
-        for label in VECTORS:
+        for label in labels:
             lab_ids = tok(label, add_special_tokens=False, return_tensors="pt").input_ids.to(_device())
             ids = torch.cat([prompt_ids, lab_ids], dim=1)
             logits = model(ids).logits[0]
@@ -389,12 +406,33 @@ def classify(inp: TextIn):
         return {**_classify_cache[key], "cached": True}
 
     import math
-    scores = _detector.submit(_label_scores, inp.text).result()  # pinned thread (MLX)
-    m = max(scores)
-    exps = [math.exp((s - m) / CONFIDENCE_TEMP) for s in scores]  # T<1 => assertive
-    z = sum(exps)
-    probs = [e / z for e in exps]
 
+    def softmax(scores):
+        m = max(scores)
+        exps = [math.exp((s - m) / CONFIDENCE_TEMP) for s in scores]  # T<1 => assertive
+        z = sum(exps)
+        return [e / z for e in exps]
+
+    # STAGE 1 — manipulation gate. A clean binary decision keeps benign text (greetings,
+    # helpful/friendly phrasing) from being forced into the nearest manipulation label.
+    gate = _detector.submit(_label_scores, inp.text, GATE_SYSTEM, GATE_LABELS).result()
+    gp = dict(zip(GATE_LABELS, softmax(gate)))
+    if gp["no"] >= gp["yes"]:
+        result = {
+            "vector": "none",
+            "confidence": int(round(gp["no"] * 100)),
+            "rationale": DEFINITIONS["none"],
+            "alternatives": [],
+            "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, manipulation gate)",
+        }
+        if len(_classify_cache) < 512:
+            _classify_cache[key] = result
+        return result
+
+    # STAGE 2 — which technique. Identical to the standalone 12-way classifier (so
+    # technique discrimination is unchanged); the gate above just spared benign text.
+    scores = _detector.submit(_label_scores, inp.text, SYSTEM, VECTORS).result()
+    probs = softmax(scores)
     best = max(range(len(VECTORS)), key=lambda i: probs[i])
     ranked = sorted(
         [{"vector": v, "p": round(p, 4)} for v, p in zip(VECTORS, probs)],
@@ -405,7 +443,7 @@ def classify(inp: TextIn):
         "confidence": int(round(probs[best] * 100)),
         "rationale": DEFINITIONS[VECTORS[best]],
         "alternatives": ranked[1:4],
-        "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, label log-prob scoring)",
+        "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, gated label scoring)",
     }
     if len(_classify_cache) < 512:
         _classify_cache[key] = result

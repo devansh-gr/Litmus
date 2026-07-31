@@ -2,6 +2,30 @@
 
 Run `python tests/run_eval.py` against the live server to regenerate.
 
+## False-positive fix — two-stage gate (2026-07-31)
+
+**Problem:** highlighting a friendly greeting ("Hello! How can I help you today?") reported
+**"Hype 84%"**. The single-shot 12-way classifier forces every input toward the nearest label,
+so benign/positive text (greetings, "happy to help") became hype. Prompt tweaks just slid the
+whole none/manipulation boundary (fix greetings → miss real manipulation).
+
+**Fix:** a two-stage classifier. **Stage 1** is a clean yes/no gate ("is this trying to persuade
+or manipulate?"); if no → `none`. **Stage 2** (only if yes) is the *unchanged* 12-way technique
+classifier, so technique discrimination is preserved.
+
+| metric | before | after |
+|---|---|---|
+| benign set (16 greetings/helpful/small-talk) → none | ~2/16 | **15/16 (93.8%)** |
+| "Hello! How can I help you today?" | hype 84% | **none 99%** |
+| manipulation benchmark (72) | 86.1% | **80.6%** |
+| classify latency (p50) | ~450ms | ~650ms (2 model calls) |
+
+The ~5pt benchmark dip is the gate conservatively catching a few subtle manipulations as "no" —
+a deliberate trade: real selections are mostly benign, so **not crying wolf** matters more than
+squeezing the manipulation-heavy eval. Guarded by `test_benign.py`.
+
+---
+
 ## Current (2026-07-29, after latency + taxonomy fixes)
 
 **Overall accuracy: 62/72 = 86.1%** (+9.7 pts). **p50 latency 446ms → cached ~1ms** (KV-cache reuse).
