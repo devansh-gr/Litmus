@@ -2,6 +2,36 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Tier-2 fixes — measured on the held-out external half (never tuned on)
+
+The 4 fixes from the benchmark findings, validated on `external_holdout.jsonl` (125 examples):
+
+| metric | before Tier-2 | after Tier-2 |
+|---|---|---|
+| gate recall (manipulation caught) | 0.59 | **0.69** |
+| gate PR-AUC | 0.909 | **0.934** |
+| gate precision | 0.90 | 0.92 |
+| benign false-positive | ~15% | 13% |
+| **confidence calibration (ECE)** | **0.37** | **0.15** |
+| overall accuracy | 47.6% | 50.4% [41.8–59.0%] |
+
+1. **Gate threshold + un-sharpened gate** — `CONFIDENCE_TEMP=0.25` was saturating the gate
+   probability to ~0/1; the gate now uses `GATE_TEMP=1.0`, and the threshold was re-swept on
+   external-DEV (F0.5) → **0.65**, recovering recall 0.59→0.69 without a benign-FP blow-up.
+2. **Confidence calibration (Platt)** — the shown % is now `sigmoid(a·logit(conf)+b)` (a,b fit on
+   dev) → **ECE 0.37→0.15**. "Hello" 98%→77%, "act now" 100%→87%, a borderline hype 59%→48% — the
+   number now means P(correct).
+3. **Contextual calibration** (Calibrate Before Use) — implemented, **default off** (shifts the gate
+   scale so threshold + calibration would need re-tuning; a follow-up).
+4. **Abstain** — below 0.45 calibrated confidence the card flags `uncertain` and stops asserting a
+   shaky technique label.
+
+**Still true:** accuracy is ~50% on external data (vs ~80% self-authored) — the two-stage detector
+tells manipulation from benign decently (gate PR-AUC 0.93) but technique labels blur, and coverage
+is only 4 external vectors. See `BENCHMARKING.md` for the roadmap.
+
+---
+
 ## ⚑ Honest external benchmark (2026-08-01, Tier 0+1)
 
 The self-authored sets overstated accuracy. Measured on **`external_test.jsonl`** — 250

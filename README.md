@@ -1,92 +1,163 @@
 # Cortical Persuasion Decoder
 
-A local, real-time "cognitive-manipulation x-ray" for macOS. Select any text and
-press **⌘B**, and it names the **persuasion technique** the content uses — then,
-on demand, shows the **cortical impact profile**: which of your brain's cortical
-systems the content recruits.
+**A cognitive-manipulation x-ray for your Mac.** Highlight any text — a headline, a
+DM, an ad, an AI answer — press **⌘B**, and a local AI names the persuasion technique
+being used on you, with an honest confidence. On demand, it shows *where in your
+cortex* the words land.
 
-Everything runs **on your machine**. No cloud, no API keys, no telemetry — the
-text you analyze never leaves the Mac. (The ⌘B hotkey needs a one-time
-**Accessibility** grant so the app can read your selection.)
+Everything runs **on-device**. No cloud, no API keys, no telemetry — the text you
+analyze never leaves the machine.
 
-## Architecture — the two halves do what each is actually good at
+> `⌘B` on *"Act now or lose everything forever."* → **False urgency · 87%**
+> `⌘B` on *"Hello! How can I help you today?"* → **No manipulation ✓**
 
-- **Detection** (fast, ~3 s): a local **Llama-3.2-3B-Instruct** (4-bit **MLX** by
-  default — ~2 GB, Apple-native) scores the log-probability of each
-  persuasion-vector label → the technique + a *calibrated* confidence, plus the
-  runner-up **mixture** (real persuasion is a blend). Verdicts are memoized. This
-  is the x-ray verdict.
-- **Interpretation** (opt-in, ~2 min): **Meta's TRIBE v2** (a foundation model of
-  fMRI brain responses, trained on 700+ subjects) predicts cortical activation for
-  the text, z-scored vs a neutral baseline and grouped into named systems
-  (language / value-evaluation / executive) with an engagement level.
+---
 
-The two are decoupled behind a `Classifier` protocol (`MockClassifier` for
-offline dev, `RemoteClassifier` → the local server).
+## The one idea
 
-### Honest scope (see the vault write-ups for the evidence)
-- The brain map is **not a better detector** — a plain text model classifies at
-  100% vs the brain map's 75%; the brain map is a deterministic function of the
-  text, so it cannot add detection signal. Its value is making the manipulation
-  *visceral and grounded* ("this recruited your value cortex"), not raising
-  accuracy.
-- It is **cortex-only** — it cannot see the amygdala / nucleus accumbens, so we
-  say "value-evaluation cortex," never "your fear center."
+Two models, each doing only what it's genuinely good at:
+
+| | **Detection** | **Interpretation** |
+|---|---|---|
+| model | local Llama-3.2-3B (4-bit MLX, ~2 GB) | Meta's **TRIBE v2** fMRI model |
+| job | *names* the technique + confidence | shows *where in cortex* it lands |
+| speed | ~0.6 s | ~15 s (opt-in) |
+| role | the verdict | a visceral picture — **never** the detector |
+
+Why the split? Because the project's own experiments proved the brain map is a
+*worse* detector than the text it's built from (100% vs 75% — information theory
+guarantees it). So detection is the language model's job; the brain map exists to make
+manipulation *felt*, not to raise accuracy. It's also **cortex-only**, so we say
+"engages your value / language cortex," never "fires your fear center."
+
+### Detection is two-stage
+
+A single 12-way classifier forced *every* input toward its nearest label — so a
+friendly greeting came back "Hype 84%." The fix is a **gate**:
+
+```
+text ──▶ [ Stage 1: is this manipulation at all? ] ──no──▶ "No manipulation ✓"
+                         │ yes
+                         ▼
+              [ Stage 2: which of 11 techniques? ] ──▶ verdict + calibrated confidence
+```
+
+The gate draws the line by *intent* — "the sale ends Friday" is ordinary; "hurry,
+don't miss out!" is manipulation.
+
+---
+
+## Does it actually work? (honest benchmarking)
+
+Most detectors quote an accuracy number computed on data the authors wrote themselves.
+That number is almost always inflated. So we measured on **250 independently-labeled
+examples from public datasets** (e-commerce dark-patterns + logical-fallacy corpora)
+that we neither wrote nor tuned on:
+
+| | self-authored (tuned on) | **external (never seen)** |
+|---|---|---|
+| accuracy | ~80% | **~50%** |
+| gate PR-AUC (ranks manipulation vs benign) | — | **0.93** |
+| gate recall @ shipped threshold | — | **0.69** |
+| confidence calibration (ECE, lower=better) | — | **0.15** |
+
+The honest read: the detector **tells manipulation from benign decently** (gate PR-AUC
+0.93) and its confidence now **means something** (when it says 70%, it's right ~70% of
+the time — calibrated with Platt scaling). But the specific *technique* labels blur in
+the urgency/FOMO cluster, and the ~30-point gap from the self-authored number is the
+classic cost of grading your own homework. We show these numbers on purpose.
+
+📊 Full methodology and roadmap: [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md) ·
+results: [`server/tests/RESULTS.md`](server/tests/RESULTS.md)
+
+---
+
+## Quick start
+
+**1. Server** (holds the models; runs on `127.0.0.1:8765`):
+```sh
+cd server
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python -e vendor/tribev2 fastapi uvicorn nilearn scipy mlx mlx-lm scikit-learn
+.venv/bin/python apply_patches.py        # CUDA-free (Apple Silicon) + offline-TTS patches
+.venv/bin/hf auth login                  # accept meta-llama/Llama-3.2-3B on HF first
+.venv/bin/python build_baseline.py       # writes baseline.npz for /brainmap (one-time)
+.venv/bin/python server.py               # or run 24/7 via scripts/launchd/ (see below)
+```
+
+**2. App:**
+```sh
+brew install xcodegen
+./scripts/build.sh                       # xcodegen + xcodebuild + stable re-sign
+open build/Debug/CorticalPersuasionDecoder.app
+```
+Grant **Accessibility** when prompted (so ⌘B can read your selection), then highlight
+text anywhere and press **⌘B**. For the brain map: **🧠 menu → Deep-scan cortex**.
+
+The server is meant to run **24/7** — install `scripts/launchd/ai.zeonsystems.cpd.server.plist`
+to `~/Library/LaunchAgents/` and it starts at login and restarts on crash.
+
+---
+
+## Configuration (env)
+
+| var | default | what |
+|---|---|---|
+| `CPD_GATE_NONE_THRESHOLD` | `0.65` | gate cutoff (tuned on external data by F0.5) |
+| `CPD_CALIB_A` / `CPD_CALIB_B` | `0.56` / `-1.10` | Platt calibration of the shown % |
+| `CPD_ABSTAIN_BELOW` | `0.45` | below this calibrated confidence, flag `uncertain` |
+| `CPD_CONTEXTUAL_CALIB` | `0` | Calibrate-Before-Use gate debias (needs re-tune; off) |
+| `CPD_LLM_BACKEND` | `mlx` | `mlx` (4-bit ~2 GB) or `transformers` (fp32 ~6.5 GB) |
+| `CPD_BRAINMAP_MODE` | `text` | text-only (default) or `audio` TRIBE path |
+| `CPD_TRIBE_WARM_SECS` | `120` | keep TRIBE warm between deep-scans |
+| `CPD_HOTKEY` | `B` | the trigger key |
+
+---
+
+## Testing & benchmarking
+
+```sh
+cd server
+.venv/bin/python -m pytest tests/ -q                                    # 30 behavior/contract tests
+.venv/bin/python tests/bench_full.py --data tests/data/external_holdout.jsonl  # honest metrics
+.venv/bin/python tests/run_eval.py                                      # quick accuracy
+```
+`bench_full.py` reports macro-F1 + Wilson/bootstrap CIs, per-class P/R, confusion, MCC,
+**gate PR-AUC**, and **confidence calibration (ECE + reliability)** — the metrics the
+methodology research says a subjective, imbalanced, two-stage, confidence-scored
+classifier actually needs. Swift self-tests (OCR, secret-guard) live in `scripts/`.
+
+---
 
 ## Repo layout
 
 ```
-Sources/CorticalPersuasionDecoder/   # the SwiftUI/AppKit app
-  App/         entry point, menu bar, capture→classify→overlay wiring
-  Capture/     PasteboardCapture (⌘B → copy), RegionSelector + RegionCapture + OCR
-  Hotkey/      HotkeyMonitor (global ⌘B, non-consuming)
-  Classifier/  Classifier protocol, MockClassifier, RemoteClassifier (HTTP)
-  Overlay/     floating verdict card + cortical impact profile
-  Taxonomy/    8-vector → brain-region → mechanism table
-  Support/     Config (mock/remote, thresholds)
+Sources/CorticalPersuasionDecoder/   # the SwiftUI/AppKit menu-bar app
+  App/         menu bar, ⌘B handling, capture→classify→overlay wiring
+  Capture/     PasteboardCapture (⌘B → silent copy), Region + OCR
+  Classifier/  Classifier protocol · RemoteClassifier (HTTP) · MockClassifier
+  Overlay/     floating verdict card + mini brain
+  Taxonomy/    the 11 persuasion vectors + plain-English mechanisms
+  Support/     config, permissions, sensitive-text guard
 server/                              # the local inference server
-  server.py            FastAPI: /classify (LLM) + /brainmap (TRIBE v2)
-  build_baseline.py    builds baseline.npz from a neutral corpus
-  apply_patches.py     idempotent CUDA-free / privacy patches for TRIBE v2
-  experiments/         a1–a7: the validation scripts behind the claims above
+  server.py            FastAPI: /classify (two-stage gate + LLM) · /brainmap (TRIBE v2)
+  tribe_events.py      text-only vs audio event dispatch for TRIBE
+  build_baseline.py    builds the neutral z-score baseline
+  tests/               eval sets (dev + external) · bench_full.py · pytest suite
+  experiments/         A1–A7: the validation behind the two-model split
+docs/                                # architecture, field manual, benchmarking
 ```
 
-## Running it
-
-### 1. Server (once)
-```sh
-cd server
-uv venv --python 3.11 .venv
-uv pip install --python .venv/bin/python -e vendor/tribev2 fastapi uvicorn nilearn scipy mlx mlx-lm
-.venv/bin/python apply_patches.py         # CUDA-free (Apple Silicon) + offline-TTS patches
-.venv/bin/hf auth login                   # gated: accept meta-llama/Llama-3.2-3B on HF first
-.venv/bin/python build_baseline.py        # writes baseline.npz (~20 min, one-time)
-.venv/bin/python server.py                # serves 127.0.0.1:8765
-```
-(`vendor/tribev2` = a checkout of `github.com/facebookresearch/tribev2`.)
-
-### 2. App
-```sh
-brew install xcodegen        # once
-xcodegen generate
-xcodebuild -project CorticalPersuasionDecoder.xcodeproj -target CorticalPersuasionDecoder -configuration Debug build
-open build/Debug/CorticalPersuasionDecoder.app
-```
-Then grant Accessibility when prompted, select text anywhere + **⌘B** → verdict
-card appears (override the key with `CPD_HOTKEY=D` etc.). **Ad-hoc builds:** the
-Accessibility grant is tied to the build's code hash, so after a rebuild ⌘B may
-silently stop — re-toggle the app under *System Settings ▸ Privacy & Security ▸
-Accessibility* (or sign with an Apple Developer cert for a stable identity). For the cortical
-profile, click the **🧠 menu bar → Deep-scan cortex**.
-
-### Config (env)
-- `CPD_CLASSIFIER=mock|remote` (default remote)
-- `CPD_ENDPOINT_URL` (default `http://127.0.0.1:8765`)
-- `CPD_MIN_CONFIDENCE` (default 30 — suppress weak verdicts)
-- `CPD_LLM_BACKEND=mlx|transformers` (default `mlx` — 4-bit, ~2 GB; `transformers` is fp32, ~6.5 GB)
-- `CPD_MLX_MODEL` (default `mlx-community/Llama-3.2-3B-Instruct-4bit`)
-- `CPD_LLM` (transformers backend model, default `meta-llama/Llama-3.2-3B-Instruct`)
+## Further reading
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — the whole system on one page.
+- **[docs/BENCHMARKING.md](docs/BENCHMARKING.md)** — how to properly benchmark this, and why.
+- Interactive **[architecture](https://claude.ai/code/artifact/33401b3a-e07f-4934-88b8-03056054a5fb)**
+  and **[field manual](https://claude.ai/code/artifact/d5fc32a8-e2dd-4f29-a041-e55580e8b2db)** pages.
 
 ## Requirements
-macOS 14+, Apple Silicon (uses MPS), full Xcode, Homebrew, `uv`, a Hugging Face
-account with the Llama-3.2 license accepted.
+macOS 14+, Apple Silicon (uses MPS), Xcode, Homebrew, `uv`, and a Hugging Face account
+with the Llama-3.2 license accepted.
+
+---
+
+*Built to defend attention, not harvest it — which is why it runs entirely on your machine.*
