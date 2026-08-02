@@ -302,17 +302,17 @@
   <p class="lead">The detector is fast and now has a real report card.</p>
   <div class="facts" style="margin-bottom:18px">
     <span class="fact"><b>~0.6s</b> per ⌘B (was ~4s)</span>
-    <span class="fact"><b>~1ms</b> cached repeat</span>
-    <span class="fact"><b>20/20</b> manipulation caught</span>
-    <span class="fact"><b>27/30</b> benign ignored</span>
+    <span class="fact">gate <b>PR-AUC 0.91</b> (ranks manipulation)</span>
+    <span class="fact"><b>47.6%</b> external accuracy</span>
+    <span class="fact"><b>80%</b> on self-authored (overfit)</span>
   </div>
   <div class="filemap">
     <div class="fm"><div class="p">Two-stage gate</div><div class="d">A yes/no "is this manipulation?" first — stops greetings/facts/reviews being forced into a tactic.</div></div>
-    <div class="fm"><div class="p">KV-cache reuse</div><div class="d">The shared prompt is processed once, not per-label — a ~9× speedup; verdicts unchanged.</div></div>
-    <div class="fm srv"><div class="p">run_eval.py</div><div class="d">Labeled sets → accuracy, per-vector recall/precision, confusions, calibration.</div></div>
-    <div class="fm srv"><div class="p">pytest suite</div><div class="d">Contract, behavior, benign + realistic FP guards, taxonomy-drift, robustness.</div></div>
+    <div class="fm"><div class="p">External test set</div><div class="d">250 independently-labeled examples (public dark-patterns + fallacy data) — the honest, never-tuned-on number.</div></div>
+    <div class="fm srv"><div class="p">bench_full.py</div><div class="d">Macro-F1 + Wilson/bootstrap CIs, per-class, confusion, MCC, gate PR-AUC, and confidence calibration (ECE).</div></div>
+    <div class="fm srv"><div class="p">pytest suite</div><div class="d">Contract, behavior, benign + realistic guards, taxonomy-drift, robustness.</div></div>
   </div>
-  <p class="lead" style="margin-top:6px">Tuned against a <em>realistic</em> mix (60% benign), so the line is drawn by intent — "the sale ends Friday" is ordinary, "hurry, don't miss out!" is manipulation. Remaining seam: the <code>false-urgency</code> / <code>fomo</code> tactic labels still overlap (surfaced via the card's "also:" line).</p>
+  <p class="lead" style="margin-top:6px"><strong>Measured honestly.</strong> On self-authored data it looked ~80% accurate; on 250 <em>external</em>, never-tuned-on examples it's <strong>47.6%</strong> — a 32-point overfitting gap. The gate <em>ranks</em> manipulation vs benign well (PR-AUC 0.91), but its 0.5 threshold misses ~41% of real manipulation, the confidence % is over-confident (ECE 0.37), and the urgency/fomo tactic labels overlap. These are the real, measured priorities — not the optimistic demo numbers.</p>
 
   <div class="foot">
     Cortical Persuasion Decoder · architecture overview · detection = local Llama-3.2-3B · interpretation = TRIBE v2 · everything on-device, zero telemetry.<br>

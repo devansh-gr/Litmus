@@ -781,18 +781,20 @@ Authority=<span class="cool">CPD Local Signing</span>     <span class="dim"># st
         <p>This is the honest accounting the manual was started for. There were <strong>two different questions</strong> inside "does it work" — and the second one now has a much better answer than it used to.</p>
 
         <div class="flow" aria-label="Two kinds of validation">
-          <div class="flow__node det"><span class="n">The algorithm</span><span class="d"><strong>Validated two ways.</strong> The A1–A7 / I1 / I1b research battery <em>and</em> live benchmarks. On a realistic mix (60% benign) the two-stage detector catches <strong>20/20</strong> manipulation and correctly ignores <strong>27/30</strong> benign lines.</span></div>
-          <div class="flow__node interp"><span class="n">The app code</span><span class="d"><strong>Now has a test suite.</strong> pytest (contract, behavior, taxonomy-drift, robustness) + Swift self-tests for OCR and the secret guard. The UI itself still isn't auto-tested end-to-end.</span></div>
+          <div class="flow__node det"><span class="n">On self-authored data</span><span class="d"><strong>~80% — and misleading.</strong> When you write the test examples <em>and</em> tune the model to them, the score measures memorization, not generalization.</span></div>
+          <div class="flow__node interp"><span class="n">On external data</span><span class="d"><strong>47.6%.</strong> Measured on 250 independently-labeled examples (public dark-patterns + fallacy datasets) we never authored or tuned on. A <strong>32-point</strong> overfitting gap — the honest number.</span></div>
         </div>
 
-        <p>The benchmarks are the detector's honest report card. One caught that <code>manufactured-awe</code> was <strong>0%</strong> recall (indistinguishable from hype) — fixing the two definitions took the manipulation-only set <strong>76.4% → 86.1%</strong>. A second, <em>realistic</em> set (mostly benign) then exposed a bigger problem — friendly greetings flagged as hype — which drove the two-stage gate (Module 3). The remaining seam is honest: the <code>false-urgency</code> / <code>fomo</code> tactic <em>labels</em> still overlap, surfaced via the card's "also:" line rather than hidden.</p>
+        <p>This is the most important lesson in the manual. The self-authored benchmarks (the ones that drove the <code>manufactured-awe</code> fix and the two-stage gate) were real progress, but they <em>flattered</em> the system — because the same person wrote the examples and tuned the prompts. Only an <strong>external, never-tuned-on</strong> test set tells the truth, and it's humbling.</p>
 
-        <div class="callout callout--why">
-          <div class="callout__label">The discipline this builds in</div>
-          <p>Every accuracy claim now traces to <code>server/tests/run_eval.py</code>, and a latency change (the 9× KV-cache win) was only accepted <em>because</em> the benchmark proved verdicts stayed byte-identical. The taxonomy-drift test guards the server↔app contract; the robustness tests guarantee weird input never crashes. The idea was proven by experiment — now the implementation is protected from regressions too.</p>
+        <div class="callout callout--pivot">
+          <div class="callout__label">What the honest metrics reveal</div>
+          <p><strong>The gate ranks well but is set too tight.</strong> Gate PR-AUC is <strong>0.91</strong> — it <em>can</em> separate manipulation from benign — but at the shipped threshold it misses ~41% of real manipulation (tuned on easy examples). <strong>The confidence % lies.</strong> Calibration error is <strong>0.37</strong>: on the cases where it says "99%", it's right ~60% of the time — badly over-confident, because the temperature was tuned for <em>assertiveness</em>, not honesty. <strong>Tactic labels blur</strong> in the urgency/fomo cluster.</p>
         </div>
 
-        <p>The takeaway for anyone learning this system: the claims here are earned — by experiment <em>and</em> by a suite you can re-run (<code>pytest tests/</code>, <code>python tests/run_eval.py</code>). The one part still worth verifying by hand is the live UI path end-to-end.</p>
+        <p>The right response isn't to hide these numbers — it's to <em>measure them properly</em>: macro-F1 and per-class scores (not accuracy) under class imbalance, Wilson/bootstrap confidence intervals (N is small, so ±6–14 points), PR-AUC for the gate, and ECE for the confidence. That's what <code>bench_full.py</code> now does, and what <code>docs/BENCHMARKING.md</code> lays out as the roadmap.</p>
+
+        <p>The takeaway for anyone learning this system: <strong>be suspicious of any benchmark whose author also tuned the model on it.</strong> The idea is proven by experiment; the detector <em>works</em> in the "is this manipulation at all?" sense; but the precise accuracy is lower and the confidence less trustworthy than a demo suggests — and saying so plainly is the point.</p>
 
         <div class="foot">
           <p>Cortical Persuasion Decoder · field manual · detection = local MLX Llama-3.2-3B · interpretation = TRIBE v2 · on-device, zero telemetry.<br>
