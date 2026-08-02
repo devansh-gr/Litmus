@@ -157,6 +157,9 @@ CONFIDENCE_TEMP = float(os.environ.get("CPD_CONFIDENCE_TEMP", "0.25"))
 # external-dev by tests/fit_calibration.py; defaults are identity (no change).
 CALIB_A = float(os.environ.get("CPD_CALIB_A", "0.5606"))   # fit on external-dev
 CALIB_B = float(os.environ.get("CPD_CALIB_B", "-1.0966"))  # ECE 0.296 -> 0.109
+# Abstain: below this CALIBRATED confidence the technique label is not trustworthy (the
+# calibration makes this honest), so flag it rather than assert a shaky verdict.
+ABSTAIN_BELOW = float(os.environ.get("CPD_ABSTAIN_BELOW", "0.45"))
 
 
 def _calibrate(p: float) -> float:
@@ -498,10 +501,14 @@ def classify(inp: TextIn):
         [{"vector": v, "p": round(p, 4)} for v, p in zip(VECTORS, probs)],
         key=lambda d: -d["p"],
     )
+    cal = _calibrate(probs[best])
+    uncertain = cal < ABSTAIN_BELOW
     result = {
         "vector": VECTORS[best],
-        "confidence": int(round(_calibrate(probs[best]) * 100)),
-        "rationale": DEFINITIONS[VECTORS[best]],
+        "confidence": int(round(cal * 100)),
+        "rationale": ("Likely manipulative, but the specific technique is unclear — treat "
+                      "the label as a guess." if uncertain else DEFINITIONS[VECTORS[best]]),
+        "uncertain": uncertain,
         "alternatives": ranked[1:4],
         "manip_prob": round(gp["yes"], 4),   # gate P(manipulation) — for eval/PR-AUC
         "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, gated label scoring)",
