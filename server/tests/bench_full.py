@@ -81,6 +81,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", required=True)
     ap.add_argument("--name", default="set")
+    ap.add_argument("--dump", default=None, help="write per-example (conf/correct/manip_prob) JSON")
     args = ap.parse_args()
 
     rows = [json.loads(l) for l in Path(args.data).read_text().splitlines() if l.strip()]
@@ -94,6 +95,11 @@ def main():
         correct.append(int(pred == gold))
         manip_p.append(resp.get("manip_prob", 1.0 if pred != "none" else 0.0))
         is_manip.append(int(gold != "none"))
+
+    if args.dump:
+        Path(args.dump).write_text(json.dumps(
+            [{"conf": c, "correct": k, "manip_prob": m, "is_manip": im}
+             for c, k, m, im in zip(confs, correct, manip_p, is_manip)]))
 
     N = len(y_true)
     labels = sorted(set(y_true) | set(y_pred))

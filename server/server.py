@@ -141,6 +141,20 @@ MLX_MODEL = os.environ.get("CPD_MLX_MODEL", "mlx-community/Llama-3.2-3B-Instruct
 # an ASSERTIVE confidence. Lower = more assertive. Override with CPD_CONFIDENCE_TEMP.
 CONFIDENCE_TEMP = float(os.environ.get("CPD_CONFIDENCE_TEMP", "0.25"))
 
+# Platt calibration of the DISPLAYED confidence so the shown % means P(correct). The
+# raw model is badly over-confident (ECE 0.37 — says "99%", right ~60%). a,b are fit on
+# external-dev by tests/fit_calibration.py; defaults are identity (no change).
+CALIB_A = float(os.environ.get("CPD_CALIB_A", "0.5606"))   # fit on external-dev
+CALIB_B = float(os.environ.get("CPD_CALIB_B", "-1.0966"))  # ECE 0.296 -> 0.109
+
+
+def _calibrate(p: float) -> float:
+    """Map a raw top-class probability to a calibrated confidence via Platt scaling."""
+    import math
+    p = min(0.999, max(0.001, p))
+    z = CALIB_A * math.log(p / (1 - p)) + CALIB_B
+    return 1.0 / (1.0 + math.exp(-z))
+
 # Keep TRIBE resident for this many seconds after a /brainmap so back-to-back deep
 # scans skip the ~7GB reload (the reload is most of the ~15s a warm scan takes).
 # 0 = free immediately (safest on a low-RAM machine). The warm window is self-
@@ -445,7 +459,7 @@ def classify(inp: TextIn):
     if gp["no"] >= GATE_NONE_THRESHOLD:
         result = {
             "vector": "none",
-            "confidence": int(round(gp["no"] * 100)),
+            "confidence": int(round(_calibrate(gp["no"]) * 100)),
             "rationale": DEFINITIONS["none"],
             "alternatives": [],
             "manip_prob": round(gp["yes"], 4),   # gate P(manipulation) — for eval/PR-AUC
@@ -466,7 +480,7 @@ def classify(inp: TextIn):
     )
     result = {
         "vector": VECTORS[best],
-        "confidence": int(round(probs[best] * 100)),
+        "confidence": int(round(_calibrate(probs[best]) * 100)),
         "rationale": DEFINITIONS[VECTORS[best]],
         "alternatives": ranked[1:4],
         "manip_prob": round(gp["yes"], 4),   # gate P(manipulation) — for eval/PR-AUC
