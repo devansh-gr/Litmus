@@ -794,6 +794,11 @@ Authority=<span class="cool">CPD Local Signing</span>     <span class="dim"># st
 
         <p>The right response isn't to hide these numbers — it's to <em>measure them properly</em>: macro-F1 and per-class scores (not accuracy) under class imbalance, Wilson/bootstrap confidence intervals (N is small, so ±6–14 points), PR-AUC for the gate, and ECE for the confidence. That's what <code>bench_full.py</code> now does, and what <code>docs/BENCHMARKING.md</code> lays out as the roadmap.</p>
 
+        <div class="callout callout--why">
+          <div class="callout__label">…and then fixed what it exposed</div>
+          <p>The honest metrics pointed at three concrete fixes, each validated on a <em>held-out</em> external half: (1) the gate's probability had been <strong>saturated</strong> by the assertiveness temperature, so un-sharpening it and re-tuning the threshold on external data recovered recall <strong>0.59 → 0.69</strong> (PR-AUC 0.93); (2) the confidence was over-confident, so <strong>Platt calibration</strong> now maps the shown % to P(correct) — <strong>ECE 0.37 → 0.15</strong>; (3) when a technique label is genuinely unclear, the card now <strong>abstains</strong> ("treat the label as a guess") instead of asserting it. The point isn't that it's fixed — it's that honest measurement is what tells you <em>what</em> to fix.</p>
+        </div>
+
         <p>The takeaway for anyone learning this system: <strong>be suspicious of any benchmark whose author also tuned the model on it.</strong> The idea is proven by experiment; the detector <em>works</em> in the "is this manipulation at all?" sense; but the precise accuracy is lower and the confidence less trustworthy than a demo suggests — and saying so plainly is the point.</p>
 
         <div class="foot">
