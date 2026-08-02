@@ -93,6 +93,17 @@ GATE_LABELS = ("no", "yes")
 # ~0/1, which destroys its ranking and leaves the threshold no purchase. T=1 keeps a
 # smooth P(manipulation) the threshold can actually tune against.
 GATE_TEMP = float(os.environ.get("CPD_GATE_TEMP", "1.0"))
+# Contextual calibration ("Calibrate Before Use", Zhao et al. 2021): the gate's log-prob
+# scoring is biased by the prompt itself (a repeated word inflates its label). We measure
+# that bias on a content-free input ("N/A") once and divide it out of every gate
+# probability, so the decision reflects the TEXT, not the prompt's a-priori lean.
+# DEFAULT OFF: enabling it shifts the gate probability scale, which makes the tuned
+# threshold (0.65) and the Platt calibration (a,b) stale — both were fit WITHOUT it, and
+# a spot-check showed confidences drift (a clear greeting fell to 42%). The capability is
+# here and correct; integrating it properly means re-sweeping the threshold and re-fitting
+# calibration on the contextual-calib pipeline (a follow-up). See BENCHMARKING.md.
+CONTEXTUAL_CALIB = os.environ.get("CPD_CONTEXTUAL_CALIB", "0") == "1"
+_gate_cf_probs = None   # cached content-free gate bias
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
 # Higher = the gate must be more sure before it calls something benign, so more borderline
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
@@ -454,8 +465,17 @@ def classify(inp: TextIn):
     # STAGE 1 — manipulation gate. A clean binary decision keeps benign text (greetings,
     # helpful/friendly phrasing) from being forced into the nearest manipulation label.
     # Uses GATE_TEMP (unsharpened) so the gate probability stays a smooth, tunable score.
+    global _gate_cf_probs
     gate = _detector.submit(_label_scores, inp.text, GATE_SYSTEM, GATE_LABELS).result()
-    gp = dict(zip(GATE_LABELS, softmax(gate, GATE_TEMP)))
+    gp_raw = softmax(gate, GATE_TEMP)
+    if CONTEXTUAL_CALIB:
+        if _gate_cf_probs is None:   # measure the prompt's bias on a content-free input, once
+            cf = _detector.submit(_label_scores, "N/A", GATE_SYSTEM, GATE_LABELS).result()
+            _gate_cf_probs = softmax(cf, GATE_TEMP)
+        adj = [gp_raw[i] / max(_gate_cf_probs[i], 1e-6) for i in range(len(GATE_LABELS))]
+        s = sum(adj)
+        gp_raw = [a / s for a in adj]
+    gp = dict(zip(GATE_LABELS, gp_raw))
     if gp["no"] >= GATE_NONE_THRESHOLD:
         result = {
             "vector": "none",
