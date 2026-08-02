@@ -64,7 +64,7 @@ VECTORS = [
 DEFINITIONS = {
     "fear-mongering": "makes you afraid of harm, danger, disease or catastrophe",
     "critical-thinking-suppression": "tells you not to question, think or investigate",
-    "tribal-in-group-bias": "pits 'us' against 'them', an in-group versus an enemy",
+    "tribal-in-group-bias": "an US-versus-THEM split: our side vs an enemy group — 'they' want to destroy what 'we' stand for, real ones vs outsiders",
     "dopamine-bait": "dangles a reward, prize, win, jackpot, freebie or exclusive unlock",
     "outrage": "invites moral anger and disgust at someone's behaviour",
     "authority-appeal": "leans on experts, officials, science or authority to settle it",
