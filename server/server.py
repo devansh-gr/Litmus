@@ -438,6 +438,7 @@ def classify(inp: TextIn):
             "confidence": int(round(gp["no"] * 100)),
             "rationale": DEFINITIONS["none"],
             "alternatives": [],
+            "manip_prob": round(gp["yes"], 4),   # gate P(manipulation) — for eval/PR-AUC
             "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, manipulation gate)",
         }
         if len(_classify_cache) < 512:
@@ -458,6 +459,7 @@ def classify(inp: TextIn):
         "confidence": int(round(probs[best] * 100)),
         "rationale": DEFINITIONS[VECTORS[best]],
         "alternatives": ranked[1:4],
+        "manip_prob": round(gp["yes"], 4),   # gate P(manipulation) — for eval/PR-AUC
         "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, gated label scoring)",
     }
     if len(_classify_cache) < 512:
