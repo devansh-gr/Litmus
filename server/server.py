@@ -88,10 +88,19 @@ SYSTEM = (
 # helpful sentence as hype. yes/no label tokens (rather than repeating the loaded word
 # "manipulation") keep the log-prob scoring from being primed toward one answer.
 GATE_LABELS = ("no", "yes")
+# The gate uses its OWN temperature (unsharpened by default). Sharpening (the tiny
+# CONFIDENCE_TEMP used for the assertive technique %) saturates the gate probability to
+# ~0/1, which destroys its ranking and leaves the threshold no purchase. T=1 keeps a
+# smooth P(manipulation) the threshold can actually tune against.
+GATE_TEMP = float(os.environ.get("CPD_GATE_TEMP", "1.0"))
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
 # Higher = the gate must be more sure before it calls something benign, so more borderline
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
-GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.5"))
+# 0.65 chosen on external-dev by an F0.5 (precision-favoring) sweep of the now-smooth
+# gate probability: recovers manipulation recall (0.58→~0.66) without the benign
+# false-positive blow-up that a higher threshold causes. Flagging benign hurts trust
+# most, so we weight precision over recall.
+GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.65"))
 GATE_SYSTEM = (
     "Decide if the text is trying to MANIPULATE or PERSUADE the reader, versus just "
     "communicating normally.\n"
@@ -422,16 +431,17 @@ def classify(inp: TextIn):
 
     import math
 
-    def softmax(scores):
+    def softmax(scores, temp=CONFIDENCE_TEMP):
         m = max(scores)
-        exps = [math.exp((s - m) / CONFIDENCE_TEMP) for s in scores]  # T<1 => assertive
+        exps = [math.exp((s - m) / temp) for s in scores]  # T<1 => assertive
         z = sum(exps)
         return [e / z for e in exps]
 
     # STAGE 1 — manipulation gate. A clean binary decision keeps benign text (greetings,
     # helpful/friendly phrasing) from being forced into the nearest manipulation label.
+    # Uses GATE_TEMP (unsharpened) so the gate probability stays a smooth, tunable score.
     gate = _detector.submit(_label_scores, inp.text, GATE_SYSTEM, GATE_LABELS).result()
-    gp = dict(zip(GATE_LABELS, softmax(gate)))
+    gp = dict(zip(GATE_LABELS, softmax(gate, GATE_TEMP)))
     if gp["no"] >= GATE_NONE_THRESHOLD:
         result = {
             "vector": "none",
