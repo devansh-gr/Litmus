@@ -63,7 +63,7 @@ VECTORS = [
 # into "false-urgency" without them.
 DEFINITIONS = {
     "fear-mongering": "makes you afraid of harm, danger, disease or catastrophe",
-    "critical-thinking-suppression": "tells you not to question, think or investigate",
+    "critical-thinking-suppression": "tells you to STOP thinking for yourself — don't question, don't overthink, don't research, no need to understand, just trust/believe/accept it",
     "tribal-in-group-bias": "an US-versus-THEM split: our side vs an enemy group — 'they' want to destroy what 'we' stand for, real ones vs outsiders",
     "dopamine-bait": "dangles a concrete GOODY to chase — a prize, jackpot, win, freebie, giveaway, or a shocking secret to 'unlock' or 'claim'",
     "outrage": "invites moral anger and disgust at someone's behaviour",
