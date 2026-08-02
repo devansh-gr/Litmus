@@ -1,6 +1,39 @@
 # Detector benchmark — results
 
-Run `python tests/run_eval.py` against the live server to regenerate.
+Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
+
+## ⚑ Honest external benchmark (2026-08-01, Tier 0+1)
+
+The self-authored sets overstated accuracy. Measured on **`external_test.jsonl`** — 250
+independently-labeled examples (public dark-patterns + LOGIC datasets) we **never authored or
+tuned on** — the picture is very different:
+
+| metric | DEV `realistic` (tuned on) | EXTERNAL (locked) |
+|---|---|---|
+| accuracy | 80.0% [67–89%] | **47.6% [41.5–53.8%]** |
+| macro-F1 | 0.537 | **0.203** |
+| MCC | 0.696 | **0.339** |
+
+**A 32-point overfitting gap** — the classic cost of scoring on self-authored, tuned-on data. What
+the rigorous metrics reveal:
+
+- **The gate ranks manipulation well but the threshold is too tight for real text.** Gate
+  **PR-AUC = 0.909** (prevalence baseline 0.68) — it *can* separate manipulation from benign — but at
+  the shipped 0.5 threshold, **recall is only 0.59**: it misses **69/170 (41%)** of real
+  manipulation. The 0.5 threshold was tuned on easy, prototypical self-authored examples.
+- **Confidence is badly miscalibrated (overconfident everywhere).** **ECE = 0.373.** On the 156
+  examples where it says **99%** confidence, it's actually right **60%** of the time. The "84%" is
+  not a trustworthy probability — needs temperature scaling (which our `CONFIDENCE_TEMP=0.25`
+  actively works *against*, since it was tuned for assertiveness).
+- **Technique labels confuse the urgency/fomo/scarcity cluster** (fomo recall 0.03 — mostly →
+  false-urgency). Partly a cross-taxonomy artifact (dark-pattern "Scarcity" ≈ our fomo but overlaps
+  false-urgency), but the cluster is genuinely weak.
+
+**Takeaway:** the detector tells manipulation from benign *reasonably* (gate PR-AUC 0.91), but (1)
+the operating threshold misses too much real manipulation, (2) specific technique labels are shaky,
+(3) confidence is not calibrated. These are the real, measured priorities — see `BENCHMARKING.md`.
+
+---
 
 ## False-positive fix — two-stage gate (2026-07-31)
 
