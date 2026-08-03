@@ -36,9 +36,11 @@ LOGIC_MAP = {
     "ad populum": "social-proof-conformity",
     "fallacy of credibility": "authority-appeal",
 }
+# Chakraborty clickbait: clickbait headlines ≈ dopamine-bait (a LOOSE, gate-level mapping —
+# curiosity/reward bait; read it mainly as "is this manipulation?"), news headlines → none.
 CAPS = {  # keep the eval runnable + roughly balanced
-    "none": 80, "false-urgency": 40, "fomo": 40,
-    "social-proof-conformity": 50, "authority-appeal": 40,
+    "none": 90, "false-urgency": 40, "fomo": 40,
+    "social-proof-conformity": 50, "authority-appeal": 40, "dopamine-bait": 40,
 }
 
 
@@ -77,6 +79,17 @@ def main():
             v = LOGIC_MAP.get((row.get("updated_label") or "").strip())
             if v:
                 add(row.get("source_article", ""), v, "logic")
+
+    # Clickbait (Chakraborty): clickbait → dopamine-bait, non-clickbait news → none.
+    import gzip
+    cb_dir = Path(logic_dir)   # same temp dir holds the gz files
+    for fname, vector, src in (("clickbait.gz", "dopamine-bait", "clickbait"),
+                               ("nonclickbait.gz", "none", "clickbait")):
+        p = cb_dir / fname
+        if not p.exists():
+            continue
+        for line in gzip.open(p, "rt", errors="ignore"):
+            add(line, vector, src)
 
     out = []
     for v, cap in CAPS.items():
