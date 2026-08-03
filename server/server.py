@@ -97,11 +97,11 @@ GATE_TEMP = float(os.environ.get("CPD_GATE_TEMP", "1.0"))
 # scoring is biased by the prompt itself (a repeated word inflates its label). We measure
 # that bias on a content-free input ("N/A") once and divide it out of every gate
 # probability, so the decision reflects the TEXT, not the prompt's a-priori lean.
-# DEFAULT OFF: enabling it shifts the gate probability scale, which makes the tuned
-# threshold (0.65) and the Platt calibration (a,b) stale — both were fit WITHOUT it, and
-# a spot-check showed confidences drift (a clear greeting fell to 42%). The capability is
-# here and correct; integrating it properly means re-sweeping the threshold and re-fitting
-# calibration on the contextual-calib pipeline (a follow-up). See BENCHMARKING.md.
+# DEFAULT OFF — EVALUATED, no benefit. Measured on external-dev with it ON: gate
+# PR-AUC 0.916 ≈ 0.92 OFF (no ranking gain), because the yes/no gate verbalizers already
+# sidestep the surface-form/priming bias this corrects. It also shifts the probability
+# scale badly (recall 0.96 but 75% benign FP at the same threshold), forcing a full
+# threshold + calibration re-tune for zero gain. Kept as an opt-in capability.
 CONTEXTUAL_CALIB = os.environ.get("CPD_CONTEXTUAL_CALIB", "0") == "1"
 _gate_cf_probs = None   # cached content-free gate bias
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
