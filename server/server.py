@@ -107,11 +107,11 @@ _gate_cf_probs = None   # cached content-free gate bias
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
 # Higher = the gate must be more sure before it calls something benign, so more borderline
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
-# 0.65 chosen on external-dev by an F0.5 (precision-favoring) sweep of the now-smooth
-# gate probability: recovers manipulation recall (0.58→~0.66) without the benign
-# false-positive blow-up that a higher threshold causes. Flagging benign hurts trust
-# most, so we weight precision over recall.
-GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.65"))
+# Re-swept on external-dev after the gate-prompt edits (the richer prompt shifted where
+# the threshold lands, dropping recall at 0.65). 0.70 recovers manipulation recall to ~0.62
+# at ~17% benign FP — a precision-favoring point that doesn't re-introduce greeting-style
+# false positives (a higher threshold pushes benign FP past 20%).
+GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.70"))
 GATE_SYSTEM = (
     "Decide if the text is trying to MANIPULATE or PERSUADE the reader, versus just "
     "communicating normally.\n"
@@ -125,7 +125,9 @@ GATE_SYSTEM = (
     "purchase, or action. Also 'yes' when it cites experts, studies, or the crowd to SHUT "
     "DOWN doubt (\"experts agree, so the debate is over\", \"the only correct approach\", "
     "\"nothing left to question\") — as opposed to just reporting a fact (\"a study "
-    "examined sleep\" is no).\n"
+    "examined sleep\" is no). Also 'yes' when it tells the reader to STOP thinking for "
+    "themselves — don't question, don't overthink, stop doing your own research, no need "
+    "to understand, just trust or believe it.\n"
     "The difference is intent to influence: \"the sale ends Friday\" is no, but \"hurry, "
     "the sale ends Friday, don't miss out!\" is yes.\n"
     "Answer with a single word: yes or no."
