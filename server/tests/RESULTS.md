@@ -5,16 +5,19 @@ Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <se
 ## Expanded external coverage (2026-08-03) — 6 vectors, 300 examples
 
 Added clickbait (→dopamine-bait) + news headlines (→none) to the external set (now 6
-vectors + none). Held-out (150) with the re-tuned threshold (0.70):
+vectors + none). Held-out (150) with the re-tuned threshold (0.70), current state:
 
-- **accuracy 40.7%** [33–49%] — *lower* than the 5-vector set, and honestly so: the
-  clickbait→dopamine-bait mapping is loose (curiosity bait ≠ our "dangles a prize"), and
-  news headlines are a harder benign domain. Technique-level accuracy on that mapping is poor.
+- **accuracy 44.7%** [37–53%] — after separating fomo (scarcity) from false-urgency (the
+  clock), which fixed the biggest technique blur (**fomo recall 0.05 → 0.70**, false-urgency
+  precision 0.53 → 0.85). Still honest-low: the clickbait→dopamine-bait mapping is loose
+  (dopamine recall ~0), and news is a harder benign domain.
 - **gate: recall 0.66, precision 0.86, PR-AUC 0.916** — the re-tune (0.65→0.70) recovered
   recall after the prompt edits; the gate still ranks manipulation vs benign well.
-- **calibration holds: ECE 0.105** on the new holdout.
-- Benign FP rose to ~24% (news headlines can read as alarming/urgent) — a real precision
-  cost of the broader benign domain, worth noting.
+- **calibration holds: ECE 0.10** on the new holdout.
+- **Contextual calibration evaluated → no gain** (PR-AUC 0.916 == off); the yes/no gate
+  already avoids the priming it targets. Kept off.
+- Benign FP ~24% (news headlines can read as alarming) — a real precision cost of the
+  broader benign domain.
 
 Read the **gate** metrics (is-this-manipulation) as the trustworthy signal here; the
 technique-label accuracy on the loose clickbait mapping is a floor, not a ceiling.
