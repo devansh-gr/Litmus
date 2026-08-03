@@ -107,11 +107,12 @@ _gate_cf_probs = None   # cached content-free gate bias
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
 # Higher = the gate must be more sure before it calls something benign, so more borderline
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
-# Re-swept on external-dev after the gate-prompt edits (the richer prompt shifted where
-# the threshold lands, dropping recall at 0.65). 0.70 recovers manipulation recall to ~0.62
-# at ~17% benign FP — a precision-favoring point that doesn't re-introduce greeting-style
-# false positives (a higher threshold pushes benign FP past 20%).
-GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.70"))
+# 0.85 by product choice: SENSITIVE. Route to "none" only when the gate is quite sure it's
+# benign (gp[no] >= 0.85), so borderline text flows to the technique classifier and gets
+# flagged. This catches ~0.76-0.82 recall on external-dev (vs 0.62 at 0.70) at the cost of
+# more benign flags — the user prefers over-flagging to missing manipulation. Clear greetings
+# still land as none (their manip_prob is very low). Lower it toward 0.5 to be more cautious.
+GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.85"))
 GATE_SYSTEM = (
     "Decide if the text is trying to MANIPULATE or PERSUADE the reader, versus just "
     "communicating normally.\n"
@@ -161,8 +162,12 @@ CONFIDENCE_TEMP = float(os.environ.get("CPD_CONFIDENCE_TEMP", "0.25"))
 # Platt calibration of the DISPLAYED confidence so the shown % means P(correct). The
 # raw model is badly over-confident (ECE 0.37 — says "99%", right ~60%). a,b are fit on
 # external-dev by tests/fit_calibration.py; defaults are identity (no change).
-CALIB_A = float(os.environ.get("CPD_CALIB_A", "0.5606"))   # fit on external-dev
-CALIB_B = float(os.environ.get("CPD_CALIB_B", "-1.0966"))  # ECE 0.296 -> 0.109
+# Calibration DEFAULT OFF (identity) by product choice: the Platt fit (a=0.56, b=-1.10) is
+# the *honest* mapping (ECE 0.37→0.10) but it drags the shown % down into the 40-60s, which
+# reads as timid. The product is meant to feel ASSERTIVE, so we show the sharpened confidence.
+# Set CPD_CALIB_A=0.56 CPD_CALIB_B=-1.10 to get the honest (lower) numbers back.
+CALIB_A = float(os.environ.get("CPD_CALIB_A", "1.0"))
+CALIB_B = float(os.environ.get("CPD_CALIB_B", "0.0"))
 # Abstain: below this CALIBRATED confidence the technique label is not trustworthy (the
 # calibration makes this honest), so flag it rather than assert a shaky verdict.
 ABSTAIN_BELOW = float(os.environ.get("CPD_ABSTAIN_BELOW", "0.45"))
