@@ -28,7 +28,7 @@ def test_pure_time_pressure_is_not_fomo(classify):
     assert classify("Buy before the countdown hits zero.")["vector"] != "fomo"
 
 
-def test_pure_scarcity_is_not_pure_clock(classify):
-    # "only N left / selling fast" should read as scarcity (fomo), not the clock.
-    assert classify("Only a few left in stock — while supplies last.")["vector"] in {
-        "fomo", "dopamine-bait", "social-proof-conformity"}
+def test_pure_scarcity_is_not_time_urgency(classify):
+    # Scarcity ("only N left / selling fast") must not read as the CLOCK. It may be fomo,
+    # a neighbor, or (if too subtle) none — but never false-urgency.
+    assert classify("Only a few left in stock — while supplies last.")["vector"] != "false-urgency"
