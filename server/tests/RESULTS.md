@@ -2,6 +2,25 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Expanded external coverage (2026-08-03) — 6 vectors, 300 examples
+
+Added clickbait (→dopamine-bait) + news headlines (→none) to the external set (now 6
+vectors + none). Held-out (150) with the re-tuned threshold (0.70):
+
+- **accuracy 40.7%** [33–49%] — *lower* than the 5-vector set, and honestly so: the
+  clickbait→dopamine-bait mapping is loose (curiosity bait ≠ our "dangles a prize"), and
+  news headlines are a harder benign domain. Technique-level accuracy on that mapping is poor.
+- **gate: recall 0.66, precision 0.86, PR-AUC 0.916** — the re-tune (0.65→0.70) recovered
+  recall after the prompt edits; the gate still ranks manipulation vs benign well.
+- **calibration holds: ECE 0.105** on the new holdout.
+- Benign FP rose to ~24% (news headlines can read as alarming/urgent) — a real precision
+  cost of the broader benign domain, worth noting.
+
+Read the **gate** metrics (is-this-manipulation) as the trustworthy signal here; the
+technique-label accuracy on the loose clickbait mapping is a floor, not a ceiling.
+
+---
+
 ## Tier-2 fixes — measured on the held-out external half (never tuned on)
 
 The 4 fixes from the benchmark findings, validated on `external_holdout.jsonl` (125 examples):
