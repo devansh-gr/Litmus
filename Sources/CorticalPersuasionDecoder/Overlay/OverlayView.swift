@@ -23,16 +23,22 @@ struct NoticeCard: View {
                 .font(.body)
                 .symbolEffect(.pulse, options: .repeating, isActive: message.lowercased().contains("analy"))
             Text(message)
-                .font(.callout)
+                .font(.callout.weight(.medium))
+                .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14).padding(.vertical, 11)
         .frame(width: 290, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        // Solid dark card (not translucent material): stays legible over ANY background —
+        // a white webpage, a dark editor, whatever the user highlighted on.
+        .background(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(Color(white: 0.14))
+        )
         .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
-            .strokeBorder(kind.color.opacity(0.35), lineWidth: 1))
-        .shadow(color: .black.opacity(0.28), radius: 14, y: 5)
+            .strokeBorder(kind.color.opacity(0.55), lineWidth: 1))
+        .shadow(color: .black.opacity(0.35), radius: 14, y: 5)
     }
 }
 
