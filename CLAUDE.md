@@ -138,10 +138,14 @@ shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `d
   (`run_eval.py`, `realistic_set`) read ~80% but that's overfit — grading your own homework.
   `bench_full.py` gives macro-F1 + Wilson/bootstrap CIs, per-class, confusion, MCC, gate PR-AUC,
   and calibration (ECE). Data hygiene + caveats: `tests/data/README.md`. Full roadmap: `docs/BENCHMARKING.md`.
-- **pytest** (`tests/`, 15 green): contract (JSON shape the Swift decoder needs), behavior
-  (neutral→none, clear cases confident, determinism), taxonomy-sync (server VECTORS == Swift
-  enum — drift guard), robustness (long/emoji/unicode/whitespace + /health). Hit the live server,
-  skip if it's down. `pip install -r tests/requirements-test.txt` for pytest.
+- **pytest** (`tests/`, ~35 green): contract (JSON shape the Swift decoder needs), behavior,
+  taxonomy-sync (server VECTORS == Swift enum), robustness, benign/realistic FP guards,
+  **fomo↔false-urgency separation**, **calibration + abstain**. Hit the live server, skip if down.
+  `pip install -r tests/requirements-test.txt` (pytest + sklearn/scipy for bench_full).
+- **Benchmarking follow-ups** (see `docs/BENCHMARKING.md` "Status"): external coverage for fear /
+  outrage / tribal / critical-thinking / hype / manufactured-awe (no clean dataset); the clickbait→
+  dopamine mapping is loose; CheckList robustness; Tier-3 multi-annotator ground truth. Deep-scan
+  latency still needs a **reboot** to re-measure (swap keeps maxing).
 - **Latency bench:** `python bench/latency_bench.py` (cold/warm/cached). Classify p50 ~450ms
   after the KV-cache fix (was ~4s).
 - **Swift self-tests** (`scripts/`, no permission/server needed): `ocr_selftest.swift` (OCR round-trip)
