@@ -50,22 +50,23 @@ don't miss out!" is manipulation.
 ## Does it actually work? (honest benchmarking)
 
 Most detectors quote an accuracy number computed on data the authors wrote themselves.
-That number is almost always inflated. So we measured on **250 independently-labeled
-examples from public datasets** (e-commerce dark-patterns + logical-fallacy corpora)
+That number is almost always inflated. So we measured on **300 independently-labeled
+examples from public datasets** (dark-patterns + logical-fallacy + clickbait corpora)
 that we neither wrote nor tuned on:
 
 | | self-authored (tuned on) | **external (never seen)** |
 |---|---|---|
-| accuracy | ~80% | **~50%** |
-| gate PR-AUC (ranks manipulation vs benign) | — | **0.93** |
-| gate recall @ shipped threshold | — | **0.69** |
-| confidence calibration (ECE, lower=better) | — | **0.15** |
+| accuracy | ~80% | **~45%** |
+| gate PR-AUC (ranks manipulation vs benign) | — | **0.92** |
+| gate recall @ shipped threshold | — | **0.66** |
+| confidence calibration (ECE, lower=better) | — | **0.10** |
 
 The honest read: the detector **tells manipulation from benign decently** (gate PR-AUC
-0.93) and its confidence now **means something** (when it says 70%, it's right ~70% of
-the time — calibrated with Platt scaling). But the specific *technique* labels blur in
-the urgency/FOMO cluster, and the ~30-point gap from the self-authored number is the
-classic cost of grading your own homework. We show these numbers on purpose.
+0.92) and its confidence now **means something** (when it says 70%, it's right ~70% of
+the time — calibrated with Platt scaling). But the specific *technique* labels are shakier
+(the clickbait→dopamine mapping is loose, urgency/FOMO overlap), and the ~35-point gap from
+the self-authored number is the classic cost of grading your own homework. We show these
+numbers on purpose — the full methodology and roadmap live in `docs/BENCHMARKING.md`.
 
 📊 Full methodology and roadmap: [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md) ·
 results: [`server/tests/RESULTS.md`](server/tests/RESULTS.md)
@@ -103,7 +104,7 @@ to `~/Library/LaunchAgents/` and it starts at login and restarts on crash.
 
 | var | default | what |
 |---|---|---|
-| `CPD_GATE_NONE_THRESHOLD` | `0.65` | gate cutoff (tuned on external data by F0.5) |
+| `CPD_GATE_NONE_THRESHOLD` | `0.70` | gate cutoff (tuned on external data by F0.5) |
 | `CPD_CALIB_A` / `CPD_CALIB_B` | `0.56` / `-1.10` | Platt calibration of the shown % |
 | `CPD_ABSTAIN_BELOW` | `0.45` | below this calibrated confidence, flag `uncertain` |
 | `CPD_CONTEXTUAL_CALIB` | `0` | Calibrate-Before-Use gate debias (needs re-tune; off) |
