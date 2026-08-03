@@ -24,6 +24,23 @@ changes yet.
 
 ---
 
+## Status (2026-08-03) — Tier 0 + 1 done, Tier 2 partial
+
+- ✅ **Tier 0 (metrics/hygiene):** `bench_full.py` reports macro-F1, per-class, confusion, MCC,
+  Wilson/bootstrap CIs, gate PR-AUC, and ECE calibration. Dev/holdout split of the external set.
+- ✅ **Tier 1 (real data):** `external_test.jsonl` — 300 independently-labeled examples from
+  dark-patterns + LOGIC + clickbait (6 vectors + none), never authored or tuned on. **Honest
+  number: ~45% accuracy, gate PR-AUC 0.92 / recall 0.66, ECE 0.10** vs the ~80% self-authored mirage.
+- ✅ **Tier 2 (partial):** gate un-sharpened + threshold re-swept on external data;
+  **Platt-calibrated confidence** (ECE 0.37→0.10); **abstain** on low confidence; fomo/false-urgency
+  **technique blur fixed** (fomo recall 0.05→0.70). **Contextual calibration evaluated → no gain**
+  (the yes/no gate already avoids the priming it targets) — kept off.
+- ⏳ **Remaining:** external coverage for fear / outrage / tribal / critical-thinking / hype /
+  manufactured-awe (no clean dataset — needs sourcing or self-authored + annotators); the dopamine
+  clickbait mapping is loose; CheckList robustness suite; Tier 3 (multi-annotator ground truth / α).
+
+---
+
 ## 1. Honest assessment of what we have today
 
 | Aspect | Current state | Problem |
