@@ -63,7 +63,7 @@ VECTORS = [
 # into "false-urgency" without them.
 DEFINITIONS = {
     "fear-mongering": "makes you afraid of harm, danger, disease or catastrophe",
-    "critical-thinking-suppression": "tells you to STOP thinking for yourself — don't question, don't overthink, don't research, no need to understand, just trust/believe/accept it",
+    "critical-thinking-suppression": "tells you to STOP thinking for yourself, or GASLIGHTS you into doubting your own mind — don't question, don't overthink, just trust it; OR 'that never happened', 'you're imagining it', 'you're too sensitive / crazy / overreacting', denying your memory or reality so you distrust your own perception",
     "tribal-in-group-bias": "an US-versus-THEM split: our side vs an enemy group — 'they' want to destroy what 'we' stand for, real ones vs outsiders",
     "dopamine-bait": "dangles a concrete GOODY to chase — a prize, jackpot, win, freebie, giveaway, or a shocking secret to 'unlock' or 'claim'",
     "outrage": "invites moral anger and disgust at someone's behaviour",
@@ -127,7 +127,11 @@ GATE_SYSTEM = (
     "\"nothing left to question\") — as opposed to just reporting a fact (\"a study "
     "examined sleep\" is no). Also 'yes' when it tells the reader to STOP thinking for "
     "themselves — don't question, don't overthink, stop doing your own research, no need "
-    "to understand, just trust or believe it.\n"
+    "to understand, just trust or believe it. Also 'yes' for GASLIGHTING and emotional "
+    "manipulation between people: denying what happened or your memory (\"that never "
+    "happened\", \"you're imagining it\"), calling you crazy / too sensitive / dramatic / "
+    "overreacting to make you doubt yourself, or guilt-tripping (\"if you really loved me "
+    "you would\").\n"
     "The difference is intent to influence: \"the sale ends Friday\" is no, but \"hurry, "
     "the sale ends Friday, don't miss out!\" is yes.\n"
     "Answer with a single word: yes or no."
