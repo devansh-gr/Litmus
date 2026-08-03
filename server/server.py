@@ -107,12 +107,13 @@ _gate_cf_probs = None   # cached content-free gate bias
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
 # Higher = the gate must be more sure before it calls something benign, so more borderline
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
-# 0.85 by product choice: SENSITIVE. Route to "none" only when the gate is quite sure it's
-# benign (gp[no] >= 0.85), so borderline text flows to the technique classifier and gets
-# flagged. This catches ~0.76-0.82 recall on external-dev (vs 0.62 at 0.70) at the cost of
-# more benign flags — the user prefers over-flagging to missing manipulation. Clear greetings
-# still land as none (their manip_prob is very low). Lower it toward 0.5 to be more cautious.
-GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.85"))
+# 0.60: flag when the gate's manip_prob > 0.40. Chosen from the actual score gap — casual
+# chat clusters at manip_prob 0.02-0.38 ("lunch tomorrow?", "let me know if you have
+# questions"), real manipulation at 0.56-0.99 (gaslighting, hype, fomo, urgency). This
+# catches manipulation assertively WITHOUT flagging casual conversation. The real
+# sensitivity wins were recognizing gaslighting + showing assertive (un-calibrated)
+# confidence — not cranking this threshold. Raise it to catch more (+ more benign FPs).
+GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.60"))
 GATE_SYSTEM = (
     "Decide if the text is trying to MANIPULATE or PERSUADE the reader, versus just "
     "communicating normally.\n"
