@@ -9,9 +9,12 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
 - **Detection = local LLM** (Llama-3.2-3B-Instruct, 4-bit **MLX**), **two-stage**: (1) a yes/no
   **manipulation gate** (`GATE_SYSTEM`) — benign text (greetings, requests, facts, reviews) → `none`;
   (2) only if it passes, score log-prob of each vector label → argmax + calibrated confidence.
-  The gate exists because a single 12-way classifier forced greetings into "hype 84%"; tuned on
-  `tests/realistic_set.jsonl` (60% benign) → 20/20 manipulation caught, 27/30 benign ignored.
-  Threshold `CPD_GATE_NONE_THRESHOLD` (0.5, swept). This is the verdict.
+  The gate exists because a single 12-way classifier forced greetings into "hype 84%". The shown
+  confidence is **Platt-calibrated** (`CPD_CALIB_A/B`); below `CPD_ABSTAIN_BELOW` (0.45) the card
+  flags `uncertain`. Gate uses `GATE_TEMP=1.0` (unsharpened) + `CPD_GATE_NONE_THRESHOLD` (0.70,
+  swept on external-dev). `CPD_CONTEXTUAL_CALIB` (Calibrate-Before-Use) available. **Honest external
+  benchmark (300 examples we didn't author): ~41% accuracy, gate PR-AUC 0.92 / recall 0.66, ECE
+  0.10** — see `tests/RESULTS.md` + `docs/BENCHMARKING.md`. This is the verdict.
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
@@ -129,10 +132,12 @@ don't get left behind.` → fomo ~78%; a plain factual sentence → neutral. Ful
 shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `docs/`.
 
 ## Testing & benchmark (server/tests/)
-- **Detector benchmark:** `python tests/run_eval.py` runs 72 labeled examples through `/classify`
-  → accuracy, per-vector recall/precision, confusions, confidence calibration, p50/p95.
-  **Current: 86.1%** (see `tests/RESULTS.md`). Weak seam: `false-urgency` over-fires (shared
-  "now/before it's gone" cues). CI gate: exits ≠0 below 70%.
+- **HONEST benchmark:** `python tests/bench_full.py --data tests/data/external_holdout.jsonl` —
+  300 externally-labeled examples (dark-patterns + LOGIC + clickbait) we did NOT author or tune on.
+  **~41% accuracy, macro-F1 0.19, gate PR-AUC 0.92 / recall 0.66, ECE 0.10.** Self-authored sets
+  (`run_eval.py`, `realistic_set`) read ~80% but that's overfit — grading your own homework.
+  `bench_full.py` gives macro-F1 + Wilson/bootstrap CIs, per-class, confusion, MCC, gate PR-AUC,
+  and calibration (ECE). Data hygiene + caveats: `tests/data/README.md`. Full roadmap: `docs/BENCHMARKING.md`.
 - **pytest** (`tests/`, 15 green): contract (JSON shape the Swift decoder needs), behavior
   (neutral→none, clear cases confident, determinism), taxonomy-sync (server VECTORS == Swift
   enum — drift guard), robustness (long/emoji/unicode/whitespace + /health). Hit the live server,
