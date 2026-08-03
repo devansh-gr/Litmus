@@ -302,17 +302,17 @@
   <p class="lead">The detector is fast and now has a real report card.</p>
   <div class="facts" style="margin-bottom:18px">
     <span class="fact"><b>~0.6s</b> per ⌘B (was ~4s)</span>
-    <span class="fact">gate <b>PR-AUC 0.93</b> (ranks manipulation)</span>
+    <span class="fact">gate <b>PR-AUC 0.92</b> · recall 0.66</span>
     <span class="fact">calibration <b>ECE 0.37 → 0.10</b></span>
-    <span class="fact"><b>~50%</b> external (vs 80% self-authored)</span>
+    <span class="fact"><b>~45%</b> external (vs 80% self-authored)</span>
   </div>
   <div class="filemap">
     <div class="fm"><div class="p">Two-stage gate</div><div class="d">A yes/no "is this manipulation?" first — stops greetings/facts/reviews being forced into a tactic.</div></div>
-    <div class="fm"><div class="p">External test set</div><div class="d">250 independently-labeled examples (public dark-patterns + fallacy data) — the honest, never-tuned-on number.</div></div>
+    <div class="fm"><div class="p">External test set</div><div class="d">300 independently-labeled examples across 6 vectors (dark-patterns + fallacy + clickbait) — the honest, never-tuned-on number.</div></div>
     <div class="fm srv"><div class="p">bench_full.py</div><div class="d">Macro-F1 + Wilson/bootstrap CIs, per-class, confusion, MCC, gate PR-AUC, and confidence calibration (ECE).</div></div>
     <div class="fm srv"><div class="p">pytest suite</div><div class="d">Contract, behavior, benign + realistic guards, taxonomy-drift, robustness.</div></div>
   </div>
-  <p class="lead" style="margin-top:6px"><strong>Measured honestly, then improved.</strong> On self-authored data it looked ~80% accurate; on 250 <em>external</em>, never-tuned-on examples it's ~50% — the overfitting gap laid bare. Four fixes followed (validated on a held-out half): un-sharpen the gate so its <strong>ranking</strong> is usable (PR-AUC <strong>0.93</strong>) and its threshold is tunable, <strong>Platt-calibrate the confidence</strong> so the % means P(correct) (ECE <strong>0.37 → 0.10</strong>), and <strong>abstain</strong> when a technique label is genuinely unclear. (Gate recall at the current threshold is ~0.60; the PR-AUC shows it can reach ~0.8 by trading benign precision — an operating-point choice.) The detector tells manipulation from benign decently; the specific tactic labels (urgency/fomo) still blur — and we say so.</p>
+  <p class="lead" style="margin-top:6px"><strong>Measured honestly, then improved.</strong> On self-authored data it looked ~80% accurate; on 300 <em>external</em>, never-tuned-on examples across 6 vectors it's ~45% — the overfitting gap laid bare. Fixes followed (validated on a held-out half): un-sharpen the gate so its <strong>ranking</strong> is usable (PR-AUC <strong>0.92</strong>) and its threshold tunable (recall <strong>0.66</strong>), <strong>Platt-calibrate the confidence</strong> so the % means P(correct) (ECE <strong>0.37 → 0.10</strong>), <strong>abstain</strong> when a label is unclear, and split <strong>fomo (scarcity) from false-urgency (the clock)</strong> — the biggest technique blur (fomo recall 0.05 → 0.70). Contextual calibration was evaluated and gave no gain (the yes/no gate already avoids the bias it targets). The detector tells manipulation from benign decently; some tactic labels still blur — and we say so.</p>
 
   <div class="foot">
     Cortical Persuasion Decoder · architecture overview · detection = local Llama-3.2-3B · interpretation = TRIBE v2 · everything on-device, zero telemetry.<br>
