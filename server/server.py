@@ -68,10 +68,10 @@ DEFINITIONS = {
     "dopamine-bait": "dangles a concrete GOODY to chase — a prize, jackpot, win, freebie, giveaway, or a shocking secret to 'unlock' or 'claim'",
     "outrage": "invites moral anger and disgust at someone's behaviour",
     "authority-appeal": "leans on experts, officials, science or authority to settle it",
-    "false-urgency": "imposes a deadline or time pressure: act now, expires, last chance",
+    "false-urgency": "a TIME deadline or countdown pressures you to act fast: act now, expires today, ends tonight, last chance, limited TIME, hurry — the pressure is the CLOCK",
     "social-proof-conformity": "everyone else is doing it, don't be left out, join the crowd",
     "hype-hope-mongering": "promises an exciting personal upside or better future to make you want in: it will improve your life, make you money, or fix your problems",
-    "fomo": "you'll be LEFT BEHIND while others move ahead — the train is leaving, your only window, everyone's getting on board, you'll regret missing out",
+    "fomo": "you'll MISS OUT or be LEFT BEHIND — limited QUANTITY (only a few left, while stocks last, selling fast), the train is leaving, everyone's getting on board, you'll regret not joining — the pressure is SCARCITY/exclusion, not the clock",
     "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
     "none": "neutral, factual or informational; a greeting, question, or ordinary conversation; no manipulation",
 }
