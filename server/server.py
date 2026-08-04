@@ -16,6 +16,7 @@ Two endpoints, split by what each model is ACTUALLY good at (see A5 in the vault
 Everything runs locally. No text ever leaves the machine (offline TTS patched in).
 """
 
+import hashlib
 import json
 import os
 import logging
@@ -466,9 +467,34 @@ def get_atlas():
     return _atlas
 
 
+def _taxonomy_hash() -> str:
+    """Stable short digest of the label set, so a client can detect app<->server
+    taxonomy skew (the app enum drifting from server VECTORS) without shipping the
+    whole list — mirrors the test_taxonomy_sync guard, at runtime."""
+    return hashlib.sha256("|".join(VECTORS).encode()).hexdigest()[:12]
+
+
 @app.get("/health")
 def health():
-    return {"ok": True, "device": _device()}
+    return {
+        "ok": True,
+        "device": _device(),
+        "backend": LLM_BACKEND,
+        "vector_count": len(VECTORS) - 1,   # excluding "none"
+        "taxonomy_hash": _taxonomy_hash(),
+    }
+
+
+@app.get("/vectors")
+def vectors():
+    """Introspection: the full label set + definitions the classifier scores against.
+    Lets tools/tests read the live taxonomy instead of hardcoding a copy that goes stale."""
+    return {
+        "vectors": VECTORS,
+        "definitions": DEFINITIONS,
+        "count": len(VECTORS) - 1,
+        "taxonomy_hash": _taxonomy_hash(),
+    }
 
 
 @app.post("/classify")
