@@ -58,6 +58,7 @@ VECTORS = [
     "manufactured-awe",
     "guilt-tripping",
     "love-bombing",
+    "blame-shifting",
     "none",
 ]
 
@@ -77,6 +78,7 @@ DEFINITIONS = {
     "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
     "guilt-tripping": "makes you feel GUILTY or obligated to comply — 'if you really loved/cared you would', 'after all I've done for you', 'you owe me', 'how could you do this to me', 'I guess I'll just deal with it alone then' — guilt and obligation used as leverage",
     "love-bombing": "OVERWHELMS you with flattery, affection, or grand promises to disarm you or create dependency — 'no one will ever love you like I do', 'you're my soulmate, my everything', 'I've never felt this way about anyone', 'you're perfect', excessive praise or gifts early on to hook you",
+    "blame-shifting": "REVERSES responsibility onto you so the manipulator escapes blame (DARVO) — 'you made me do this', 'this is your fault', 'if you hadn't … I wouldn't have …', 'I only reacted because of you', 'you're the one who started it', 'I'm the real victim here'",
     "none": "neutral, factual or informational; a greeting, question, or ordinary conversation; no manipulation",
 }
 
@@ -139,7 +141,9 @@ GATE_SYSTEM = (
     "overreacting to make you doubt yourself, guilt-tripping (\"if you really loved me "
     "you would\"), or LOVE-BOMBING — overwhelming flattery, affection, or grand promises "
     "to disarm you or create dependency (\"no one will ever love you like I do\", \"you're "
-    "my soulmate, I'd do anything for you\").\n"
+    "my soulmate, I'd do anything for you\"), or BLAME-SHIFTING — reversing responsibility "
+    "onto the reader so the speaker escapes blame (\"you made me do this\", \"it's your "
+    "fault\", \"I only reacted because of you\").\n"
     "The difference is intent to influence: \"the sale ends Friday\" is no, but \"hurry, "
     "the sale ends Friday, don't miss out!\" is yes.\n"
     "Answer with a single word: yes or no."
