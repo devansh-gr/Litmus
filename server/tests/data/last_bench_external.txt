@@ -1,0 +1,70 @@
+/Users/devanshgaur/Documents/Projects/CorticalPersuasionDecoder/server/.venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2924: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+
+======================================================================
+BENCHMARK: external   (N=300)
+======================================================================
+accuracy            38.0%   95% CI [32.7%, 43.6%]  (Wilson)
+macro-F1            0.146   95% CI [0.121, 0.169]  (bootstrap)
+weighted-F1         0.350
+balanced accuracy   0.314
+MCC                 0.242   (0=random, 1=perfect)
+
+per-class:
+                               precision    recall  f1-score   support
+
+             authority-appeal       0.86      0.15      0.26        40
+               blame-shifting       0.00      0.00      0.00         0
+critical-thinking-suppression       0.00      0.00      0.00         0
+                dopamine-bait       0.00      0.00      0.00        40
+                false-urgency       0.46      0.65      0.54        40
+               fear-mongering       0.00      0.00      0.00         0
+                         fomo       1.00      0.20      0.33        40
+          hype-hope-mongering       0.00      0.00      0.00         0
+                 love-bombing       0.00      0.00      0.00         0
+             manufactured-awe       0.00      0.00      0.00         0
+                         none       0.42      0.74      0.54        90
+      social-proof-conformity       0.64      0.14      0.23        50
+         tribal-in-group-bias       0.00      0.00      0.00         0
+
+                     accuracy                           0.38       300
+                    macro avg       0.26      0.14      0.15       300
+                 weighted avg       0.54      0.38      0.35       300
+
+confusion (rows=gold, cols=pred, row-normalized %):
+            authority- blame-shif critical-t dopamine-b false-urge fear-monge       fomo hype-hope- love-bombi manufactur       none social-pro tribal-in-
+authority-a         15          2          5          8          5         18          0          0          2          0         30          2         12
+blame-shift          0          0          0          0          0          0          0          0          0          0          0          0          0
+critical-th          0          0          0          0          0          0          0          0          0          0          0          0          0
+dopamine-ba          0          0          0          0         20          8          0         25          0          2         38          8          0
+false-urgen          0          0          0          8         65          0          0          0          0          0         28          0          0
+fear-monger          0          0          0          0          0          0          0          0          0          0          0          0          0
+       fomo          0          0          0          5         30          0         20          0          0          0         45          0          0
+hype-hope-m          0          0          0          0          0          0          0          0          0          0          0          0          0
+love-bombin          0          0          0          0          0          0          0          0          0          0          0          0          0
+manufacture          0          0          0          0          0          0          0          0          0          0          0          0          0
+       none          1          0          0          1          9         11          0          1          0          0         74          0          2
+social-proo          0          0          0          4          0          4          0          2          0          0         72         14          4
+tribal-in-g          0          0          0          0          0          0          0          0          0          0          0          0          0
+
+----------------------------------------------------------------------
+GATE (binary: manipulation vs none)
+  precision 0.84  recall 0.56  F1 0.67
+  PR-AUC (avg precision) 0.890   (prevalence baseline 0.700)
+  Brier (gate prob)      0.264
+  gate false-negatives (manipulation → none): 92/210
+  gate false-positives (benign → flagged):    23/90
+
+----------------------------------------------------------------------
+CALIBRATION of the confidence %
+  ECE 0.355   Brier 0.305   (lower=better)
+  reliability (conf bin → mean confidence vs actual accuracy):
+    (0.1,0.2]  n=1    conf=16%  acc=0%  <-- overconfident
+    (0.2,0.3]  n=7    conf=27%  acc=0%  <-- overconfident
+    (0.3,0.4]  n=25   conf=37%  acc=0%  <-- overconfident
+    (0.4,0.5]  n=25   conf=46%  acc=4%  <-- overconfident
+    (0.5,0.6]  n=18   conf=57%  acc=11%  <-- overconfident
+    (0.6,0.7]  n=43   conf=65%  acc=33%  <-- overconfident
+    (0.7,0.8]  n=42   conf=76%  acc=33%  <-- overconfident
+    (0.8,0.9]  n=54   conf=86%  acc=43%  <-- overconfident
+    (0.9,1.0]  n=85   conf=96%  acc=71%  <-- overconfident

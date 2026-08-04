@@ -2,6 +2,30 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Interpersonal family + assertive/sensitive config (2026-08-04) — 14 vectors
+
+Re-ran `bench_full.py --data external_test.jsonl` (300 ex) after adding the interpersonal
+manipulation family (guilt-tripping, love-bombing, blame-shifting, gaslighting/minimization) and
+this sprint's gate tuning. The external set still covers only the 6 marketing/propaganda vectors,
+so this measures whether the new vectors and gate edits *regressed* the existing detection.
+
+- **accuracy 38.0%** [32.7–43.6], macro-F1 0.15, weighted-F1 0.35, MCC 0.24.
+- **gate: precision 0.84, recall 0.56, PR-AUC 0.890** (prevalence baseline 0.70), Brier 0.264.
+  FN 92/210, FP 23/90.
+- **calibration OFF** (assertive % by product choice) → **ECE 0.355**, every bin overconfident.
+  `CPD_CALIB_A=0.56 CPD_CALIB_B=-1.10` restores the honest mapping (ECE ≈ 0.10, lower shown %).
+- **The low recall is on vectors this sprint did NOT touch** — dopamine 0.00, fomo 0.20,
+  authority 0.15, social-proof 0.14 — i.e. the loose clickbait↔dopamine / dark-pattern↔fomo
+  cross-taxonomy mapping, not the interpersonal work. false-urgency recall 0.65 is the healthy one.
+- **Interpersonal family validated separately** on the curated behavioral set
+  (`interpersonal_report.py`, self-authored → regression not accuracy): **21/24 (88%)**,
+  love-bombing 5/5, benign controls 5/5.
+
+Read the **gate PR-AUC (0.89)** as the trustworthy "is this manipulation" signal; the low
+per-class technique accuracy is a cross-taxonomy floor, not a ceiling on clean in-domain text.
+
+---
+
 ## Expanded external coverage (2026-08-03) — 6 vectors, 300 examples
 
 Added clickbait (→dopamine-bait) + news headlines (→none) to the external set (now 6
