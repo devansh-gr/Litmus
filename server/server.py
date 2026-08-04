@@ -66,7 +66,7 @@ VECTORS = [
 # into "false-urgency" without them.
 DEFINITIONS = {
     "fear-mongering": "makes you afraid of harm, danger, disease or catastrophe",
-    "critical-thinking-suppression": "tells you to STOP thinking for yourself, or GASLIGHTS you into doubting your own mind — don't question, don't overthink, just trust it; OR 'that never happened', 'you're imagining it', 'you're too sensitive / crazy / overreacting', denying your memory or reality so you distrust your own perception",
+    "critical-thinking-suppression": "tells you to STOP thinking for yourself, or GASLIGHTS you into doubting your own mind — don't question, don't overthink, just trust it; OR 'that never happened', 'you're imagining it', 'you're too sensitive / crazy / overreacting', denying your memory or reality so you distrust your own perception; OR MINIMIZES what it did to make you doubt your reaction — 'I was just joking', 'can't you take a joke', 'it wasn't that bad', 'you're making a big deal out of nothing'",
     "tribal-in-group-bias": "an US-versus-THEM split: our side vs an enemy group — 'they' want to destroy what 'we' stand for, real ones vs outsiders",
     "dopamine-bait": "dangles a concrete GOODY to chase — a prize, jackpot, win, freebie, giveaway, or a shocking secret to 'unlock' or 'claim'",
     "outrage": "invites moral anger and disgust at someone's behaviour",
@@ -143,7 +143,9 @@ GATE_SYSTEM = (
     "to understand, just trust or believe it. Also 'yes' for GASLIGHTING and emotional "
     "manipulation between people: denying what happened or your memory (\"that never "
     "happened\", \"you're imagining it\"), calling you crazy / too sensitive / dramatic / "
-    "overreacting to make you doubt yourself, guilt-tripping (\"if you really loved me "
+    "overreacting to make you doubt yourself, MINIMIZING what was done so you doubt your "
+    "reaction (\"I was just joking\", \"can't you take a joke\", \"it wasn't that bad\"), "
+    "guilt-tripping (\"if you really loved me "
     "you would\", \"after all I've done for you\", \"how could you do this to me\", or "
     "MARTYRDOM / self-pity as leverage: \"fine, I'll just do it myself then\", \"don't "
     "worry about me\", \"I'm not mad, just disappointed in you\"), or LOVE-BOMBING — overwhelming flattery, affection, or grand promises "
