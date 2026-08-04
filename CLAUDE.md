@@ -7,14 +7,20 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
 
 ## Architecture — each model does only what it's actually good at
 - **Detection = local LLM** (Llama-3.2-3B-Instruct, 4-bit **MLX**), **two-stage**: (1) a yes/no
-  **manipulation gate** (`GATE_SYSTEM`) — benign text (greetings, requests, facts, reviews) → `none`;
-  (2) only if it passes, score log-prob of each vector label → argmax + calibrated confidence.
-  The gate exists because a single 12-way classifier forced greetings into "hype 84%". The shown
-  confidence is **Platt-calibrated** (`CPD_CALIB_A/B`); below `CPD_ABSTAIN_BELOW` (0.45) the card
-  flags `uncertain`. Gate uses `GATE_TEMP=1.0` (unsharpened) + `CPD_GATE_NONE_THRESHOLD` (0.70,
-  swept on external-dev). `CPD_CONTEXTUAL_CALIB` (Calibrate-Before-Use) available. **Honest external
-  benchmark (300 examples we didn't author): ~41% accuracy, gate PR-AUC 0.92 / recall 0.66, ECE
-  0.10** — see `tests/RESULTS.md` + `docs/BENCHMARKING.md`. This is the verdict.
+  **manipulation gate** (`GATE_SYSTEM`) — benign text (greetings, requests, facts, reviews, ordinary
+  compliments) → `none`; (2) only if it passes, score log-prob of each vector label → argmax +
+  confidence. **14 vectors in two families:** broadcast persuasion (fear/urgency/hype/FOMO/authority/
+  social-proof/dopamine/outrage/tribal/awe) + interpersonal manipulation (guilt-tripping,
+  love-bombing, blame-shifting/DARVO, with gaslighting + minimization folded into
+  critical-thinking-suppression). The gate exists because a single 14-way classifier forced greetings
+  into "hype 84%". Confidence is **Platt-calibratable** (`CPD_CALIB_A/B`) but ships **OFF by product
+  choice** (assertive high %; the user found calibrated % "too anti-sensitive"); set
+  `CPD_CALIB_A=0.56 CPD_CALIB_B=-1.10` for the honest lower %. Below `CPD_ABSTAIN_BELOW` (0.45) the
+  card flags `uncertain`. Gate uses `GATE_TEMP=1.0` (unsharpened) + `CPD_GATE_NONE_THRESHOLD` (0.60).
+  **Honest external benchmark (300 examples we didn't author, 2026-08-04): 38% accuracy, gate
+  PR-AUC 0.89 / recall 0.56 / precision 0.84; ECE 0.36 uncalibrated (≈0.10 with CALIB on).** Low
+  per-class recall is cross-taxonomy mapping on the marketing vectors, not the interpersonal work
+  (validated separately at 88% on the behavioral set). See `tests/RESULTS.md` + `docs/BENCHMARKING.md`.
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
@@ -132,10 +138,12 @@ don't get left behind.` → fomo ~78%; a plain factual sentence → neutral. Ful
 shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `docs/`.
 
 ## Testing & benchmark (server/tests/)
-- **HONEST benchmark:** `python tests/bench_full.py --data tests/data/external_holdout.jsonl` —
+- **HONEST benchmark:** `python tests/bench_full.py --data tests/data/external_test.jsonl` —
   300 externally-labeled examples (dark-patterns + LOGIC + clickbait) we did NOT author or tune on.
-  **~41% accuracy, macro-F1 0.19, gate PR-AUC 0.92 / recall 0.66, ECE 0.10.** Self-authored sets
-  (`run_eval.py`, `realistic_set`) read ~80% but that's overfit — grading your own homework.
+  **38% accuracy, macro-F1 0.15, gate PR-AUC 0.89 / recall 0.56, ECE 0.36 uncalibrated** (2026-08-04).
+  Self-authored sets (`run_eval.py`, `realistic_set`) read ~80% but that's overfit — grading your
+  own homework. Interpersonal family has no external analog yet; validated on the curated behavioral
+  set instead: `python tests/interpersonal_report.py` (**88%**) + `pytest tests/test_interpersonal.py`.
   `bench_full.py` gives macro-F1 + Wilson/bootstrap CIs, per-class, confusion, MCC, gate PR-AUC,
   and calibration (ECE). Data hygiene + caveats: `tests/data/README.md`. Full roadmap: `docs/BENCHMARKING.md`.
 - **pytest** (`tests/`, ~35 green): contract (JSON shape the Swift decoder needs), behavior,
