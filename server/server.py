@@ -56,6 +56,7 @@ VECTORS = [
     "hype-hope-mongering",
     "fomo",
     "manufactured-awe",
+    "guilt-tripping",
     "none",
 ]
 
@@ -73,6 +74,7 @@ DEFINITIONS = {
     "hype-hope-mongering": "promises an exciting personal upside or better future to make you want in: it will improve your life, make you money, or fix your problems",
     "fomo": "you'll MISS OUT or be LEFT BEHIND — limited QUANTITY (only a few left, while stocks last, selling fast), the train is leaving, everyone's getting on board, you'll regret not joining — the pressure is SCARCITY/exclusion, not the clock",
     "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
+    "guilt-tripping": "makes you feel GUILTY or obligated to comply — 'if you really loved/cared you would', 'after all I've done for you', 'you owe me', 'how could you do this to me', 'I guess I'll just deal with it alone then' — guilt and obligation used as leverage",
     "none": "neutral, factual or informational; a greeting, question, or ordinary conversation; no manipulation",
 }
 
