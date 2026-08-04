@@ -77,7 +77,7 @@ DEFINITIONS = {
     "fomo": "you'll MISS OUT or be LEFT BEHIND — limited QUANTITY (only a few left, while stocks last, selling fast), the train is leaving, everyone's getting on board, you'll regret not joining — the pressure is SCARCITY/exclusion, not the clock",
     "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
     "guilt-tripping": "makes you feel GUILTY, obligated, or ashamed to comply — 'if you really loved/cared you would', 'after all I've done / sacrificed for you', 'you owe me', 'how could you do this to me', plus MARTYRDOM and self-pity used as leverage ('fine, I'll just do it myself then', 'don't worry about me', 'I'll be alone but it's ok') and DISAPPOINTMENT as a weapon ('I'm not mad, just disappointed in you') — guilt, shame, and obligation as leverage",
-    "love-bombing": "OVERWHELMS you with flattery, affection, or grand promises to disarm you or create dependency — 'no one will ever love you like I do', 'you're my soulmate, my everything', 'I've never felt this way about anyone', 'you're perfect', excessive praise or gifts early on to hook you",
+    "love-bombing": "EXCESSIVE, possessive affection or grand romantic promises used to disarm you or build dependency — 'no one will EVER love you like I do', 'you're my soulmate, my everything, I can't live without you', 'I've never felt this way about anyone', 'we're meant to be'. The tell is possessiveness and dependency ('no one else', 'only I', 'can't live without you'), NOT ordinary praise — a plain compliment like 'you did a great job' or 'nice work' is NOT love-bombing",
     "blame-shifting": "REVERSES responsibility onto you so the manipulator escapes blame (DARVO) — 'you made me do this', 'this is your fault', 'if you hadn't … I wouldn't have …', 'I only reacted because of you', 'you're the one who started it', 'I'm the real victim here'",
     "none": "neutral, factual or informational; a greeting, question, or ordinary conversation; no manipulation",
 }
@@ -127,7 +127,9 @@ GATE_SYSTEM = (
     "send the file\"), instructions, plain facts and information — including NEUTRAL "
     "mentions of dates, deadlines, prices, or numbers (\"the sale ends Friday\", \"review "
     "it by Thursday\") — personal opinions and reviews, congratulations, and friendly or "
-    "helpful talk. A warm, positive, or helpful tone by itself is 'no'.\n"
+    "helpful talk. A warm, positive, or helpful tone by itself is 'no'. Ordinary "
+    "compliments, encouragement, and praise are 'no' (\"you did a great job\", \"nice "
+    "work\", \"well done\", \"hope it helps\", \"let me know if you have questions\").\n"
     "Answer 'yes' if the wording tries to pressure, scare, hype, guilt, rush, divide "
     "us-versus-them, dangle a reward, or push the reader toward a belief, feeling, "
     "purchase, or action. Also 'yes' when it cites experts, studies, or the crowd to SHUT "
