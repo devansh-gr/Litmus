@@ -6,18 +6,25 @@ run anywhere.
 """
 import json
 import os
+import re
 import urllib.request
+from pathlib import Path
 
 import pytest
 
 ENDPOINT = os.environ.get("CPD_ENDPOINT_URL", "http://127.0.0.1:8765")
 
-VECTORS = {
-    "fear-mongering", "critical-thinking-suppression", "tribal-in-group-bias",
-    "dopamine-bait", "outrage", "authority-appeal", "false-urgency",
-    "social-proof-conformity", "hype-hope-mongering", "fomo", "manufactured-awe",
-    "none",
-}
+
+def _server_vectors() -> set[str]:
+    """Single source of truth: parse VECTORS straight out of server.py so this set
+    can never drift stale (it silently omitted guilt-tripping once, which would make
+    the contract/robustness tests reject a valid label)."""
+    src = (Path(__file__).resolve().parents[1] / "server.py").read_text()
+    block = re.search(r"^VECTORS\s*=\s*\[(.*?)\]", src, re.S | re.M).group(1)
+    return set(re.findall(r'"([a-z][a-z-]+)"', block))
+
+
+VECTORS = _server_vectors()
 
 
 def _post(path, payload, timeout=60):
