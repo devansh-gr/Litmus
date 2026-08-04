@@ -176,15 +176,23 @@ struct VerdictCard: View {
         }
         .padding(16)
         .frame(width: 360, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        // Solid dark HUD (not translucent material): the material rendered nearly
+        // white over a white webpage, and the .secondary/.tertiary greys on it were
+        // unreadable. A fixed dark card + forced-dark colorScheme keeps every label
+        // legible over ANY background, matching the NoticeCard.
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(white: 0.13))
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(
-                    LinearGradient(colors: [accent.opacity(0.55), accent.opacity(0.15)],
+                    LinearGradient(colors: [accent.opacity(0.7), accent.opacity(0.25)],
                                    startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.3), radius: 18, y: 6)
+        .shadow(color: .black.opacity(0.35), radius: 18, y: 6)
+        .environment(\.colorScheme, .dark)
     }
 
     private var header: some View {
