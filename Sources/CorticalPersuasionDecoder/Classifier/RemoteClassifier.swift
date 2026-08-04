@@ -42,6 +42,7 @@ struct RemoteClassifier: Classifier {
         let confidence: Int
         let rationale: String?
         let alternatives: [Alt]?
+        let uncertain: Bool?
     }
 
     private struct BrainMapResponse: Decodable {
@@ -74,7 +75,8 @@ struct RemoteClassifier: Classifier {
             vector: vector,
             confidence: Double(response.confidence) / 100.0,
             rationale: response.rationale,
-            alternatives: alternatives
+            alternatives: alternatives,
+            uncertain: response.uncertain ?? false
         )
     }
 

@@ -26,13 +26,17 @@ struct Verdict {
     let confidence: Double
     let rationale: String?
     let alternatives: [VectorScore]
+    /// Server flagged the confidence below its abstain floor: it's likely
+    /// manipulative but the specific technique is a guess. The card says so.
+    let uncertain: Bool
 
     init(vector: PersuasionVector, confidence: Double, rationale: String?,
-         alternatives: [VectorScore] = []) {
+         alternatives: [VectorScore] = [], uncertain: Bool = false) {
         self.vector = vector
         self.confidence = confidence
         self.rationale = rationale
         self.alternatives = alternatives
+        self.uncertain = uncertain
     }
 }
 

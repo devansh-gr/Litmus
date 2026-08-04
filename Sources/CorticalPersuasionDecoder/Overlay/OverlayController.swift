@@ -22,7 +22,7 @@ final class OverlayController {
     private var generation = 0
 
     private var current: (title: String, mechanism: String, confidence: Double,
-                          rationale: String?, mixture: [MixtureItem])?
+                          rationale: String?, mixture: [MixtureItem], uncertain: Bool)?
 
     /// `anchor` is a global AppKit point (bottom-left origin) near the selection.
     /// Returns a generation token to pass back to `updateRegions`.
@@ -34,7 +34,7 @@ final class OverlayController {
             .map { MixtureItem(label: Taxonomy.entry(for: $0.vector).displayName,
                                pct: Int(($0.probability * 100).rounded())) }
         current = (entry.displayName, entry.mechanism, verdict.confidence,
-                   verdict.rationale, Array(mixture))
+                   verdict.rationale, Array(mixture), verdict.uncertain)
         return showCard(awaiting: false, anchor: anchor)
     }
 
@@ -136,13 +136,14 @@ final class OverlayController {
     }
 
     private func makeCard(profile: [CorticalSystem]?, failed: Bool, awaiting: Bool) -> VerdictCard {
-        let c = current ?? ("", "", 0, nil, [])
+        let c = current ?? ("", "", 0, nil, [], false)
         return VerdictCard(
             title: c.title,
             mechanism: c.mechanism,
             confidence: c.confidence,
             rationale: c.rationale,
             mixture: c.mixture,
+            uncertain: c.uncertain,
             profile: profile,
             regionsFailed: failed,
             awaitingBrain: awaiting

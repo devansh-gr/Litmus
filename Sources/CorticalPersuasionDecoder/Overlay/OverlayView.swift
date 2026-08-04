@@ -131,6 +131,7 @@ struct VerdictCard: View {
     let confidence: Double          // 0.0-1.0
     let rationale: String?
     let mixture: [MixtureItem]
+    let uncertain: Bool             // server abstained on the specific technique
     let profile: [CorticalSystem]?  // non-nil => brain map done
     let regionsFailed: Bool
     let awaitingBrain: Bool
@@ -151,10 +152,20 @@ struct VerdictCard: View {
             Text(title).font(.title3.weight(.bold)).fixedSize(horizontal: false, vertical: true)
             confidenceBar
 
-            Text(mechanism)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if uncertain {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.caption).foregroundStyle(.orange)
+                    Text(rationale ?? "Likely manipulative, but the specific technique is unclear — treat the label as a guess.")
+                        .font(.caption).foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                Text(mechanism)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if !mixture.isEmpty {
                 Text("also: " + mixture.map { "\($0.label) \($0.pct)%" }.joined(separator: " · "))
