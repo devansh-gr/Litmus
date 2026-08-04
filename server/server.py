@@ -23,6 +23,7 @@ import logging
 import re
 import subprocess
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -515,6 +516,16 @@ def classify(inp: TextIn):
         return {**_classify_cache[key], "cached": True}
 
     import math
+    t0 = time.perf_counter()
+
+    def _log(result: dict) -> dict:
+        # One structured line per verdict: enough to spot gate drift / slow calls in
+        # the launchd log without echoing the (possibly sensitive) input text.
+        log.info("verdict vector=%s conf=%d manip_prob=%.3f ms=%d chars=%d",
+                 result["vector"], result["confidence"],
+                 result.get("manip_prob", -1), int((time.perf_counter() - t0) * 1000),
+                 len(inp.text))
+        return result
 
     def softmax(scores, temp=CONFIDENCE_TEMP):
         m = max(scores)
@@ -547,7 +558,7 @@ def classify(inp: TextIn):
         }
         if len(_classify_cache) < 512:
             _classify_cache[key] = result
-        return result
+        return _log(result)
 
     # STAGE 2 — which technique. Identical to the standalone 12-way classifier (so
     # technique discrimination is unchanged); the gate above just spared benign text.
@@ -572,7 +583,7 @@ def classify(inp: TextIn):
     }
     if len(_classify_cache) < 512:
         _classify_cache[key] = result
-    return result
+    return _log(result)
 
 
 # Curated VALUE + LANGUAGE-EVALUATION ROIs. Ranking ALL regions of a single
