@@ -32,18 +32,21 @@ manipulation *felt*, not to raise accuracy. It's also **cortex-only**, so we say
 
 ### Detection is two-stage
 
-A single 12-way classifier forced *every* input toward its nearest label — so a
+A single 14-way classifier forced *every* input toward its nearest label — so a
 friendly greeting came back "Hype 84%." The fix is a **gate**:
 
 ```
 text ──▶ [ Stage 1: is this manipulation at all? ] ──no──▶ "No manipulation ✓"
                          │ yes
                          ▼
-              [ Stage 2: which of 11 techniques? ] ──▶ verdict + calibrated confidence
+              [ Stage 2: which of 14 techniques? ] ──▶ verdict + calibrated confidence
 ```
 
 The gate draws the line by *intent* — "the sale ends Friday" is ordinary; "hurry,
-don't miss out!" is manipulation.
+don't miss out!" is manipulation. The 14 techniques span two families: **broadcast
+persuasion** (fear, urgency, hype, FOMO, authority, social proof, …) and
+**interpersonal manipulation** (guilt-tripping, gaslighting, love-bombing,
+blame-shifting/DARVO).
 
 ---
 
@@ -138,7 +141,7 @@ Sources/CorticalPersuasionDecoder/   # the SwiftUI/AppKit menu-bar app
   Capture/     PasteboardCapture (⌘B → silent copy), Region + OCR
   Classifier/  Classifier protocol · RemoteClassifier (HTTP) · MockClassifier
   Overlay/     floating verdict card + mini brain
-  Taxonomy/    the 11 persuasion vectors + plain-English mechanisms
+  Taxonomy/    the 14 vectors (persuasion + interpersonal) + plain-English mechanisms
   Support/     config, permissions, sensitive-text guard
 server/                              # the local inference server
   server.py            FastAPI: /classify (two-stage gate + LLM) · /brainmap (TRIBE v2)
