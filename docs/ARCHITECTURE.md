@@ -9,10 +9,12 @@ one-page visual, see **[architecture.html](architecture.html)**.
 ## What it is
 
 A Mac app that acts as a **manipulation x-ray**. Highlight any text — a tweet, an article, an
-email — press **⌘B**, and it names the persuasion tactic being used on you (fear-mongering,
-false urgency, hype, FOMO, …) with a confidence score. Optionally, it renders a small **brain
-map** of *where* in your cortex that language lands. Everything runs on-device — no cloud, no API
-keys, no telemetry.
+email, a text from your ex — press **⌘B**, and it names the tactic being used on you with a
+confidence score. It covers two families: **broadcast persuasion** (fear-mongering, false
+urgency, hype, FOMO, authority appeal, …) and **interpersonal manipulation** (guilt-tripping,
+gaslighting, love-bombing, blame-shifting/DARVO) — 14 vectors in all. Optionally, it renders a
+small **brain map** of *where* in your cortex that language lands. Everything runs on-device —
+no cloud, no API keys, no telemetry.
 
 ## The one big idea
 
@@ -58,11 +60,19 @@ server holds both and stays warm across sessions.
 | **Detect** | ⌘B (every time) | grab selection → `/classify` → **gate** ("is this manipulation at all?") → if yes, name the tactic → verdict card (else "no manipulation") | ~0.5–0.7s |
 | **Deep-scan** | 🧠 menu (opt-in) | `/brainmap` → TRIBE predicts cortex → compare vs neutral → brain systems light up | ~15s–2min |
 
-**Detection is two-stage.** A single 12-way classifier forced *every* input toward its nearest
+**Detection is two-stage.** A single technique classifier forced *every* input toward its nearest
 label, so a friendly greeting became "Hype 84%". Now a clean yes/no **gate** decides "is this
-trying to persuade or manipulate?" first — benign text (greetings, requests, facts, reviews) →
-*none*; only if it passes does the 12-way technique classifier run. On a realistic mix (60%
-benign) this catches **all** manipulation with a ~10% false-positive rate.
+trying to persuade or manipulate?" first — benign text (greetings, requests, facts, reviews,
+ordinary compliments) → *none*; only if it passes does the 14-way technique classifier run. On a
+realistic mix (60% benign) this catches **all** manipulation with a ~10% false-positive rate.
+
+**The taxonomy is two families.** The original 11 vectors were built for marketing/propaganda
+(fear, urgency, hype, FOMO, authority, social proof, …). Stress-testing on real interpersonal
+manipulation exposed a gap — "if you really cared you would" or "you made me do this" landed on
+the nearest marketing label — so an **interpersonal family** was added (guilt-tripping,
+love-bombing, blame-shifting/DARVO, plus gaslighting + minimization folded into
+critical-thinking-suppression). Definitions are tuned to keep the family separable: possessiveness
+tells love-bombing from ordinary praise; fault-reversal tells blame-shifting from guilt.
 
 ## The two models
 
