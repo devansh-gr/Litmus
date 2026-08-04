@@ -24,13 +24,26 @@ changes yet.
 
 ---
 
-## Status (2026-08-03) — Tier 0 + 1 done, Tier 2 partial
+## Status (2026-08-04) — Tier 0 + 1 done, Tier 2 partial, interpersonal family added
 
 - ✅ **Tier 0 (metrics/hygiene):** `bench_full.py` reports macro-F1, per-class, confusion, MCC,
   Wilson/bootstrap CIs, gate PR-AUC, and ECE calibration. Dev/holdout split of the external set.
+- ✅ **Interpersonal family (taxonomy expansion):** added guilt-tripping, love-bombing, and
+  blame-shifting/DARVO, and folded gaslighting + minimization into critical-thinking-suppression,
+  because the marketing-only taxonomy misfiled one-on-one manipulation. Behavioral regression set
+  `interpersonal_test.jsonl` (24 curated ex — self-authored, so a REGRESSION set, NOT an accuracy
+  claim; see `interpersonal_report.py`): **21/24 (88%)**, love-bombing 5/5, benign controls 5/5,
+  with 3 cluster-boundary confusions (guilt↔blame↔love-bomb) logged. No external labeled analog for
+  interpersonal tactics yet — a Tier-1 gap to source.
 - ✅ **Tier 1 (real data):** `external_test.jsonl` — 300 independently-labeled examples from
-  dark-patterns + LOGIC + clickbait (6 vectors + none), never authored or tuned on. **Honest
-  number: ~45% accuracy, gate PR-AUC 0.92 / recall 0.66, ECE 0.10** vs the ~80% self-authored mirage.
+  dark-patterns + LOGIC + clickbait (6 vectors + none), never authored or tuned on. **Honest number
+  (2026-08-04, assertive/sensitive config): 38% accuracy [32.7–43.6], macro-F1 0.15, MCC 0.24, gate
+  PR-AUC 0.89 / recall 0.56 / precision 0.84** vs the ~80% self-authored mirage. Calibration is OFF
+  by product choice (assertive %), so displayed **ECE is 0.36**; turning it on (`CPD_CALIB_A=0.56
+  CPD_CALIB_B=-1.10`) restores ECE ≈ 0.10 at the cost of lower shown %. The low per-class recall
+  (dopamine 0.00, fomo 0.20, authority 0.15, social-proof 0.14) is the **cross-taxonomy mapping
+  difficulty** — clickbait↔dopamine and dark-pattern↔fomo are loose analogs — not the detector
+  failing on clean in-domain text.
 - ✅ **Tier 2 (partial):** gate un-sharpened + threshold re-swept on external data;
   **Platt-calibrated confidence** (ECE 0.37→0.10); **abstain** on low confidence; fomo/false-urgency
   **technique blur fixed** (fomo recall 0.05→0.70). **Contextual calibration evaluated → no gain**
@@ -66,8 +79,8 @@ vocabulary, prototypical phrasing, clean/balanced distribution unlike real traff
 independent ground truth. Tuning prompts on the same set you report on is **leakage** — effectively
 reporting on training data (Kaufman 2012; Cawley & Talbot 2010).
 
-**Escape route — borrow real, externally-labeled data.** The research maps our 11 vectors to
-established corpora:
+**Escape route — borrow real, externally-labeled data.** The research maps our marketing/
+propaganda vectors to established corpora (the interpersonal family below has no such analog):
 
 | Vector | External labeled analog | Status |
 |---|---|---|
@@ -82,6 +95,7 @@ established corpora:
 | outrage | Loaded Language + Name Calling (composite) | partial |
 | hype-hope-mongering | Exaggeration/Minimisation + positive Loaded Language | partial |
 | **manufactured-awe** | **none anywhere** | **self-authored only** |
+| **guilt-tripping / love-bombing / blame-shifting** | **none in surveyed corpora** | **self-authored only** (interpersonal family — Tier-1 sourcing gap) |
 
 - **`SemEval-2023 Task 3`** is the flagship: 2,049 docs, 9 languages, span + paragraph labels, a
   23-technique taxonomy that covers **6 of our vectors** directly, official **micro-F1** protocol,
