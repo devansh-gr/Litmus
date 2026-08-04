@@ -132,6 +132,7 @@ struct VerdictCard: View {
     let rationale: String?
     let mixture: [MixtureItem]
     let uncertain: Bool             // server abstained on the specific technique
+    let eyebrow: String             // family label above the title
     let profile: [CorticalSystem]?  // non-nil => brain map done
     let regionsFailed: Bool
     let awaitingBrain: Bool
@@ -213,7 +214,7 @@ struct VerdictCard: View {
                 .foregroundStyle(accent)
                 .frame(width: 26, height: 26)
                 .background(accent.opacity(0.15), in: Circle())
-            Text("PERSUASION VECTOR")
+            Text(eyebrow)
                 .font(.caption2.weight(.semibold)).tracking(1.3)
                 .foregroundStyle(.secondary)
             Spacer(minLength: 8)

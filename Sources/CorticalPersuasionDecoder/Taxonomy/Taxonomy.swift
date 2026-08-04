@@ -19,6 +19,34 @@ enum PersuasionVector: String, CaseIterable, Codable {
     case blameShifting               = "blame-shifting"
 }
 
+/// Which broad family a vector belongs to. Drives the card's eyebrow label so an
+/// interpersonal tactic (guilt-trip, love-bomb) isn't announced as a "persuasion
+/// vector", which reads oddly for one-on-one manipulation.
+enum VectorFamily {
+    case persuasion      // marketing / propaganda / mass-influence
+    case interpersonal   // one-on-one emotional manipulation
+
+    var eyebrow: String {
+        switch self {
+        case .persuasion:    return "PERSUASION VECTOR"
+        case .interpersonal: return "INTERPERSONAL MANIPULATION"
+        }
+    }
+}
+
+extension PersuasionVector {
+    /// The interpersonal tactics target a person directly ('you made me do this');
+    /// everything else is broadcast persuasion. critical-thinking-suppression is
+    /// intentionally left in `persuasion` because it is dual-use (gaslighting AND
+    /// "experts agree, stop questioning" propaganda) — the neutral eyebrow fits both.
+    var family: VectorFamily {
+        switch self {
+        case .guiltTripping, .loveBombing, .blameShifting: return .interpersonal
+        default:                                            return .persuasion
+        }
+    }
+}
+
 /// Display name + the cognitive *technique* a vector uses.
 ///
 /// NOTE: this deliberately makes NO per-vector brain-region claim. An earlier
