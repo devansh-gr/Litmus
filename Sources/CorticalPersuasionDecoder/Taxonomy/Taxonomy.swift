@@ -15,6 +15,7 @@ enum PersuasionVector: String, CaseIterable, Codable {
     case fomo                        = "fomo"
     case manufacturedAwe             = "manufactured-awe"
     case guiltTripping               = "guilt-tripping"
+    case loveBombing                 = "love-bombing"
 }
 
 /// Display name + the cognitive *technique* a vector uses.
@@ -69,6 +70,9 @@ enum Taxonomy {
         .guiltTripping: .init(
             vector: .guiltTripping, displayName: "Guilt-tripping",
             mechanism: "Uses guilt or obligation as leverage — 'if you really cared, you would' — so you comply to relieve the guilt, not because it's right."),
+        .loveBombing: .init(
+            vector: .loveBombing, displayName: "Love-bombing",
+            mechanism: "Overwhelms you with flattery, affection, or grand promises to disarm you and build dependency, so devotion replaces judgment."),
     ]
 
     /// Table is exhaustive over the enum, so this is total.

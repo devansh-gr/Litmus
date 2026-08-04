@@ -57,6 +57,7 @@ VECTORS = [
     "fomo",
     "manufactured-awe",
     "guilt-tripping",
+    "love-bombing",
     "none",
 ]
 
@@ -75,6 +76,7 @@ DEFINITIONS = {
     "fomo": "you'll MISS OUT or be LEFT BEHIND — limited QUANTITY (only a few left, while stocks last, selling fast), the train is leaving, everyone's getting on board, you'll regret not joining — the pressure is SCARCITY/exclusion, not the clock",
     "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
     "guilt-tripping": "makes you feel GUILTY or obligated to comply — 'if you really loved/cared you would', 'after all I've done for you', 'you owe me', 'how could you do this to me', 'I guess I'll just deal with it alone then' — guilt and obligation used as leverage",
+    "love-bombing": "OVERWHELMS you with flattery, affection, or grand promises to disarm you or create dependency — 'no one will ever love you like I do', 'you're my soulmate, my everything', 'I've never felt this way about anyone', 'you're perfect', excessive praise or gifts early on to hook you",
     "none": "neutral, factual or informational; a greeting, question, or ordinary conversation; no manipulation",
 }
 
@@ -134,8 +136,10 @@ GATE_SYSTEM = (
     "to understand, just trust or believe it. Also 'yes' for GASLIGHTING and emotional "
     "manipulation between people: denying what happened or your memory (\"that never "
     "happened\", \"you're imagining it\"), calling you crazy / too sensitive / dramatic / "
-    "overreacting to make you doubt yourself, or guilt-tripping (\"if you really loved me "
-    "you would\").\n"
+    "overreacting to make you doubt yourself, guilt-tripping (\"if you really loved me "
+    "you would\"), or LOVE-BOMBING — overwhelming flattery, affection, or grand promises "
+    "to disarm you or create dependency (\"no one will ever love you like I do\", \"you're "
+    "my soulmate, I'd do anything for you\").\n"
     "The difference is intent to influence: \"the sale ends Friday\" is no, but \"hurry, "
     "the sale ends Friday, don't miss out!\" is yes.\n"
     "Answer with a single word: yes or no."
