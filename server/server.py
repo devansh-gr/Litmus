@@ -115,13 +115,13 @@ _gate_cf_probs = None   # cached content-free gate bias
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
 # Higher = the gate must be more sure before it calls something benign, so more borderline
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
-# 0.60: flag when the gate's manip_prob > 0.40. Chosen from the actual score gap — casual
-# chat clusters at manip_prob 0.02-0.38 ("lunch tomorrow?", "let me know if you have
-# questions"), real manipulation at 0.56-0.99 (gaslighting, hype, fomo, urgency). This
-# catches manipulation assertively WITHOUT flagging casual conversation. The real
-# sensitivity wins were recognizing gaslighting + showing assertive (un-calibrated)
-# confidence — not cranking this threshold. Raise it to catch more (+ more benign FPs).
-GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.60"))
+# 0.65: flag when the gate's manip_prob > 0.35. SWEPT on external-dev (tests/gate_diag.py):
+# the honest benchmark showed the gate missed ~44% of real manipulation at 0.60, so the
+# threshold was re-swept — 0.60→0.65 lifts recall 0.55→0.61 at the SAME 27% benign-FP (a free
+# win), while 0.70+ pushes benign-FP past 40%. 0.65 is the recall-max at a ≤30% benign-FP ceiling.
+# (The deeper recall wins are the gate-prompt fixes for social-proof/scarcity/countdown dark
+# patterns below — the threshold is only the cheap first lever.)
+GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.65"))
 GATE_SYSTEM = (
     "Decide if the text is trying to MANIPULATE or PERSUADE the reader, versus just "
     "communicating normally.\n"
