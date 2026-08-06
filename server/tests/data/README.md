@@ -24,6 +24,17 @@ author wrote the examples AND tuned the model to them (circular).
 
 Report the **external** number as the real one; use the dev sets only for iteration.
 
+### Dark-pattern gate recovery (2026-08-05) — how the split was used
+`external_dev.jsonl` did its job: `tests/gate_diag.py` scored the gate on **dev only**,
+localized the ~44% recall miss to dark patterns the gate read as facts (social-proof activity
+nudges 22/31, scarcity 10/20, countdown timers, clickbait), and the gate prompt was tuned
+against those **dev** misses. The reported before/after (recall 0.56→0.77) is on the full
+300 (dev + holdout), so it is partly in-sample on the tuned half — the honest generalization
+number is the holdout-only run. The fixes are keyed on the *nudge intent*, not memorized
+strings, and each is paired with a benign look-alike guard (neutral stat / clock / news →
+`none`) in `tests/test_dark_patterns.py`, so this is genuine dark-pattern coverage, not
+overfitting to the external labels.
+
 ### External-set caveats (documented, not hidden)
 - **Cross-taxonomy:** other people's label definitions ≈ but ≠ ours (e.g. dark-pattern
   "Scarcity" ≈ our fomo, but overlaps false-urgency).
