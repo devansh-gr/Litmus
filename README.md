@@ -59,17 +59,19 @@ that we neither wrote nor tuned on:
 
 | | self-authored (tuned on) | **external (never seen)** |
 |---|---|---|
-| accuracy | ~80% | **~45%** |
-| gate PR-AUC (ranks manipulation vs benign) | — | **0.92** |
-| gate recall @ shipped threshold | — | **0.66** |
-| confidence calibration (ECE, lower=better) | — | **0.10** |
+| accuracy | ~80% | **44%** |
+| gate PR-AUC (ranks manipulation vs benign) | — | **0.93** |
+| gate recall @ shipped threshold | — | **0.77** |
+| confidence calibration (ECE, lower=better) | — | **0.26** uncalibrated (0.10 with calibration on) |
 
-The honest read: the detector **tells manipulation from benign decently** (gate PR-AUC
-0.92) and its confidence now **means something** (when it says 70%, it's right ~70% of
-the time — calibrated with Platt scaling). But the specific *technique* labels are shakier
-(the clickbait→dopamine mapping is loose, urgency/FOMO overlap), and the ~35-point gap from
-the self-authored number is the classic cost of grading your own homework. We show these
-numbers on purpose — the full methodology and roadmap live in `docs/BENCHMARKING.md`.
+The honest read: the detector **tells manipulation from benign well** (gate PR-AUC 0.93,
+recall 0.77 — up from 0.56 after we taught the gate e-commerce dark patterns it was reading
+as plain facts). The shown confidence is **assertive by product choice** — calibration is
+available (`CPD_CALIB_A/B`, ECE→0.10) but ships off so the % reads high. The specific
+*technique* labels are still shakier (the clickbait→dopamine mapping is loose, urgency/FOMO
+overlap), and the gap from the self-authored number is the classic cost of grading your own
+homework. We show these numbers on purpose — the full methodology and roadmap live in
+`docs/BENCHMARKING.md`.
 
 📊 Full methodology and roadmap: [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md) ·
 results: [`server/tests/RESULTS.md`](server/tests/RESULTS.md)
@@ -122,14 +124,18 @@ to `~/Library/LaunchAgents/` and it starts at login and restarts on crash.
 
 ```sh
 cd server
-.venv/bin/python -m pytest tests/ -q                                    # 30 behavior/contract tests
-.venv/bin/python tests/bench_full.py --data tests/data/external_holdout.jsonl  # honest metrics
-.venv/bin/python tests/run_eval.py                                      # quick accuracy
+.venv/bin/python -m pytest tests/ -q                                    # ~65 behavior/contract tests
+.venv/bin/python tests/bench_full.py --data tests/data/external_test.jsonl  # honest metrics
+.venv/bin/python tests/gate_diag.py --data tests/data/external_dev.jsonl    # gate recall diag + sweep
+.venv/bin/python tests/interpersonal_report.py                         # interpersonal family
 ```
 `bench_full.py` reports macro-F1 + Wilson/bootstrap CIs, per-class P/R, confusion, MCC,
 **gate PR-AUC**, and **confidence calibration (ECE + reliability)** — the metrics the
 methodology research says a subjective, imbalanced, two-stage, confidence-scored
-classifier actually needs. Swift self-tests (OCR, secret-guard) live in `scripts/`.
+classifier actually needs. `gate_diag.py` localizes what the gate misses (it's how the
+dark-pattern recall gap was found and fixed). Regression suites `test_dark_patterns.py`
+and `test_interpersonal.py` lock in the recall/precision wins. Swift self-tests (OCR,
+secret-guard) live in `scripts/`.
 
 ---
 
