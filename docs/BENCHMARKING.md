@@ -56,9 +56,19 @@ changes yet.
   **Platt-calibrated confidence** (ECE 0.37→0.10); **abstain** on low confidence; fomo/false-urgency
   **technique blur fixed** (fomo recall 0.05→0.70). **Contextual calibration evaluated → no gain**
   (the yes/no gate already avoids the priming it targets) — kept off.
-- ⏳ **Remaining:** external coverage for fear / outrage / tribal / critical-thinking / hype /
-  manufactured-awe (no clean dataset — needs sourcing or self-authored + annotators); the dopamine
-  clickbait mapping is loose; CheckList robustness suite; Tier 3 (multi-annotator ground truth / α).
+- ⏳ **Remaining (gate recall):** two known misses were left on the table on purpose. (1)
+  **Anecdotal/weak authority** ("my friend tweeted about the health benefits, so…") — 6/19 missed;
+  flagging it risks catching ordinary "my friend said…" speech, so it needs a careful intent guard,
+  not another blanket clause. (2) **Bare aggregate counts** with no live-activity cue ("111 people
+  have purchased this item") sit in the same manip_prob band as ordinary praise — catching them
+  would re-flag "you did a wonderful job", so they stay borderline. Both are recall, not ranking:
+  the gate PR-AUC (0.93) already separates them; only the operating threshold declines to commit.
+- ⏳ **Remaining (coverage / rigor):** external coverage for fear / outrage / tribal /
+  critical-thinking / hype / manufactured-awe and the whole interpersonal family (no clean dataset —
+  needs sourcing or self-authored + annotators); the dopamine clickbait mapping is loose; CheckList
+  robustness suite; a holdout-only re-run to de-bias the in-sample half of the 0.56→0.77 number;
+  Tier 3 (multi-annotator ground truth / α). Deep-scan latency re-measure is still **reboot-blocked**
+  (swap maxed during this sprint).
 
 ---
 
