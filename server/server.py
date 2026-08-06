@@ -70,13 +70,13 @@ DEFINITIONS = {
     "fear-mongering": "makes you afraid of harm, danger, disease or catastrophe",
     "critical-thinking-suppression": "tells you to STOP thinking for yourself, or GASLIGHTS you into doubting your own mind — don't question, don't overthink, just trust it; OR 'that never happened', 'you're imagining it', 'you're too sensitive / crazy / overreacting', denying your memory or reality so you distrust your own perception; OR MINIMIZES what it did to make you doubt your reaction — 'I was just joking', 'can't you take a joke', 'it wasn't that bad', 'you're making a big deal out of nothing'",
     "tribal-in-group-bias": "an US-versus-THEM split: our side vs an enemy group — 'they' want to destroy what 'we' stand for, real ones vs outsiders",
-    "dopamine-bait": "dangles a concrete GOODY to chase — a prize, jackpot, win, freebie, giveaway, or a shocking secret to 'unlock' or 'claim'",
+    "dopamine-bait": "dangles a REWARD or a CURIOSITY payoff to chase — a prize, jackpot, win, freebie, giveaway, a shocking secret to 'unlock' or 'claim'; OR curiosity-gap CLICKBAIT that withholds the payoff to bait a click ('you won't believe what happened next', 'this one weird trick', 'N things that will blow your mind', 'we know if you...')",
     "outrage": "invites moral anger and disgust at someone's behaviour",
     "authority-appeal": "leans on experts, officials, science or authority to settle it",
-    "false-urgency": "a TIME deadline or countdown pressures you to act fast: act now, expires today, ends tonight, last chance, limited TIME, hurry — the pressure is the CLOCK",
-    "social-proof-conformity": "everyone else is doing it, don't be left out, join the crowd",
+    "false-urgency": "an explicit TIME deadline or countdown forces you to beat the CLOCK — 'act now', 'expires today', 'ends tonight', 'offer ends in 2 hours', 'last chance today', a ticking countdown timer. The lever is a DEADLINE. If the pressure is limited SUPPLY ('only 2 left', 'selling fast') rather than a clock, that is fomo — even if it also says 'order soon'",
+    "social-proof-conformity": "points to OTHER PEOPLE'S behaviour so you follow the crowd — 'everyone's doing it', 'don't be left out', 'join thousands of customers', and live activity / purchase-count nudges: 'X people bought this', 'X people are viewing', 'someone in [place] just bought this'. The lever is the CROWD, not a clock or a prize",
     "hype-hope-mongering": "promises an exciting personal upside or better future to make you want in: it will improve your life, make you money, or fix your problems",
-    "fomo": "you'll MISS OUT or be LEFT BEHIND — limited QUANTITY (only a few left, while stocks last, selling fast), the train is leaving, everyone's getting on board, you'll regret not joining — the pressure is SCARCITY/exclusion, not the clock",
+    "fomo": "you'll MISS OUT because SUPPLY is limited or others are grabbing it — 'only a few left', 'only 2 in stock', 'selling fast', 'almost gone', 'in high demand', 'while stocks last', 'we reserved yours', 'you'll regret not joining'. The lever is limited QUANTITY / scarcity, NOT a clock — fomo WINS over false-urgency whenever the driver is limited supply, even when it also says 'order soon' or 'hurry'",
     "manufactured-awe": "exaggerates how revolutionary, unprecedented, historic, greatest-ever or mind-blowing the thing ITSELF is, so sheer grandeur overwhelms your skepticism",
     "guilt-tripping": "makes you feel GUILTY, obligated, or ashamed to comply — 'if you really loved/cared you would', 'after all I've done / sacrificed for you', 'you owe me', 'how could you do this to me', plus MARTYRDOM and self-pity used as leverage ('fine, I'll just do it myself then', 'don't worry about me', 'I'll be alone but it's ok') and DISAPPOINTMENT as a weapon ('I'm not mad, just disappointed in you') — guilt, shame, and obligation as leverage",
     "love-bombing": "EXCESSIVE, possessive affection or grand romantic promises used to disarm you or build dependency — 'no one will EVER love you like I do', 'you're my soulmate, my everything, I can't live without you', 'I've never felt this way about anyone', 'we're meant to be'. The tell is possessiveness and dependency ('no one else', 'only I', 'can't live without you'), NOT ordinary praise — a plain compliment like 'you did a great job' or 'nice work' is NOT love-bombing",
@@ -88,7 +88,12 @@ SYSTEM = (
     "You are a persuasion analyst. Identify the PRIMARY manipulation technique in "
     "the text. The techniques are:\n"
     + "\n".join(f"- {k}: {v}" for k, v in DEFINITIONS.items())
-    + "\nAnswer with the technique name only."
+    + "\nWhen more than one seems to fit, choose by the PRIMARY LEVER the text pulls: "
+      "limited quantity / scarcity -> fomo; an explicit deadline or countdown clock -> "
+      "false-urgency; other people's activity or the crowd -> social-proof-conformity; a "
+      "reward or curiosity hook -> dopamine-bait; a personal upside / better future -> "
+      "hype-hope-mongering.\n"
+      "Answer with the technique name only."
 )
 
 # Stage-1 binary gate: "is this manipulation at all?". A clean 2-way decision at the

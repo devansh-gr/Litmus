@@ -2,69 +2,63 @@
   warnings.warn("y_pred contains classes not in y_true")
 
 ======================================================================
-BENCHMARK: external-after   (N=300)
+BENCHMARK: external-technique   (N=300)
 ======================================================================
-accuracy            43.7%   95% CI [38.2%, 49.3%]  (Wilson)
-macro-F1            0.176   95% CI [0.148, 0.200]  (bootstrap)
-weighted-F1         0.425
-balanced accuracy   0.384
-MCC                 0.333   (0=random, 1=perfect)
+accuracy            56.0%   95% CI [50.3%, 61.5%]  (Wilson)
+macro-F1            0.330   95% CI [0.295, 0.361]  (bootstrap)
+weighted-F1         0.566
+balanced accuracy   0.532
+MCC                 0.474   (0=random, 1=perfect)
 
 per-class:
-                               precision    recall  f1-score   support
+                         precision    recall  f1-score   support
 
-             authority-appeal       0.86      0.15      0.26        40
-               blame-shifting       0.00      0.00      0.00         0
-critical-thinking-suppression       0.00      0.00      0.00         0
-                dopamine-bait       0.00      0.00      0.00        40
-                false-urgency       0.40      0.88      0.55        40
-               fear-mongering       0.00      0.00      0.00         0
-                         fomo       1.00      0.28      0.43        40
-          hype-hope-mongering       0.00      0.00      0.00         0
-                 love-bombing       0.00      0.00      0.00         0
-             manufactured-awe       0.00      0.00      0.00         0
-                         none       0.58      0.72      0.64        90
-      social-proof-conformity       0.78      0.28      0.41        50
-         tribal-in-group-bias       0.00      0.00      0.00         0
+       authority-appeal       1.00      0.07      0.14        40
+         blame-shifting       0.00      0.00      0.00         0
+          dopamine-bait       0.62      0.60      0.61        40
+          false-urgency       0.62      0.80      0.70        40
+         fear-mongering       0.00      0.00      0.00         0
+                   fomo       0.74      0.57      0.65        40
+    hype-hope-mongering       0.00      0.00      0.00         0
+                   none       0.58      0.72      0.64        90
+social-proof-conformity       0.88      0.42      0.57        50
+   tribal-in-group-bias       0.00      0.00      0.00         0
 
-                     accuracy                           0.44       300
-                    macro avg       0.28      0.18      0.18       300
-                 weighted avg       0.60      0.44      0.43       300
+               accuracy                           0.56       300
+              macro avg       0.44      0.32      0.33       300
+           weighted avg       0.72      0.56      0.57       300
 
 confusion (rows=gold, cols=pred, row-normalized %):
-            authority- blame-shif critical-t dopamine-b false-urge fear-monge       fomo hype-hope- love-bombi manufactur       none social-pro tribal-in-
-authority-a         15          2          5          8          5         15          0          0          2          0         35          2         10
-blame-shift          0          0          0          0          0          0          0          0          0          0          0          0          0
-critical-th          0          0          0          0          0          0          0          0          0          0          0          0          0
-dopamine-ba          0          0          0          0         28         10          0         28          2          2         22          8          0
-false-urgen          0          0          0          8         88          0          0          0          0          0          5          0          0
-fear-monger          0          0          0          0          0          0          0          0          0          0          0          0          0
-       fomo          0          0          0          8         55          0         28          0          5          0          5          0          0
-hype-hope-m          0          0          0          0          0          0          0          0          0          0          0          0          0
-love-bombin          0          0          0          0          0          0          0          0          0          0          0          0          0
-manufacture          0          0          0          0          0          0          0          0          0          0          0          0          0
-       none          1          0          0          1         11         11          0          1          0          0         72          0          2
-social-proo          0          0          0          4         16          4          0          2          0          0         42         28          4
-tribal-in-g          0          0          0          0          0          0          0          0          0          0          0          0          0
+            authority- blame-shif dopamine-b false-urge fear-monge       fomo hype-hope-       none social-pro tribal-in-
+authority-a          8          5          8          2         30          0          2         35          0         10
+blame-shift          0          0          0          0          0          0          0          0          0          0
+dopamine-ba          0          0         60          5          5          0          2         22          5          0
+false-urgen          0          0          5         80          0         10          0          5          0          0
+fear-monger          0          0          0          0          0          0          0          0          0          0
+       fomo          0          0          2         35          0         58          0          5          0          0
+hype-hope-m          0          0          0          0          0          0          0          0          0          0
+       none          0          0          7          3         10          3          1         72          1          2
+social-proo          0          0          6          0          4          2          2         40         42          4
+tribal-in-g          0          0          0          0          0          0          0          0          0          0
 
 ----------------------------------------------------------------------
 GATE (binary: manipulation vs none)
-  precision 0.87  recall 0.77  F1 0.82
+  precision 0.87  recall 0.78  F1 0.82
   PR-AUC (avg precision) 0.933   (prevalence baseline 0.700)
-  Brier (gate prob)      0.179
-  gate false-negatives (manipulation → none): 48/210
+  Brier (gate prob)      0.180
+  gate false-negatives (manipulation → none): 47/210
   gate false-positives (benign → flagged):    25/90
 
 ----------------------------------------------------------------------
 CALIBRATION of the confidence %
-  ECE 0.262   Brier 0.237   (lower=better)
+  ECE 0.185   Brier 0.236   (lower=better)
   reliability (conf bin → mean confidence vs actual accuracy):
-    (0.1,0.2]  n=1    conf=15%  acc=0%  <-- overconfident
-    (0.2,0.3]  n=12   conf=27%  acc=0%  <-- overconfident
-    (0.3,0.4]  n=33   conf=36%  acc=6%  <-- overconfident
-    (0.4,0.5]  n=40   conf=45%  acc=18%  <-- overconfident
-    (0.5,0.6]  n=15   conf=56%  acc=20%  <-- overconfident
-    (0.6,0.7]  n=33   conf=67%  acc=24%  <-- overconfident
-    (0.7,0.8]  n=45   conf=76%  acc=42%  <-- overconfident
-    (0.8,0.9]  n=43   conf=86%  acc=60%  <-- overconfident
-    (0.9,1.0]  n=78   conf=96%  acc=85%  <-- overconfident
+    (0.1,0.2]  n=1    conf=18%  acc=0%  <-- overconfident
+    (0.2,0.3]  n=5    conf=26%  acc=40%
+    (0.3,0.4]  n=20   conf=36%  acc=20%  <-- overconfident
+    (0.4,0.5]  n=30   conf=45%  acc=30%  <-- overconfident
+    (0.5,0.6]  n=26   conf=55%  acc=42%  <-- overconfident
+    (0.6,0.7]  n=30   conf=67%  acc=43%  <-- overconfident
+    (0.7,0.8]  n=47   conf=75%  acc=43%  <-- overconfident
+    (0.8,0.9]  n=49   conf=86%  acc=57%  <-- overconfident
+    (0.9,1.0]  n=92   conf=96%  acc=88%
