@@ -2,6 +2,37 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Gate recall recovery — dark patterns (2026-08-05)
+
+The 2026-08-04 run showed the manipulation gate missing ~44% of real manipulation
+(recall 0.56). `tests/gate_diag.py` localized it: the miss was concentrated in e-commerce
+**dark patterns that read like plain facts** — fake social-proof activity nudges (missed
+22/31), manufactured scarcity (10/20), bare countdown timers, and curiosity-gap clickbait.
+Fixes: re-swept the threshold (0.60→0.65, a free +0.06) and taught the gate each dark-pattern
+family, each guarded so its benign look-alike (neutral stats, ordinary clocks, straight news)
+stays `none`. Re-ran `bench_full.py --data external_test.jsonl` (same 300 examples):
+
+| metric | before (08-04) | after (08-05) |
+|---|---|---|
+| **gate recall** (manipulation caught) | 0.56 | **0.77** |
+| gate precision | 0.84 | **0.87** |
+| gate F1 | 0.67 | **0.82** |
+| gate PR-AUC | 0.890 | **0.933** |
+| gate false-negatives | 92/210 | **48/210** |
+| gate false-positives | 23/90 | 25/90 |
+| overall accuracy | 38.0% | **43.7%** [38.2–49.3] |
+| macro-F1 | 0.146 | **0.176** |
+| MCC | 0.242 | **0.333** |
+| ECE (uncalibrated) | 0.355 | **0.262** |
+
+Recall jumped **+21 points with no precision cost** (benign FP flat, 23→25). Per-class recall:
+social-proof 0.14→0.28, false-urgency 0.65→0.88, fomo 0.20→0.28. The dark patterns' *technique
+labels* are still loose (scarcity→false-urgency, clickbait→hype), the documented cross-taxonomy
+blur — but the **gate now catches them**, which is what the recall fix targeted. Locked in by
+`tests/test_dark_patterns.py` (flag + benign-look-alike guard).
+
+---
+
 ## Interpersonal family + assertive/sensitive config (2026-08-04) — 14 vectors
 
 Re-ran `bench_full.py --data external_test.jsonl` (300 ex) after adding the interpersonal
