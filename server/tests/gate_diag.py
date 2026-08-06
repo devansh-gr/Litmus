@@ -96,6 +96,17 @@ def false_negatives(recs, gnt=0.60):
         print(f"  mp={r['manip_prob']:.3f}  {r['gold']:22} {r['text'][:60]!r}")
 
 
+def false_positives(recs, gnt=0.65):
+    """The precision side: benign examples the gate flags. If a recall fix started
+    catching neutral stats / clocks / news, they show up here."""
+    c = 1 - gnt
+    benign = [r for r in recs if r["gold"] == "none"]
+    fps = [r for r in benign if r["manip_prob"] > c]
+    print(f"\ngate false-positives @ GATE_NONE_THRESHOLD={gnt} (benign flagged): {len(fps)}/{len(benign)}")
+    for r in sorted(fps, key=lambda r: -r["manip_prob"])[:12]:
+        print(f"  mp={r['manip_prob']:.3f}  -> {r['pred']:22} {r['text'][:60]!r}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", required=True)
@@ -104,6 +115,7 @@ def main():
     recs = score_set(Path(args.data), Path(args.cache) if args.cache else None)
     sweep(recs)
     false_negatives(recs)
+    false_positives(recs)
 
 
 if __name__ == "__main__":
