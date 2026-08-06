@@ -16,11 +16,15 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
   into "hype 84%". Confidence is **Platt-calibratable** (`CPD_CALIB_A/B`) but ships **OFF by product
   choice** (assertive high %; the user found calibrated % "too anti-sensitive"); set
   `CPD_CALIB_A=0.56 CPD_CALIB_B=-1.10` for the honest lower %. Below `CPD_ABSTAIN_BELOW` (0.45) the
-  card flags `uncertain`. Gate uses `GATE_TEMP=1.0` (unsharpened) + `CPD_GATE_NONE_THRESHOLD` (0.60).
-  **Honest external benchmark (300 examples we didn't author, 2026-08-04): 38% accuracy, gate
-  PR-AUC 0.89 / recall 0.56 / precision 0.84; ECE 0.36 uncalibrated (≈0.10 with CALIB on).** Low
-  per-class recall is cross-taxonomy mapping on the marketing vectors, not the interpersonal work
-  (validated separately at 88% on the behavioral set). See `tests/RESULTS.md` + `docs/BENCHMARKING.md`.
+  card flags `uncertain`. Gate uses `GATE_TEMP=1.0` (unsharpened) + `CPD_GATE_NONE_THRESHOLD` (0.65,
+  swept). The `GATE_SYSTEM` prompt teaches the gate e-commerce **dark patterns** (social-proof
+  activity nudges, scarcity, countdown timers, clickbait), each guarded so benign look-alikes
+  (neutral stats/clocks/news) stay `none` — see `tests/gate_diag.py` + `tests/test_dark_patterns.py`.
+  **Honest external benchmark (300 examples we didn't author, 2026-08-05): 44% accuracy, gate
+  PR-AUC 0.93 / recall 0.77 / precision 0.87; ECE 0.26 uncalibrated (≈0.10 with CALIB on).** The
+  dark-pattern gate fixes took recall 0.56→0.77 with no precision cost; the remaining low per-class
+  *technique* accuracy is cross-taxonomy label blur (the interpersonal family is validated separately
+  at 88% on the behavioral set). See `tests/RESULTS.md` + `docs/BENCHMARKING.md`.
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
@@ -140,7 +144,8 @@ shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `d
 ## Testing & benchmark (server/tests/)
 - **HONEST benchmark:** `python tests/bench_full.py --data tests/data/external_test.jsonl` —
   300 externally-labeled examples (dark-patterns + LOGIC + clickbait) we did NOT author or tune on.
-  **38% accuracy, macro-F1 0.15, gate PR-AUC 0.89 / recall 0.56, ECE 0.36 uncalibrated** (2026-08-04).
+  **44% accuracy, macro-F1 0.18, gate PR-AUC 0.93 / recall 0.77, ECE 0.26 uncalibrated** (2026-08-05,
+  after the dark-pattern gate fixes lifted recall 0.56→0.77). `tests/gate_diag.py` localizes gate misses.
   Self-authored sets (`run_eval.py`, `realistic_set`) read ~80% but that's overfit — grading your
   own homework. Interpersonal family has no external analog yet; validated on the curated behavioral
   set instead: `python tests/interpersonal_report.py` (**88%**) + `pytest tests/test_interpersonal.py`.
