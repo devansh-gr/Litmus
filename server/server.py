@@ -115,12 +115,15 @@ _gate_cf_probs = None   # cached content-free gate bias
 # Route to `none` only when the gate is at least this confident it's NOT manipulation.
 # Higher = the gate must be more sure before it calls something benign, so more borderline
 # text flows to the technique classifier (recovers manipulation recall, costs benign precision).
-# 0.65: flag when the gate's manip_prob > 0.35. SWEPT on external-dev (tests/gate_diag.py):
-# the honest benchmark showed the gate missed ~44% of real manipulation at 0.60, so the
-# threshold was re-swept — 0.60→0.65 lifts recall 0.55→0.61 at the SAME 27% benign-FP (a free
-# win), while 0.70+ pushes benign-FP past 40%. 0.65 is the recall-max at a ≤30% benign-FP ceiling.
-# (The deeper recall wins are the gate-prompt fixes for social-proof/scarcity/countdown dark
-# patterns below — the threshold is only the cheap first lever.)
+# 0.65: flag when the gate's manip_prob > 0.35. RE-SWEPT after the dark-pattern gate-prompt fixes
+# (tests/gate_diag.py + bench_after dump). Those fixes lifted manip_prob on real manipulation, so
+# on the 300-ex external set the gate reaches recall 0.78 / precision 0.87 at 0.65. 0.70 buys a
+# little more external recall (0.81) but re-flags the curated casual set — praise ("you did a
+# wonderful job") and sign-offs ("hope it helps") sit in the SAME 0.30-0.35 manip_prob band as
+# borderline dark patterns, so pushing the cutoff below 0.35 trades UX benign-precision for a
+# couple of bare-count edge cases. 0.65 is the sweet spot: dark patterns flag, casual chat stays
+# none. (History: 0.60 gave recall 0.55; the big win was the gate-prompt fixes for social-proof /
+# scarcity / countdown / clickbait, which took gate recall 0.55→0.77 — see tests/RESULTS.md.)
 GATE_NONE_THRESHOLD = float(os.environ.get("CPD_GATE_NONE_THRESHOLD", "0.65"))
 GATE_SYSTEM = (
     "Decide if the text is trying to MANIPULATE or PERSUADE the reader, versus just "
