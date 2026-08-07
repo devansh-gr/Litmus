@@ -1,0 +1,56 @@
+/Users/devanshgaur/Documents/Projects/CorticalPersuasionDecoder/server/.venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2924: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+
+======================================================================
+BENCHMARK: holdout-LoRA   (N=150)
+======================================================================
+accuracy            60.7%   95% CI [52.7%, 68.1%]  (Wilson)
+macro-F1            0.490   95% CI [0.419, 0.556]  (bootstrap)
+weighted-F1         0.597
+balanced accuracy   0.564
+MCC                 0.521   (0=random, 1=perfect)
+
+per-class:
+                         precision    recall  f1-score   support
+
+       authority-appeal       0.60      0.43      0.50        21
+          dopamine-bait       0.40      0.74      0.52        19
+          false-urgency       1.00      0.56      0.72        25
+                   fomo       0.94      0.75      0.83        20
+                   none       0.58      0.80      0.67        46
+social-proof-conformity       1.00      0.11      0.19        19
+   tribal-in-group-bias       0.00      0.00      0.00         0
+
+               accuracy                           0.61       150
+              macro avg       0.65      0.48      0.49       150
+           weighted avg       0.73      0.61      0.60       150
+
+confusion (rows=gold, cols=pred, row-normalized %):
+            authority- dopamine-b false-urge       fomo       none social-pro tribal-in-
+authority-a         43         10          0          0         43          0          5
+dopamine-ba          0         74          0          0         26          0          0
+false-urgen         12         24         56          0          8          0          0
+       fomo          5         15          0         75          5          0          0
+       none          2         15          0          0         80          0          2
+social-proo          5         16          0          5         53         11         11
+tribal-in-g          0          0          0          0          0          0          0
+
+----------------------------------------------------------------------
+GATE (binary: manipulation vs none)
+  precision 0.90  recall 0.74  F1 0.81
+  PR-AUC (avg precision) 0.933   (prevalence baseline 0.693)
+  Brier (gate prob)      0.191
+  gate false-negatives (manipulation → none): 27/104
+  gate false-positives (benign → flagged):    9/46
+
+----------------------------------------------------------------------
+CALIBRATION of the confidence %
+  ECE 0.221   Brier 0.265   (lower=better)
+  reliability (conf bin → mean confidence vs actual accuracy):
+    (0.3,0.4]  n=6    conf=36%  acc=17%  <-- overconfident
+    (0.4,0.5]  n=11   conf=45%  acc=73%
+    (0.5,0.6]  n=13   conf=54%  acc=69%
+    (0.6,0.7]  n=21   conf=66%  acc=43%  <-- overconfident
+    (0.7,0.8]  n=24   conf=75%  acc=54%  <-- overconfident
+    (0.8,0.9]  n=32   conf=85%  acc=47%  <-- overconfident
+    (0.9,1.0]  n=43   conf=95%  acc=84%  <-- overconfident
