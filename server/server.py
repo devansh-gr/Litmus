@@ -72,7 +72,7 @@ DEFINITIONS = {
     "tribal-in-group-bias": "an US-versus-THEM split: our side vs an enemy group — 'they' want to destroy what 'we' stand for, real ones vs outsiders",
     "dopamine-bait": "dangles a REWARD or a CURIOSITY payoff to chase — a prize, jackpot, win, freebie, giveaway, a shocking secret to 'unlock' or 'claim'; OR curiosity-gap CLICKBAIT that withholds the payoff to bait a click ('you won't believe what happened next', 'this one weird trick', 'N things that will blow your mind', 'we know if you...')",
     "outrage": "invites moral anger and disgust at someone's behaviour",
-    "authority-appeal": "leans on experts, officials, science or authority to settle it",
+    "authority-appeal": "leans on a person's STATUS, fame, title, or credentials to make a claim credible — an expert, official, scientist, doctor, celebrity, or authority figure endorses or asserts it, so you should believe or buy it ('doctors recommend', 'Michael Jordan wears X so you should too', 'my minister/father says so it must be true', '20 years of experience so trust my opinion') — EVEN when that source is unqualified or irrelevant to the claim",
     "false-urgency": "an explicit TIME deadline or countdown forces you to beat the CLOCK — 'act now', 'expires today', 'ends tonight', 'offer ends in 2 hours', 'last chance today', a ticking countdown timer. The lever is a DEADLINE. If the pressure is limited SUPPLY ('only 2 left', 'selling fast') rather than a clock, that is fomo — even if it also says 'order soon'",
     "social-proof-conformity": "points to OTHER PEOPLE'S behaviour so you follow the crowd — 'everyone's doing it', 'don't be left out', 'join thousands of customers', and live activity / purchase-count nudges: 'X people bought this', 'X people are viewing', 'someone in [place] just bought this'. The lever is the CROWD, not a clock or a prize",
     "hype-hope-mongering": "promises an exciting personal upside or better future to make you want in: it will improve your life, make you money, or fix your problems",
@@ -92,7 +92,8 @@ SYSTEM = (
       "limited quantity / scarcity -> fomo; an explicit deadline or countdown clock -> "
       "false-urgency; other people's activity or the crowd -> social-proof-conformity; a "
       "reward or curiosity hook -> dopamine-bait; a personal upside / better future -> "
-      "hype-hope-mongering.\n"
+      "hype-hope-mongering; a named person's fame / title / credential given as the reason "
+      "to believe or buy (celebrity endorsement, 'a doctor/expert says') -> authority-appeal.\n"
       "Answer with the technique name only."
 )
 
