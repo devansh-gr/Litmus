@@ -59,19 +59,20 @@ that we neither wrote nor tuned on:
 
 | | self-authored (tuned on) | **external (never seen)** |
 |---|---|---|
-| accuracy | ~80% | **44%** |
+| accuracy | ~80% | **61%** (was 38% two sprints ago) |
+| macro-F1 | — | **0.37** |
 | gate PR-AUC (ranks manipulation vs benign) | — | **0.93** |
-| gate recall @ shipped threshold | — | **0.77** |
-| confidence calibration (ECE, lower=better) | — | **0.26** uncalibrated (0.10 with calibration on) |
+| gate recall @ shipped threshold | — | **0.78** |
+| confidence calibration (ECE, lower=better) | — | **~0.19** uncalibrated (0.10 with calibration on) |
 
 The honest read: the detector **tells manipulation from benign well** (gate PR-AUC 0.93,
-recall 0.77 — up from 0.56 after we taught the gate e-commerce dark patterns it was reading
-as plain facts). The shown confidence is **assertive by product choice** — calibration is
-available (`CPD_CALIB_A/B`, ECE→0.10) but ships off so the % reads high. The specific
-*technique* labels are still shakier (the clickbait→dopamine mapping is loose, urgency/FOMO
-overlap), and the gap from the self-authored number is the classic cost of grading your own
-homework. We show these numbers on purpose — the full methodology and roadmap live in
-`docs/BENCHMARKING.md`.
+recall 0.78 — up from 0.56 after we taught the gate e-commerce dark patterns it was reading
+as plain facts) **and now names the technique far better** (accuracy 44→61% after teaching
+stage-2 to route by the *primary lever* — supply=FOMO, clock=urgency, crowd=social-proof,
+reward/curiosity=dopamine, credential=authority). The shown confidence is **assertive by
+product choice** — calibration is available (`CPD_CALIB_A/B`, ECE→0.10) but ships off so the %
+reads high. What's left is mostly gate misses and cross-taxonomy label noise. We show these
+numbers on purpose — the full methodology and roadmap live in `docs/BENCHMARKING.md`.
 
 📊 Full methodology and roadmap: [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md) ·
 results: [`server/tests/RESULTS.md`](server/tests/RESULTS.md)
