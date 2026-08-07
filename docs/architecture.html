@@ -302,9 +302,9 @@
   <p class="lead">The detector is fast and now has a real report card.</p>
   <div class="facts" style="margin-bottom:18px">
     <span class="fact"><b>~0.6s</b> per ⌘B (was ~4s)</span>
-    <span class="fact">gate <b>PR-AUC 0.93</b> · recall 0.77</span>
-    <span class="fact">ECE <b>0.26</b> (calib off) · 0.10 on</span>
-    <span class="fact"><b>44%</b> external (vs 80% self-authored)</span>
+    <span class="fact">gate <b>PR-AUC 0.93</b> · recall 0.78</span>
+    <span class="fact">macro-F1 <b>0.37</b> · ECE ~0.19</span>
+    <span class="fact"><b>61%</b> external (was 38%; vs 80% self-authored)</span>
   </div>
   <div class="filemap">
     <div class="fm"><div class="p">Two-stage gate</div><div class="d">A yes/no "is this manipulation?" first — stops greetings/facts/reviews being forced into a tactic.</div></div>
@@ -312,11 +312,11 @@
     <div class="fm srv"><div class="p">bench_full.py</div><div class="d">Macro-F1 + Wilson/bootstrap CIs, per-class, confusion, MCC, gate PR-AUC, and confidence calibration (ECE).</div></div>
     <div class="fm srv"><div class="p">pytest suite</div><div class="d">Contract, behavior, benign + realistic guards, taxonomy-drift, robustness, dark-pattern + interpersonal recall.</div></div>
   </div>
-  <p class="lead" style="margin-top:6px"><strong>Measured honestly, then fixed.</strong> On self-authored data it looked ~80% accurate; on 300 <em>external</em>, never-tuned-on examples (which cover 6 of the marketing vectors) it's <strong>44%</strong>. Read the <strong>gate</strong> as the trustworthy signal: it ranks manipulation vs benign at PR-AUC <strong>0.93</strong> (recall <strong>0.77</strong>, precision 0.87). That recall was <strong>0.56</strong> until a diagnostic (<code>gate_diag.py</code>) traced the miss to e-commerce <strong>dark patterns the gate read as plain facts</strong> — fake social-proof activity nudges ("24 people bought this today"), manufactured scarcity, bare countdown timers, curiosity-gap clickbait. Teaching the gate each family (guarded so neutral stats/clocks/news stay benign) lifted recall <strong>0.56 → 0.77 with no precision cost</strong>. The remaining low per-class <em>technique</em> accuracy is loose cross-taxonomy label mapping (clickbait↔dopamine), not the gate missing them. Confidence can be <strong>Platt-calibrated</strong> (ECE <strong>0.26 → 0.10</strong>) but ships <strong>off</strong> so the % reads assertively — a deliberate product choice. The taxonomy also spans <strong>14 vectors in two families</strong>: broadcast persuasion + an <strong>interpersonal</strong> family (guilt-tripping, love-bombing, blame-shifting/DARVO, gaslighting) — validated at <strong>88%</strong> on a curated behavioral set. Some tactic labels still blur, and we say so.</p>
+  <p class="lead" style="margin-top:6px"><strong>Measured honestly, then fixed — twice.</strong> On self-authored data it looked ~80% accurate; on 300 <em>external</em>, never-tuned-on examples it's <strong>61%</strong> — up from <strong>38%</strong> two sprints ago. Two fixes got it there, and they target different stages. First the <strong>gate</strong>: a diagnostic (<code>gate_diag.py</code>) traced a recall miss to e-commerce <strong>dark patterns the gate read as plain facts</strong> (fake social-proof nudges, scarcity, countdown timers, clickbait); teaching the gate each family — guarded so neutral stats/clocks/news stay benign — lifted gate recall <strong>0.56 → 0.78</strong> with no precision cost (PR-AUC <strong>0.93</strong>). Then the <strong>technique label</strong>: stage-2 was collapsing everything into false-urgency, so it now routes by the <strong>primary lever</strong> — limited supply → FOMO, a deadline clock → false-urgency, other people's activity → social-proof, a reward or curiosity hook → dopamine, a name/credential → authority — which took <strong>accuracy 44 → 61%</strong> (macro-F1 0.18 → 0.37) with the gate untouched. Confidence can be <strong>Platt-calibrated</strong> (ECE → 0.10) but ships <strong>off</strong> so the % reads assertively — a deliberate choice. The taxonomy spans <strong>14 vectors in two families</strong>: broadcast persuasion + an <strong>interpersonal</strong> family (guilt-tripping, love-bombing, blame-shifting/DARVO, gaslighting) — validated at <strong>88%</strong> on a curated behavioral set. What's left is gate misses and cross-taxonomy blur, and we say so.</p>
 
   <div class="foot">
     Cortical Persuasion Decoder · architecture overview · detection = local Llama-3.2-3B · interpretation = TRIBE v2 · everything on-device, zero telemetry.<br>
-    Companion to the full field manual (origins, experiments, and pivots). Repo: github.com/devansh-gr/CorticalPersuasionDecoder. Updated 2026-08-05.
+    Companion to the full field manual (origins, experiments, and pivots). Repo: github.com/devansh-gr/CorticalPersuasionDecoder. Updated 2026-08-06.
   </div>
 </div>
 
