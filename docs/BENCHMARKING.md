@@ -24,10 +24,18 @@ changes yet.
 
 ---
 
-## Status (2026-08-05) — Tier 0 + 1 done, Tier 2 partial, interpersonal family, gate recall recovered
+## Status (2026-08-06) — Tier 0 + 1 done, gate recall + technique accuracy recovered
 
 - ✅ **Tier 0 (metrics/hygiene):** `bench_full.py` reports macro-F1, per-class, confusion, MCC,
   Wilson/bootstrap CIs, gate PR-AUC, and ECE calibration. Dev/holdout split of the external set.
+- ✅ **Technique disambiguation (accuracy 44% → 61%):** once the gate caught manipulation, stage-2
+  still collapsed distinct techniques into `false-urgency` (fomo→false-urgency 55%, dopamine recall
+  0.00). Sharpened the confusable `DEFINITIONS` to key on the **primary lever** (supply→fomo,
+  clock→false-urgency, crowd→social-proof, reward/curiosity→dopamine, credential→authority) + a
+  tie-break rule + celebrity/anecdotal-authority coverage. **Stage-2 only — the gate was untouched.**
+  On the 300-ex external set: **accuracy 43.7 → 60.7% [55–66], macro-F1 0.18 → 0.37, MCC 0.33 →
+  0.52**; per-class recall dopamine 0.00→0.70, fomo 0.28→0.53, social-proof 0.28→0.44, authority
+  0.15→0.35. Locked in by `tests/test_technique_separation.py`.
 - ✅ **Gate recall recovery (dark patterns):** the 08-04 run showed the gate missing ~44% of real
   manipulation. `tests/gate_diag.py` localized the miss to e-commerce dark patterns that read like
   plain facts — social-proof activity nudges (22/31 missed), scarcity (10/20), countdown timers,
@@ -45,13 +53,13 @@ changes yet.
   interpersonal tactics yet — a Tier-1 gap to source.
 - ✅ **Tier 1 (real data):** `external_test.jsonl` — 300 independently-labeled examples from
   dark-patterns + LOGIC + clickbait (6 vectors + none), never authored or tuned on. **Honest number
-  (2026-08-05, after the dark-pattern gate fixes): 44% accuracy [38.2–49.3], macro-F1 0.18, MCC
-  0.33, gate PR-AUC 0.93 / recall 0.77 / precision 0.87** vs the ~80% self-authored mirage.
-  Calibration is OFF by product choice (assertive %), so displayed **ECE is 0.26**; turning it on
-  (`CPD_CALIB_A=0.56 CPD_CALIB_B=-1.10`) restores ECE ≈ 0.10 at the cost of lower shown %. The gate
-  now catches manipulation well; the remaining low per-class *technique* accuracy (dopamine 0.00,
-  authority 0.15) is the **cross-taxonomy mapping difficulty** — clickbait↔dopamine and
-  anecdotal-authority are loose analogs — not the gate failing to flag them.
+  (2026-08-06, after gate recall + technique disambiguation): 60.7% accuracy [55.0–66.0], macro-F1
+  0.37, MCC 0.52, gate PR-AUC 0.93 / recall 0.78 / precision 0.87** vs the ~80% self-authored mirage
+  — up from 38% two sprints ago. Calibration is OFF by product choice (assertive %), so displayed
+  **ECE is ~0.19**; turning it on (`CPD_CALIB_A=0.56 CPD_CALIB_B=-1.10`) restores ECE ≈ 0.10 at the
+  cost of lower shown %. Remaining errors are gate misses (→none, benign-FP-risky to chase) and
+  residual fomo↔false-urgency blur on genuinely dual-signal text, plus cross-taxonomy label noise —
+  not a broken detector.
 - ✅ **Tier 2 (partial):** gate un-sharpened + threshold re-swept on external data;
   **Platt-calibrated confidence** (ECE 0.37→0.10); **abstain** on low confidence; fomo/false-urgency
   **technique blur fixed** (fomo recall 0.05→0.70). **Contextual calibration evaluated → no gain**
