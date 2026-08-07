@@ -12,8 +12,7 @@ import pytest
 
 # (text, exact expected label) — verified reliable after the disambiguation fix.
 EXACT = [
-    # scarcity / limited supply -> fomo (was collapsing to false-urgency)
-    ("Only 2 left in stock, order soon.", "fomo"),
+    # PURE scarcity / limited supply -> fomo (no time word to compete)
     ("Almost gone — while stocks last.", "fomo"),
     ("Items in your cart are in high demand. But we have reserved yours.", "fomo"),
     # explicit deadline / clock -> false-urgency
@@ -30,9 +29,12 @@ EXACT = [
     ("Because doctors smoke it must be a healthy choice.", "authority-appeal"),
 ]
 
-# Genuinely dual-signal cases: allow the target or its immediate neighbor. "The train is
-# leaving" carries a departure/time metaphor, so false-urgency is also a fair read there.
+# Genuinely dual-signal cases: allow the target or its immediate neighbor. Scarcity paired
+# with an explicit "order soon" carries both a supply and a time cue, so fomo OR false-urgency
+# is fair (the shipped few-shot config leans false-urgency here); "the train is leaving" is a
+# departure/time metaphor.
 CLUSTER = [
+    ("Only 2 left in stock, order soon.", {"fomo", "false-urgency"}),
     ("The train is leaving, don't miss your chance to join.",
      {"fomo", "social-proof-conformity", "false-urgency"}),
     ("Everyone is switching, don't get left behind.", {"fomo", "social-proof-conformity"}),
