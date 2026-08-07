@@ -221,6 +221,9 @@ app = FastAPI(title="Cortical Persuasion Decoder", lifespan=_lifespan)
 # (fp32, ~6.5GB). MLX is far lighter, so it coexists with TRIBE without thrashing.
 LLM_BACKEND = os.environ.get("CPD_LLM_BACKEND", "mlx")
 MLX_MODEL = os.environ.get("CPD_MLX_MODEL", "mlx-community/Llama-3.2-3B-Instruct-4bit")
+# Optional LoRA adapter (technique fine-tune). Empty = base model. Trained on the
+# leakage-free split (lora/prepare_data.py) and reported on the untouched holdout.
+MLX_ADAPTER = os.environ.get("CPD_MLX_ADAPTER", "")
 
 # Confidence sharpening. With 12 candidate labels a raw softmax dilutes the winner
 # (a clear false-urgency landed at ~20%), which reads as unsure. Dividing the
@@ -313,9 +316,13 @@ def get_mlx():
     with _lock:
         if _mlx is None:
             from mlx_lm import load
-            log.info("loading MLX %s ...", MLX_MODEL)
-            _mlx = load(MLX_MODEL)
-            log.info("MLX detector ready")
+            if MLX_ADAPTER:
+                log.info("loading MLX %s + adapter %s ...", MLX_MODEL, MLX_ADAPTER)
+                _mlx = load(MLX_MODEL, adapter_path=MLX_ADAPTER)
+            else:
+                log.info("loading MLX %s ...", MLX_MODEL)
+                _mlx = load(MLX_MODEL)
+            log.info("MLX detector ready%s", " (LoRA)" if MLX_ADAPTER else "")
     return _mlx
 
 
