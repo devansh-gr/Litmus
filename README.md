@@ -59,8 +59,8 @@ that we neither wrote nor tuned on:
 
 | | self-authored (tuned on) | **external (never seen)** |
 |---|---|---|
-| accuracy | ~80% | **61%** (was 38% two sprints ago) |
-| macro-F1 | — | **0.37** |
+| accuracy | ~80% | **~62%** (was 38% three sprints ago) |
+| macro-F1 | — | **0.37–0.49** (config-dependent) |
 | gate PR-AUC (ranks manipulation vs benign) | — | **0.93** |
 | gate recall @ shipped threshold | — | **0.78** |
 | confidence calibration (ECE, lower=better) | — | **~0.19** uncalibrated (0.10 with calibration on) |
@@ -69,10 +69,13 @@ The honest read: the detector **tells manipulation from benign well** (gate PR-A
 recall 0.78 — up from 0.56 after we taught the gate e-commerce dark patterns it was reading
 as plain facts) **and now names the technique far better** (accuracy 44→61% after teaching
 stage-2 to route by the *primary lever* — supply=FOMO, clock=urgency, crowd=social-proof,
-reward/curiosity=dopamine, credential=authority). The shown confidence is **assertive by
-product choice** — calibration is available (`CPD_CALIB_A/B`, ECE→0.10) but ships off so the %
-reads high. What's left is mostly gate misses and cross-taxonomy label noise. We show these
-numbers on purpose — the full methodology and roadmap live in `docs/BENCHMARKING.md`.
+reward/curiosity=dopamine, credential=authority). We then tried two more accuracy levers —
+**few-shot exemplars** and a **LoRA fine-tune** — and, honestly, both landed at the same ~62%
+(statistically tied on a held-out set): the 3B-4bit model is near its ceiling here, so the next
+real lever is a bigger detector. The shown confidence is **assertive by product choice** —
+calibration is available (`CPD_CALIB_A/B`, ECE→0.10) but ships off so the % reads high. What's
+left is mostly gate misses and cross-taxonomy label noise. We show these numbers on purpose —
+the full methodology lives in `docs/BENCHMARKING.md` and `server/lora/README.md`.
 
 📊 Full methodology and roadmap: [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md) ·
 results: [`server/tests/RESULTS.md`](server/tests/RESULTS.md)
