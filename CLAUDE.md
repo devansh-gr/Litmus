@@ -22,13 +22,15 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
   (neutral stats/clocks/news) stay `none` — see `tests/gate_diag.py` + `tests/test_dark_patterns.py`.
   Stage-2 (`DEFINITIONS` + the technique system prompt) routes by the **primary lever**
   (supply→fomo, clock→false-urgency, crowd→social-proof, reward/curiosity→dopamine, credential→
-  authority) — see `tests/test_technique_separation.py`.
-  **Honest external benchmark (300 examples we didn't author, 2026-08-06): 60.7% accuracy [55–66],
-  macro-F1 0.37, MCC 0.52, gate PR-AUC 0.93 / recall 0.78 / precision 0.87; ECE ~0.19 uncalibrated
-  (≈0.10 with CALIB on).** Two sprints took this from 38%: gate recall 0.56→0.77 (dark-pattern
-  fixes), then technique disambiguation 44→61% (stage-2 only, gate untouched). Remaining errors are
-  gate misses (→none) + cross-taxonomy blur. The interpersonal family is validated separately at 88%
-  on the behavioral set. See `tests/RESULTS.md` + `docs/BENCHMARKING.md`.
+  authority) — see `tests/test_technique_separation.py`. **Few-shot exemplars** ride the technique
+  prompt by default (`CPD_FEWSHOT=1`; gate stays zero-shot). An opt-in **LoRA adapter**
+  (`CPD_MLX_ADAPTER=lora/adapters`, `server/lora/`) is available as a *balanced* mode.
+  **Honest external benchmark: ~62% accuracy** (holdout: few-shot 62.7% / zero-shot 62.0% / LoRA
+  60.7% — **statistically tied**, macro-F1 0.34/0.41/0.49), gate PR-AUC 0.93 / recall 0.78; ECE ~0.19
+  uncalibrated (≈0.10 with CALIB on). Three sprints took this from 38%: gate recall 0.56→0.77
+  (dark-patterns), technique disambiguation 44→61% (primary-lever), then few-shot/LoRA which hit the
+  **3B-4bit ceiling** (the next accuracy lever is a bigger model — parked, swap-blocked). The
+  interpersonal family is validated separately at 88%. See `tests/RESULTS.md`, `server/lora/README.md`.
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
@@ -148,9 +150,9 @@ shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `d
 ## Testing & benchmark (server/tests/)
 - **HONEST benchmark:** `python tests/bench_full.py --data tests/data/external_test.jsonl` —
   300 externally-labeled examples (dark-patterns + LOGIC + clickbait) we did NOT author or tune on.
-  **60.7% accuracy [55–66], macro-F1 0.37, MCC 0.52, gate PR-AUC 0.93 / recall 0.78** (2026-08-06,
-  after gate recall 0.56→0.77 then technique disambiguation 44→61%). `tests/gate_diag.py` localizes
-  gate misses; the confusion matrix drives technique-label fixes.
+  **~62% accuracy** (holdout: few-shot 62.7% / zero-shot 62.0% / LoRA 60.7%, tied), macro-F1 up to
+  0.49 (LoRA), gate PR-AUC 0.93 / recall 0.78 (2026-08-07). `tests/gate_diag.py` localizes gate
+  misses; `server/lora/` holds the fine-tune experiment (shipped OFF — near the model ceiling).
   Self-authored sets (`run_eval.py`, `realistic_set`) read ~80% but that's overfit — grading your
   own homework. Interpersonal family has no external analog yet; validated on the curated behavioral
   set instead: `python tests/interpersonal_report.py` (**88%**) + `pytest tests/test_interpersonal.py`.
