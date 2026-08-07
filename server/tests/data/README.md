@@ -24,6 +24,15 @@ author wrote the examples AND tuned the model to them (circular).
 
 Report the **external** number as the real one; use the dev sets only for iteration.
 
+### FRESH over-fitting probe (2026-08-07) — Mathur "Dark Patterns at Scale"
+- `external_mathur.jsonl` (320) — built by `build_mathur_set.py` from an **independent** public
+  corpus (github.com/aruneshmathur/dark-patterns, Apache-licensed): 80 each of Scarcity→**fomo**,
+  Urgency→**false-urgency**, Social Proof→**social-proof-conformity**, Confirmshaming→**guilt-tripping**.
+  We tuned our fomo/urgency/social-proof behaviour partly on the *Yamana* dark-pattern set, so this
+  DIFFERENT collection is a genuine over-fitting test on exactly our best-tuned vectors: if accuracy
+  craters vs Yamana-derived `external_test`, we memorized phrasings, not patterns. Confirmshaming→
+  guilt is a loose bonus mapping (shame-worded decline buttons). Downloaded from the web, never tuned on.
+
 ### Dark-pattern gate recovery (2026-08-05) — how the split was used
 `external_dev.jsonl` did its job: `tests/gate_diag.py` scored the gate on **dev only**,
 localized the ~44% recall miss to dark patterns the gate read as facts (social-proof activity
