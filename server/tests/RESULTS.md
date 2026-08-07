@@ -2,6 +2,43 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Technique disambiguation — accuracy 44% → 61% (2026-08-06)
+
+After the gate recall fix (below), the gate *caught* manipulation (recall 0.78) but stage-2
+collapsed distinct techniques into `false-urgency` (fomo→false-urgency 55%, dopamine recall
+0.00, social-proof 0.28). The classifier had no rule for which lever wins when several apply.
+Fix (stage-2 only — `DEFINITIONS` + the technique system prompt, gate untouched): sharpened the
+confusable definitions to key on the **primary lever**, plus a tie-break rule —
+
+| lever | technique |
+|---|---|
+| limited supply / scarcity | fomo |
+| explicit deadline / countdown clock | false-urgency |
+| other people's activity / the crowd | social-proof-conformity |
+| reward or curiosity hook | dopamine-bait |
+| personal upside / better future | hype-hope-mongering |
+| a named person's fame / title / credential | authority-appeal |
+
+Also broadened `authority-appeal` to cover celebrity + anecdotal authority ("Michael Jordan
+wears X so you should too", "my minister says…"), which the "experts/officials/science"
+wording had missed. Measured on the same 300-ex external set:
+
+| metric | before (08-05) | +disambiguation | +authority (final) |
+|---|---|---|---|
+| **accuracy** | 43.7% | 56.0% | **60.7%** [55.0–66.0] |
+| macro-F1 | 0.176 | 0.330 | **0.372** |
+| MCC | 0.333 | 0.474 | **0.524** |
+| balanced acc | 0.384 | 0.532 | **0.590** |
+| ECE (uncalib) | 0.262 | 0.185 | **~0.19** |
+
+Per-class recall: **dopamine 0.00→0.70**, **fomo 0.28→0.53**, **social-proof 0.28→0.44**,
+**authority 0.15→0.35**, false-urgency held at 0.80. The gate was untouched and stayed put
+(recall 0.78, PR-AUC 0.93) — confirming this was purely a stage-2 win. Remaining errors are
+mostly gate misses (→none, benign-FP-risky to chase) and residual fomo↔false-urgency blur on
+genuinely dual-signal text. Locked in by `tests/test_technique_separation.py`.
+
+---
+
 ## Gate recall recovery — dark patterns (2026-08-05)
 
 The 2026-08-04 run showed the manipulation gate missing ~44% of real manipulation
