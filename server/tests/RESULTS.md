@@ -2,6 +2,29 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Few-shot + LoRA — pushing past 61% (2026-08-07)
+
+Two accuracy levers tried on top of the disambiguated classifier. Both were measured on the
+**untouched holdout (150)** — for LoRA that matters (it trained on external_dev), so all three
+configs were re-benched on the same holdout for an apples-to-apples read:
+
+| config | accuracy | macro-F1 | what it does |
+|---|---|---|---|
+| zero-shot (definitions only) | 62.0% [54–69] | 0.41 | baseline |
+| **few-shot (7 exemplars, shipped)** | **62.7%** [54.7–70] | 0.34 | best accuracy; fomo/dopamine dip |
+| LoRA adapter (opt-in) | 60.7% [52.7–68] | **0.49** | best balance; social-proof recall collapsed |
+
+**All three are statistically tied on accuracy** (CIs overlap heavily). Few-shot is the nominal
+accuracy winner — but the edge is ~1 example (noise) and it trades per-class balance (it also
+re-introduces a scarcity→false-urgency wobble, so no fomo/urgency exemplars are used). LoRA
+(4-bit base + ~3.5M-param adapter, `--mask-prompt`, iter-100 of 200 to dodge the val-loss
+overfit spike) is the most *balanced* but not more *accurate*: 267 imbalanced training examples
+over-fit some classes and starved social-proof (0.11 recall). **Takeaway: the 3B-4bit model is
+near its ceiling on this set; the real accuracy lever is a bigger detector (parked).** Full record:
+`lora/README.md`; shipped default = few-shot ON, adapter OFF (`CPD_MLX_ADAPTER` opt-in).
+
+---
+
 ## Technique disambiguation — accuracy 44% → 61% (2026-08-06)
 
 After the gate recall fix (below), the gate *caught* manipulation (recall 0.78) but stage-2
