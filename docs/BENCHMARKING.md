@@ -24,10 +24,18 @@ changes yet.
 
 ---
 
-## Status (2026-08-06) — Tier 0 + 1 done, gate recall + technique accuracy recovered
+## Status (2026-08-07) — gate recall + technique accuracy recovered; few-shot/LoRA hit the ceiling
 
 - ✅ **Tier 0 (metrics/hygiene):** `bench_full.py` reports macro-F1, per-class, confusion, MCC,
   Wilson/bootstrap CIs, gate PR-AUC, and ECE calibration. Dev/holdout split of the external set.
+- ✅ **Few-shot + LoRA evaluated → near the model ceiling.** Two accuracy levers on top of the
+  disambiguated classifier, both measured on the **untouched holdout** (LoRA trained on external_dev
+  only): accuracy **few-shot 62.7% / zero-shot 62.0% / LoRA 60.7% — statistically tied** (CIs
+  overlap). Few-shot wins accuracy within noise (trades macro-F1 0.41→0.34); LoRA (4-bit base +
+  ~3.5M-param adapter, `--mask-prompt`) wins balance (**macro-F1 0.49**) but not accuracy — 267
+  imbalanced examples starved social-proof (recall 0.11). Shipped default = few-shot on, adapter
+  opt-in (`CPD_MLX_ADAPTER`). **The remaining accuracy lever is a bigger detector model** (parked;
+  blocked by the 24GB swap ceiling). Record: `server/lora/README.md`.
 - ✅ **Technique disambiguation (accuracy 44% → 61%):** once the gate caught manipulation, stage-2
   still collapsed distinct techniques into `false-urgency` (fomo→false-urgency 55%, dopamine recall
   0.00). Sharpened the confusable `DEFINITIONS` to key on the **primary lever** (supply→fomo,
