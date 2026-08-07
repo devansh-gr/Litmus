@@ -2,6 +2,32 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Over-fitting probe on FRESH web data — Mathur dark patterns (2026-08-07)
+
+Hypothesis: the classifier is over-fit to the *Yamana* dark patterns we tuned on. Test: downloaded
+an **independent** corpus (Mathur "Dark Patterns at Scale", github.com/aruneshmathur/dark-patterns,
+Apache) → `external_mathur.jsonl` (320: 80 each fomo/false-urgency/social-proof/guilt-tripping),
+built by `build_mathur_set.py`, never tuned on. Result on the shipped model:
+
+| | Mathur (fresh) | external_test (tuned-adjacent) |
+|---|---|---|
+| overall accuracy | 49.1% [43.6–54.5] | 62.3% |
+| **clean-3 (fomo/urgency/social-proof)** | **65.4%** | ~62% |
+| false-urgency recall | **0.93** | 0.90 |
+| fomo recall | 0.56 | 0.45 |
+| social-proof recall | 0.47 | 0.52 |
+
+**Verdict: NOT catastrophically over-fit.** On the three cleanly-mapped vectors the model transfers
+to a completely independent corpus at comparable-or-better recall (65% vs ~62%) — it learned the
+patterns, not the phrasings. The lower *overall* 49% is two things the fresh data usefully exposed,
+neither of them over-fitting: (1) **terse social-proof fragments** ("143 BOUGHT", "17 added to
+cart") slip the gate to `none` (51% of them) — a real recall gap on ultra-short text; (2)
+**confirmshaming** ("No, I'd rather pay full price" — shame-worded decline buttons) is a distinct
+dark pattern we don't cover, so mapping it to guilt-tripping scored 0.00 (a loose mapping, not a
+model failure). Raw: `data/last_bench_mathur.txt`.
+
+---
+
 ## Few-shot + LoRA — pushing past 61% (2026-08-07)
 
 Two accuracy levers tried on top of the disambiguated classifier. Both were measured on the
