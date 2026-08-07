@@ -97,6 +97,24 @@ SYSTEM = (
       "Answer with the technique name only."
 )
 
+# Few-shot exemplars for the TECHNIQUE classifier (stage 2 only; the gate stays zero-shot).
+# One short demonstration per confusable technique, keyed on the primary-lever distinctions
+# the definitions describe. SELF-AUTHORED — deliberately NOT drawn from external_test, so
+# the honest benchmark stays leakage-free. Toggle with CPD_FEWSHOT=0 for an A/B.
+FEWSHOT_ENABLED = os.environ.get("CPD_FEWSHOT", "1") == "1"
+# Deliberately NO fomo/false-urgency exemplars: the sharpened definitions already draw that
+# boundary cleanly, and adding exemplars there re-introduced the scarcity->false-urgency blur.
+# Few-shot is reserved for the remaining classes, where a demonstration reinforces the definition.
+TECHNIQUE_FEWSHOT = [
+    ("Over 8,000 people bought this in the last 24 hours.", "social-proof-conformity"),
+    ("Claim your free mystery box — you won't believe what's inside.", "dopamine-bait"),
+    ("A top cardiologist swears by this, so you know it works.", "authority-appeal"),
+    ("This system will transform your finances and change your life.", "hype-hope-mongering"),
+    ("Ignore this and you could lose everything you've worked for.", "fear-mongering"),
+    ("If you really cared about this family, you'd cancel your plans.", "guilt-tripping"),
+    ("If we don't stop them now, they'll destroy everything we built.", "tribal-in-group-bias"),
+] if FEWSHOT_ENABLED else []
+
 # Stage-1 binary gate: "is this manipulation at all?". A clean 2-way decision at the
 # none boundary avoids the failure where the 12-way softmax labels a greeting or a
 # helpful sentence as hype. yes/no label tokens (rather than repeating the loaded word
@@ -314,17 +332,23 @@ def warm_detector():
         log.info("brain-map asset pre-warm skipped: %s", e)
 
 
-def _chat_prompt(tok, text: str, system: str) -> str:
-    return tok.apply_chat_template(
-        [{"role": "system", "content": system}, {"role": "user", "content": text}],
-        tokenize=False, add_generation_prompt=True,
-    )
+def _chat_prompt(tok, text: str, system: str, fewshot=None) -> str:
+    # Few-shot exemplars ride as prior user->assistant turns, so the label-scoring path
+    # sees "text -> technique" demonstrations before the real query. Cloze-style: the
+    # assistant content is exactly the label string we later score.
+    msgs = [{"role": "system", "content": system}]
+    for ex_text, ex_label in (fewshot or []):
+        msgs.append({"role": "user", "content": ex_text})
+        msgs.append({"role": "assistant", "content": ex_label})
+    msgs.append({"role": "user", "content": text})
+    return tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
 
 
-def _label_scores(text: str, system: str = None, labels=None) -> list[float]:
+def _label_scores(text: str, system: str = None, labels=None, fewshot=None) -> list[float]:
     """Length-normalised log P(label | prompt) for each label under `system`, via the
     active backend. Parameterised so the same scorer drives both the manipulation gate
-    (2 labels) and the technique classifier (11 labels)."""
+    (2 labels) and the technique classifier (12 labels); `fewshot` adds exemplar turns
+    (technique stage only — the gate stays zero-shot)."""
     system = system if system is not None else SYSTEM
     labels = list(labels) if labels is not None else list(VECTORS)
     ck = tuple(labels)
@@ -343,7 +367,7 @@ def _label_scores(text: str, system: str = None, labels=None) -> list[float]:
             _label_ids_cache[ck] = [enc(v, special=False) for v in labels]
         _label_ids_mlx = _label_ids_cache[ck]
 
-        prompt_ids = enc(_chat_prompt(tok, text, system))
+        prompt_ids = enc(_chat_prompt(tok, text, system, fewshot))
 
         # KV-cache reuse: the prompt prefix (~350 tokens of system + text) is shared by
         # all 12 labels. Process it ONCE, then score each label by continuing from the
@@ -383,7 +407,7 @@ def _label_scores(text: str, system: str = None, labels=None) -> list[float]:
 
     # transformers backend
     model, tok = get_llm()
-    prompt_ids = tok(_chat_prompt(tok, text, system), return_tensors="pt").input_ids.to(_device())
+    prompt_ids = tok(_chat_prompt(tok, text, system, fewshot), return_tensors="pt").input_ids.to(_device())
     scores = []
     with torch.no_grad():
         for label in labels:
@@ -591,7 +615,7 @@ def classify(inp: TextIn):
 
     # STAGE 2 — which technique. Identical to the standalone 12-way classifier (so
     # technique discrimination is unchanged); the gate above just spared benign text.
-    scores = _detector.submit(_label_scores, inp.text, SYSTEM, VECTORS).result()
+    scores = _detector.submit(_label_scores, inp.text, SYSTEM, VECTORS, TECHNIQUE_FEWSHOT).result()
     probs = softmax(scores)
     best = max(range(len(VECTORS)), key=lambda i: probs[i])
     ranked = sorted(

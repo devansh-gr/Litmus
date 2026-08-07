@@ -2,62 +2,69 @@
   warnings.warn("y_pred contains classes not in y_true")
 
 ======================================================================
-BENCHMARK: external-auth   (N=300)
+BENCHMARK: external-fewshot   (N=300)
 ======================================================================
-accuracy            60.7%   95% CI [55.0%, 66.0%]  (Wilson)
-macro-F1            0.372   95% CI [0.334, 0.404]  (bootstrap)
-weighted-F1         0.623
-balanced accuracy   0.590
-MCC                 0.524   (0=random, 1=perfect)
+accuracy            62.3%   95% CI [56.7%, 67.6%]  (Wilson)
+macro-F1            0.298   95% CI [0.269, 0.323]  (bootstrap)
+weighted-F1         0.646
+balanced accuracy   0.607
+MCC                 0.545   (0=random, 1=perfect)
 
 per-class:
-                         precision    recall  f1-score   support
+                               precision    recall  f1-score   support
 
-       authority-appeal       0.88      0.35      0.50        40
-         blame-shifting       0.00      0.00      0.00         0
-          dopamine-bait       0.67      0.70      0.68        40
-          false-urgency       0.62      0.80      0.70        40
-         fear-mongering       0.00      0.00      0.00         0
-                   fomo       0.70      0.53      0.60        40
-    hype-hope-mongering       0.00      0.00      0.00         0
-                   none       0.58      0.72      0.64        90
-social-proof-conformity       0.92      0.44      0.59        50
-   tribal-in-group-bias       0.00      0.00      0.00         0
+             authority-appeal       0.68      0.42      0.52        40
+               blame-shifting       0.00      0.00      0.00         0
+critical-thinking-suppression       0.00      0.00      0.00         0
+                dopamine-bait       0.81      0.62      0.70        40
+                false-urgency       0.62      0.90      0.73        40
+               fear-mongering       0.00      0.00      0.00         0
+                         fomo       0.90      0.45      0.60        40
+          hype-hope-mongering       0.00      0.00      0.00         0
+                 love-bombing       0.00      0.00      0.00         0
+             manufactured-awe       0.00      0.00      0.00         0
+                         none       0.58      0.72      0.64        90
+      social-proof-conformity       0.93      0.52      0.67        50
+         tribal-in-group-bias       0.00      0.00      0.00         0
 
-               accuracy                           0.61       300
-              macro avg       0.44      0.35      0.37       300
-           weighted avg       0.71      0.61      0.62       300
+                     accuracy                           0.62       300
+                    macro avg       0.35      0.28      0.30       300
+                 weighted avg       0.73      0.62      0.65       300
 
 confusion (rows=gold, cols=pred, row-normalized %):
-            authority- blame-shif dopamine-b false-urge fear-monge       fomo hype-hope-       none social-pro tribal-in-
-authority-a         35          5          5          0         15          0          0         35          0          5
-blame-shift          0          0          0          0          0          0          0          0          0          0
-dopamine-ba          0          0         70          2          0          0          2         22          2          0
-false-urgen          0          0          5         80          0         10          0          5          0          0
-fear-monger          0          0          0          0          0          0          0          0          0          0
-       fomo          0          0          2         40          0         52          0          5          0          0
-hype-hope-m          0          0          0          0          0          0          0          0          0          0
-       none          2          0          6          3          9          4          1         72          1          1
-social-proo          0          0          8          0          4          2          0         40         44          2
-tribal-in-g          0          0          0          0          0          0          0          0          0          0
+            authority- blame-shif critical-t dopamine-b false-urge fear-monge       fomo hype-hope- love-bombi manufactur       none social-pro tribal-in-
+authority-a         42          2          8          2          2          2          0          0          0          2         35          2          0
+blame-shift          0          0          0          0          0          0          0          0          0          0          0          0          0
+critical-th          0          0          0          0          0          0          0          0          0          0          0          0          0
+dopamine-ba          5          0          0         62          0          0          0          2          2          5         22          0          0
+false-urgen          0          0          0          2         90          0          2          0          0          0          5          0          0
+fear-monger          0          0          0          0          0          0          0          0          0          0          0          0          0
+       fomo          0          0          0          0         50          0         45          0          0          0          5          0          0
+hype-hope-m          0          0          0          0          0          0          0          0          0          0          0          0          0
+love-bombin          0          0          0          0          0          0          0          0          0          0          0          0          0
+manufacture          0          0          0          0          0          0          0          0          0          0          0          0          0
+       none          4          0          1          4          1         11          1          0          0          0         72          1          3
+social-proo          4          0          2          0          0          0          0          0          0          0         40         52          2
+tribal-in-g          0          0          0          0          0          0          0          0          0          0          0          0          0
 
 ----------------------------------------------------------------------
 GATE (binary: manipulation vs none)
   precision 0.87  recall 0.78  F1 0.82
   PR-AUC (avg precision) 0.933   (prevalence baseline 0.700)
-  Brier (gate prob)      0.180
+  Brier (gate prob)      0.178
   gate false-negatives (manipulation → none): 47/210
   gate false-positives (benign → flagged):    25/90
 
 ----------------------------------------------------------------------
 CALIBRATION of the confidence %
-  ECE 0.154   Brier 0.227   (lower=better)
+  ECE 0.223   Brier 0.245   (lower=better)
   reliability (conf bin → mean confidence vs actual accuracy):
-    (0.2,0.3]  n=4    conf=27%  acc=0%  <-- overconfident
-    (0.3,0.4]  n=15   conf=36%  acc=33%
-    (0.4,0.5]  n=21   conf=46%  acc=38%
-    (0.5,0.6]  n=31   conf=55%  acc=48%
-    (0.6,0.7]  n=31   conf=67%  acc=42%  <-- overconfident
-    (0.7,0.8]  n=49   conf=75%  acc=47%  <-- overconfident
-    (0.8,0.9]  n=53   conf=86%  acc=60%  <-- overconfident
-    (0.9,1.0]  n=96   conf=96%  acc=90%
+    (0.1,0.2]  n=1    conf=17%  acc=0%  <-- overconfident
+    (0.2,0.3]  n=3    conf=27%  acc=33%
+    (0.3,0.4]  n=4    conf=36%  acc=25%  <-- overconfident
+    (0.4,0.5]  n=10   conf=45%  acc=30%  <-- overconfident
+    (0.5,0.6]  n=10   conf=56%  acc=30%  <-- overconfident
+    (0.6,0.7]  n=24   conf=67%  acc=25%  <-- overconfident
+    (0.7,0.8]  n=46   conf=76%  acc=43%  <-- overconfident
+    (0.8,0.9]  n=56   conf=86%  acc=59%  <-- overconfident
+    (0.9,1.0]  n=146  conf=97%  acc=82%  <-- overconfident
