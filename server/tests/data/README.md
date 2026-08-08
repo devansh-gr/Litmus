@@ -32,6 +32,13 @@ Report the **external** number as the real one; use the dev sets only for iterat
   DIFFERENT collection is a genuine over-fitting test on exactly our best-tuned vectors: if accuracy
   craters vs Yamana-derived `external_test`, we memorized phrasings, not patterns. Confirmshaming→
   guilt is a loose bonus mapping (shame-worded decline buttons). Downloaded from the web, never tuned on.
+- **Gap #1 (terse social-proof) — attempted, reverted (2026-08-07).** Mathur showed ~half of
+  social-proof gated to `none`, mostly terse live-activity ("9 people are viewing this"). Purchase-verb
+  nudges ("143 bought", "added to cart") already flag; the miss is the bare "N viewing this" form,
+  genuinely ambiguous (shopping nudge vs a benign collab-doc "N people viewing" indicator).
+  Strengthening the gate for it re-flagged conversational benign text (`test_benign` 4/16, fails the
+  guard) without reliably catching the ambiguous cases — a precision/recall frontier, not a quick fix.
+  Reverted; recorded so it isn't re-attempted. **Gap #2 (confirmshaming)** is uncovered by design.
 
 ### Dark-pattern gate recovery (2026-08-05) — how the split was used
 `external_dev.jsonl` did its job: `tests/gate_diag.py` scored the gate on **dev only**,
