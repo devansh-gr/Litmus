@@ -1,0 +1,625 @@
+{
+  "summary": "Find non-gated, freely-downloadable, labeled text datasets covering fear/outrage/tribal/authority/critical-thinking persuasion techniques",
+  "agentCount": 7,
+  "logs": [],
+  "result": {
+    "ranked": [
+      {
+        "name": "anismahmahi/10_techniques_train",
+        "url": "https://huggingface.co/datasets/anismahmahi/10_techniques_train",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression",
+          "hype"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/10_techniques_train') (default config, train split), or raw parquet/CSV under https://huggingface.co/datasets/anismahmahi/10_techniques_train/resolve/main/ . Columns: input (text excerpt) -> output (one of 10 technique labels). No mapping/reconstruction needed.",
+        "format": "csv/parquet",
+        "license": "apache-2.0",
+        "why": "Best single fit: the ONLY candidate that covers all five missing vectors as one-flat-label-per-row clean text (appeal-to-fear=fear, loaded-language+name-calling=outrage, flag-waving=tribal, appeal-to-authority=authority, doubt=critical-thinking), 2,676 rows, fresh, non-gated, drop-in. NOTE: derived from the SemEval-2020/PTC news corpus (same source as #3,#5,#6,#10-14 below) — take this clean view and skip the token-BIO siblings."
+      },
+      {
+        "name": "di-dimitrov/SEMEVAL-2021-task6-corpus",
+        "url": "https://github.com/di-dimitrov/SEMEVAL-2021-task6-corpus",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "raw: https://raw.githubusercontent.com/di-dimitrov/SEMEVAL-2021-task6-corpus/main/data/training_set_task1.txt (also dev_set_task1.txt). JSON array of {id, labels[], text}; use the Task-1 text field only (ignore images). 20-technique label set in techniques_list_task1-2.txt.",
+        "format": "jsonl (JSON array)",
+        "license": "research use (no committed LICENSE file)",
+        "why": "Second-best and genuinely INDEPENDENT of the PTC corpus (2021 Task 6 = memes/social posts, different domain and text). Clean text + multilabel, all five vectors, verified with actual row content, non-gated raw URL. Ideal complement to #1 for domain diversity."
+      },
+      {
+        "name": "anismahmahi/10_techniques_test",
+        "url": "https://huggingface.co/datasets/anismahmahi/10_techniques_test",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/10_techniques_test') (default config, test split). Same input->output schema as #1.",
+        "format": "csv/parquet",
+        "license": "apache-2.0",
+        "why": "Clean companion test split to #1 (1,024 rows), same drop-in schema. Same PTC source as #1 — use as the held-out split, not a second independent source."
+      },
+      {
+        "name": "MAFALDA (ChadiHelwe/MAFALDA = Chadi1992/MAFALDA mirror)",
+        "url": "https://github.com/ChadiHelwe/MAFALDA",
+        "gated": false,
+        "covers": [
+          "authority-appeal",
+          "fear-mongering"
+        ],
+        "download_method": "raw: https://raw.githubusercontent.com/ChadiHelwe/MAFALDA/main/datasets/gold_standard_dataset.jsonl ; OR HF Chadi1992/MAFALDA file data/gold_standard-00000-of-00001.parquet. Row = text + named fallacy labels (incl. 'Appeal to authority', 'Appeal to fear').",
+        "format": "jsonl / parquet",
+        "license": "research use (unknown in metadata)",
+        "why": "Fresh, non-gated, independent fallacy benchmark (~9,745 rows) with clean named labels. Only hits authority+fear of our five, but a strong distinct-domain source for those two. HF mirror and GitHub original are the SAME data — pick one path."
+      },
+      {
+        "name": "SemEval-2020 Task 11 PTC corpus (Zenodo 3952415)",
+        "url": "https://zenodo.org/records/3952415",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "https://zenodo.org/records/3952415/files/datasets-v2.tgz?download=1 (1.1 MB). Archive = article .txt files + tab-separated .labels span files (id, technique, begin_offset, end_offset); parse offsets to make text+label rows.",
+        "format": "tsv + txt (tgz)",
+        "license": "CC-BY-4.0",
+        "why": "Canonical, openly downloadable (no login/registration, unlike the QCRI/HF-loader path) source for all five vectors. Demoted below #1 only because it needs span-offset parsing AND it is the SAME underlying corpus that #1/#3 already give you pre-cleaned — take this only if you want the authoritative raw spans."
+      },
+      {
+        "name": "anismahmahi/span_propaganda_techniques",
+        "url": "https://huggingface.co/datasets/anismahmahi/span_propaganda_techniques",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression",
+          "hype",
+          "social-proof"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/span_propaganda_techniques'). Columns: tokens[], tags[] (numeric 0-20), File_ID. Requires reconstructing spans from BIO tags into text+label pairs.",
+        "format": "csv/parquet (token-tag)",
+        "license": "apache-2.0",
+        "why": "Widest raw coverage (all five + hype + bandwagon), 3,671 rows, fresh/non-gated — but token-level, needs span reconstruction, and is again the SAME PTC source as #1. Redundant if you take #1; useful only if you specifically want span-level."
+      },
+      {
+        "name": "UKPLab/argotario",
+        "url": "https://github.com/UKPLab/argotario",
+        "gated": false,
+        "covers": [
+          "authority-appeal"
+        ],
+        "download_method": "raw: https://raw.githubusercontent.com/UKPLab/argotario/master/data/arguments-en-2018-01-15.tsv . Columns include 'Text' + 'Intended Fallacy'/'Voted Fallacy' ('Irrelevant Authority' = appeal-to-authority).",
+        "format": "tsv",
+        "license": "CC0",
+        "why": "Fresh, CC0 (cleanest license), clean text+label, ~1,300 EN rows. Only authority-appeal of our five, but a distinct crowd-sourced source and trivial to ingest."
+      },
+      {
+        "name": "LittlePea13/UsVsThem",
+        "url": "https://github.com/LittlePea13/UsVsThem",
+        "gated": false,
+        "covers": [
+          "tribal-in-group-bias",
+          "outrage"
+        ],
+        "download_method": "CSV on figshare share link https://figshare.com/s/a2b99428c8be6c936c63 (pd.read_csv per src/dataloader.py). Columns: body (text), usVSthem_scale (0-1), is_Disc_Crit (bool), Anger.",
+        "format": "csv",
+        "license": "CC BY-NC 4.0",
+        "why": "Dedicated us-vs-them signal (6,861 Reddit comments) for tribal — our weakest-covered vector — plus an Anger column for outrage. CAVEAT: the CSV was inferred from README+dataloader.py; figshare returned 403 to the automated fetcher, so the direct download was not verified (see flagged list). NC license is fine for an internal benchmark."
+      },
+      {
+        "name": "VIStA-H/Hyperpartisan-News-Titles",
+        "url": "https://github.com/VIStA-H/Hyperpartisan-News-Titles",
+        "gated": false,
+        "covers": [
+          "tribal-in-group-bias"
+        ],
+        "download_method": "raw: https://raw.githubusercontent.com/VIStA-H/Hyperpartisan-News-Titles/master/data/training_set.csv (+ data/testing_set.csv). 'title' = headline text, 'label' = binary hyperpartisan flag.",
+        "format": "csv",
+        "license": "none specified",
+        "why": "Clean English, verified real, 2,000 rows for tribal/us-vs-them. Only a binary hyperpartisan flag (not technique-specific), so a coarse but easy tribal source."
+      },
+      {
+        "name": "anismahmahi/Group_2_AF_DT_NCL_WH",
+        "url": "https://huggingface.co/datasets/anismahmahi/Group_2_AF_DT_NCL_WH",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/Group_2_AF_DT_NCL_WH') or raw https://huggingface.co/datasets/anismahmahi/Group_2_AF_DT_NCL_WH/resolve/main/train%20(4).csv . BIO token-tag; needs span reconstruction. Named labels B/I-Appeal_to_fear-prejudice, Name_Calling, Doubt.",
+        "format": "csv (BIO token-tag)",
+        "license": "apache-2.0",
+        "why": "Targeted subset of the PTC source, fresh/non-gated, but token-BIO (reconstruction) and redundant with #1. Use only if you want per-vector grouped files."
+      },
+      {
+        "name": "anismahmahi/Groupe4_AA_Bandwagon",
+        "url": "https://huggingface.co/datasets/anismahmahi/Groupe4_AA_Bandwagon",
+        "gated": false,
+        "covers": [
+          "authority-appeal",
+          "social-proof"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/Groupe4_AA_Bandwagon') or raw .../resolve/main/train%20(7).csv . BIO token-tag; named labels B/I-Appeal_to_Authority, B/I-Bandwagon.",
+        "format": "csv (BIO token-tag)",
+        "license": "apache-2.0",
+        "why": "PTC subset for authority + bandwagon; token-BIO, redundant with #1. Small (155 train)."
+      },
+      {
+        "name": "anismahmahi/Groupe1_CO_FW",
+        "url": "https://huggingface.co/datasets/anismahmahi/Groupe1_CO_FW",
+        "gated": false,
+        "covers": [
+          "tribal-in-group-bias"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/Groupe1_CO_FW') or raw .../resolve/main/train%20(6).csv . BIO token-tag; labels O(0), B/I-Flag-Waving(1,2), B/I-Causal_Oversimplification(3,4). 1,332 rows.",
+        "format": "csv (BIO token-tag)",
+        "license": "apache-2.0",
+        "why": "Dedicated Flag-Waving (tribal) PTC subset. One early scout entry self-flagged that its Files tab was not verified, but the deduped '(HuggingFace)' entry DID verify /tree/main + raw CSVs — so existence is confirmed. Token-BIO, redundant with #1."
+      },
+      {
+        "name": "anismahmahi/groupe3_LL_BW_EX",
+        "url": "https://huggingface.co/datasets/anismahmahi/groupe3_LL_BW_EX",
+        "gated": false,
+        "covers": [
+          "outrage",
+          "hype"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/groupe3_LL_BW_EX') or raw .../resolve/main/train%20(5).csv . BIO token-tag; labels B/I-Loaded_Language (outrage), Black-and-White, Exaggeration/Minimisation (hype).",
+        "format": "csv (BIO token-tag)",
+        "license": "apache-2.0",
+        "why": "PTC subset for loaded-language (outrage) + exaggeration (hype); token-BIO, redundant with #1."
+      },
+      {
+        "name": "anismahmahi/classification_token_propaganda",
+        "url": "https://huggingface.co/datasets/anismahmahi/classification_token_propaganda",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "HF: load_dataset('anismahmahi/classification_token_propaganda'). Columns File ID, Tokens, Tags (numeric per-token codes). Needs span reconstruction. Only 394 rows.",
+        "format": "csv (token-tag)",
+        "license": "apache-2.0",
+        "why": "Smallest PTC-family token set; token-BIO and redundant with #1. Lowest-value of the anismahmahi group."
+      },
+      {
+        "name": "SemEvalWorkshop/hyperpartisan_news_detection",
+        "url": "https://huggingface.co/datasets/SemEvalWorkshop/hyperpartisan_news_detection",
+        "gated": false,
+        "covers": [
+          "tribal-in-group-bias"
+        ],
+        "download_method": "HF: load_dataset('SemEvalWorkshop/hyperpartisan_news_detection','byarticle') — runs a custom Python loader (viewer disabled) that auto-downloads article/ground-truth XML; parse to text+hyperpartisan(bool). byarticle=645 clean rows.",
+        "format": "xml via loader script",
+        "license": "CC-BY-4.0",
+        "why": "Non-gated tribal source (hyperpartisan = blind allegiance to a faction), but needs the custom loader + XML parsing, so demoted below the flat-CSV tribal sources (#8,#9)."
+      },
+      {
+        "name": "google-research-datasets/go_emotions",
+        "url": "https://huggingface.co/datasets/google-research-datasets/go_emotions",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage"
+        ],
+        "download_method": "HF: load_dataset('google-research-datasets/go_emotions','simplified'). Filter label 'fear' -> fear-mongering, 'anger'/'annoyance' -> outrage. ~54k rows.",
+        "format": "parquet",
+        "license": "apache-2.0",
+        "why": "Clean, large, Apache. CAVEAT: these are EMOTION labels, not persuasion techniques — a loose proxy for fear/outrage only. Useful as weak-supervision or gate-level signal, not as ground-truth technique labels."
+      },
+      {
+        "name": "dair-ai/emotion",
+        "url": "https://huggingface.co/datasets/dair-ai/emotion",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage"
+        ],
+        "download_method": "HF: load_dataset('dair-ai/emotion'). Columns text, label (4=fear, 3=anger).",
+        "format": "parquet",
+        "license": "other (research/educational only)",
+        "why": "Same emotion-proxy caveat as go_emotions and a more restrictive license; keep as a fallback fear/outrage proxy only."
+      },
+      {
+        "name": "SemEvalWorkshop/sem_eval_2018_task_1",
+        "url": "https://huggingface.co/datasets/SemEvalWorkshop/sem_eval_2018_task_1",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage"
+        ],
+        "download_method": "HF: load_dataset('SemEvalWorkshop/sem_eval_2018_task_1','subtask5.english') — custom loader script (no committed parquet). Per-tweet anger/fear booleans.",
+        "format": "loader script",
+        "license": "unknown (SemEval T&C)",
+        "why": "Emotion-proxy for fear/outrage AND requires a custom loader; strictly worse than go_emotions. Low value."
+      },
+      {
+        "name": "umar1997/Propaganda_Detection_on_Code_Switched_Data",
+        "url": "https://github.com/umar1997/Propaganda_Detection_on_Code_Switched_Data",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage"
+        ],
+        "download_method": "raw: https://raw.githubusercontent.com/umar1997/Propaganda_Detection_on_Code_Switched_Data/main/Dataset/Dataset.csv . Columns TEXT (code-switched) + TRANSLATED (English) + LABELS (JSON technique+spans).",
+        "format": "csv",
+        "license": "none specified",
+        "why": "Real and PTC-taxonomy labeled, but text is code-switched English/Roman-Urdu (English translation column mitigates). Only fear+outrage visually confirmed. Messy input, demote."
+      },
+      {
+        "name": "hate-alert/Fear-speech-analysis",
+        "url": "https://github.com/hate-alert/Fear-speech-analysis",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "tribal-in-group-bias"
+        ],
+        "download_method": "raw: https://raw.githubusercontent.com/hate-alert/Fear-speech-analysis/master/Data/fear_speech_data.json (>10 MB). Fields message_text (Hindi) + translated_text (English).",
+        "format": "json",
+        "license": "MIT",
+        "why": "On-target fear + us-vs-them content, MIT. CAVEAT: primary text is Hindi (English machine-translation field only) and the fear/normal annotation split needs verification. Non-English, demote."
+      },
+      {
+        "name": "MU-NLPC/Propaganda",
+        "url": "https://huggingface.co/datasets/MU-NLPC/Propaganda",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "authority-appeal"
+        ],
+        "download_method": "HF: load_dataset('MU-NLPC/Propaganda'). Per-technique binary fields incl. fear-mongering, labeling, expert(=authority).",
+        "format": "parquet",
+        "license": "cc-by-nc-sa-4.0",
+        "why": "Clean per-technique labels but text is CZECH (needs translation). Non-English, demote."
+      },
+      {
+        "name": "Prop-HiT (Zenodo 12739710)",
+        "url": "https://zenodo.org/records/12739710",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "authority-appeal"
+        ],
+        "download_method": "https://zenodo.org/records/12739710/files/Prop-HiT%20Dataset.zip?download=1 . .txt articles + per-article .labels.tsv span files.",
+        "format": "tsv + txt (zip)",
+        "license": "CC-BY-4.0",
+        "why": "18-technique propaganda set covering fear/outrage/authority, but text is HINDI. Non-English + span parsing, demote."
+      },
+      {
+        "name": "dpgmedia/partisan-news2019",
+        "url": "https://github.com/dpgmedia/partisan-news2019",
+        "gated": false,
+        "covers": [
+          "tribal-in-group-bias"
+        ],
+        "download_method": "GitHub committed dpgMedia2019-articles-byarticle.jsonl + dpgMedia2019-labels-byarticle.jsonl (id joins text to partisan bool).",
+        "format": "jsonl",
+        "license": "none specified",
+        "why": "Real partisan text+label pairs, but DUTCH. Non-English, tribal only, demote."
+      },
+      {
+        "name": "tasksource/logical-fallacy (LOGIC, Jin et al. 2022)",
+        "url": "https://huggingface.co/datasets/tasksource/logical-fallacy",
+        "gated": false,
+        "covers": [
+          "authority-appeal"
+        ],
+        "download_method": "HF: load_dataset('tasksource/logical-fallacy'). Columns source_article (text), logical_fallacies (label incl. 'fallacy of credibility').",
+        "format": "parquet",
+        "license": "unknown (research)",
+        "why": "NOT FRESH — this IS the LOGIC dataset (Jin et al. 2022) already used to build external_test.jsonl (fallacy-of-credibility -> authority-appeal). Reusing it would leak into the existing benchmark. Excluded on the freshness requirement."
+      },
+      {
+        "name": "causalNLP/logical-fallacy (LOGIC + LogicClimate)",
+        "url": "https://github.com/causalNLP/logical-fallacy",
+        "gated": false,
+        "covers": [
+          "authority-appeal"
+        ],
+        "download_method": "raw: https://raw.githubusercontent.com/causalNLP/logical-fallacy/main/data/edu_train.csv (source_article, updated_label).",
+        "format": "csv",
+        "license": "unknown (research)",
+        "why": "NOT FRESH — same underlying LOGIC data as the tasksource mirror, already used in the current external set. Excluded on freshness."
+      },
+      {
+        "name": "SemEvalWorkshop/sem_eval_2020_task_11 (HF loader)",
+        "url": "https://huggingface.co/datasets/SemEvalWorkshop/sem_eval_2020_task_11",
+        "gated": true,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "HF repo ships ONLY sem_eval_2020_task_11.py loader (no committed parquet/csv, viewer disabled 'requires arbitrary Python'); article text must be fetched from QCRI (propaganda.qcri.org registration).",
+        "format": "loader script",
+        "license": "unknown",
+        "why": "DEMOTE/DROP: no clean downloadable file and the loader needs QCRI registration or arbitrary-Python execution. Scout entries even disagree on its gated flag. Use the Zenodo 3952415 release (#5) instead — same corpus, CC-BY, no login."
+      },
+      {
+        "name": "daojiaxu/semeval_11",
+        "url": "https://github.com/daojiaxu/semeval_11",
+        "gated": true,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "GitHub commits OFFSET-ONLY .labels files (id, technique, begin, end); article TEXT is NOT committed and must be pulled from propaganda.qcri.org.",
+        "format": "tsv (labels only)",
+        "license": "Apache-2.0 (code); text separately licensed",
+        "why": "DROP: no text ships with it (offsets only); requires the gated QCRI article download. Zenodo 3952415 (#5) is the free equivalent."
+      },
+      {
+        "name": "annabechang/Propaganda_Tech_Twitter_PRC",
+        "url": "https://github.com/annabechang/Propaganda_Tech_Twitter_PRC",
+        "gated": true,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "CSV has Tweet IDs + labels only; tweet TEXT must be hydrated from Twitter's now-removed transparency export (effectively unobtainable).",
+        "format": "csv (labels only)",
+        "license": "MIT",
+        "why": "DROP: no usable text — labels are keyed to Tweet IDs whose text can no longer be hydrated."
+      },
+      {
+        "name": "koda1512/sem_eval_2020_task_11",
+        "url": "https://huggingface.co/datasets/koda1512/sem_eval_2020_task_11",
+        "gated": true,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "Repo contains only .gitattributes, README, and the loader .py — NO data file; viewer errors 'Dataset scripts are no longer supported'.",
+        "format": "loader script (no data)",
+        "license": "unknown",
+        "why": "DROP: no committed data at all. Strictly worse duplicate of the SemEvalWorkshop loader."
+      },
+      {
+        "name": "punyajoy/Fearspeech-project",
+        "url": "https://github.com/punyajoy/Fearspeech-project",
+        "gated": true,
+        "covers": [
+          "fear-mongering",
+          "tribal-in-group-bias"
+        ],
+        "download_method": "Code repo only; the ~10k-post labeled Gab data is referenced on OSF (osf.io/dc7vu) via an anonymized view-only link — no committed data file confirmed.",
+        "format": "unknown",
+        "license": "MIT (code)",
+        "why": "DROP/UNVERIFIED: scout could not confirm a committed labeled data file; download path is a view-only OSF link. Include only if the OSF file is retrievable."
+      },
+      {
+        "name": "MidhunKanadan/logical-fallacy-classification",
+        "url": "https://huggingface.co/datasets/MidhunKanadan/logical-fallacy-classification",
+        "gated": true,
+        "covers": [
+          "authority-appeal"
+        ],
+        "download_method": "Requires HF auth — WebFetch/api/datasets-server all returned 401 / 'not accessible without authentication'.",
+        "format": "unknown",
+        "license": "unknown",
+        "why": "DROP: gated/inaccessible and contents/labels unconfirmed. Argotario (#7) / MAFALDA (#4) cover the same authority space openly."
+      },
+      {
+        "name": "Crowdsourced Detection of Emotionally Manipulative Language (EML) — Deep Blue Data",
+        "url": "https://doi.org/10.7302/yhpy-e679",
+        "gated": false,
+        "covers": [
+          "fear-mongering",
+          "outrage"
+        ],
+        "download_method": "DOI resolves (302) to deepblue.lib.umich.edu/data/concern/data_sets/1544bp17c ; file list/format could NOT be read (403 bot-block). Verify format on the live page before use.",
+        "format": "unknown",
+        "license": "unknown",
+        "why": "UNVERIFIED: record exists (DOI resolves) and the topic (EML vs intrinsic emotion, English news snippets) is a good fear/outrage fit, but the scout could not confirm the actual downloadable file, format, or license. Verify manually before relying on it."
+      },
+      {
+        "name": "SemEval-2023 Task 3 (subtask 3, persuasion techniques)",
+        "url": "https://propaganda.math.unipd.it/semeval2023task3/",
+        "gated": true,
+        "covers": [
+          "fear-mongering",
+          "outrage",
+          "tribal-in-group-bias",
+          "authority-appeal",
+          "critical-thinking-suppression"
+        ],
+        "download_method": "GATED: register on the task site, get manually verified, receive an emailed team passcode. No direct file URL. kinit-sk GitHub repo has preprocessing code only (no committed data).",
+        "format": "tsv (after request)",
+        "license": "research-only shared-task agreement",
+        "why": "Richest possible coverage (23 techniques, 26k labeled EN+multilingual paragraphs, all five vectors) BUT gated behind registration/passcode. Only pursue if you're willing to register; otherwise #1/#2/#5 already cover the five vectors freely."
+      }
+    ],
+    "notes": "FRESHNESS CONTEXT (verified from the repo): the benchmark already uses LOGIC (Jin et al. 2022), Yamana ec-darkpattern, Chakraborty clickbait, and Mathur dark-patterns (server/tests/data/README.md + docs/BENCHMARKING.md). Therefore tasksource/logical-fallacy and causalNLP/logical-fallacy are NOT fresh — they ARE the LOGIC set already in external_test.jsonl (fallacy-of-credibility -> authority-appeal). They are ranked near the bottom and excluded from the fresh picks. The still-missing vectors with no clean external data (per the project's own caveats) are exactly the five requested: fear-mongering, outrage, tribal-in-group-bias, authority-appeal, critical-thinking-suppression.\n\nDE-DUP / SAME-SOURCE WARNING (important): the following are all the SAME SemEval-2020 / PTC news corpus in different formats — anismahmahi/10_techniques_train+test, span_propaganda_techniques, classification_token_propaganda, Group_2/Groupe1/Groupe4/groupe3, the Zenodo 3952415 release, AND the SemEvalWorkshop/koda1512/daojiaxu SemEval-2020 loaders. Pick ONE representation. The clean sentence-classification view (anismahmahi/10_techniques_train, #1) is the best; the token-BIO group sets and the Zenodo spans are redundant lower-format views of the same sentences. Do NOT ingest several of them as if they were independent data — it would just duplicate PTC and inflate apparent coverage. GENUINELY INDEPENDENT non-gated sources for these vectors are: di-dimitrov SEMEVAL-2021-task6 (#2, memes/posts), MAFALDA (#4, fallacy benchmark), UKPLab/argotario (#7, CC0 debate game), LittlePea13/UsVsThem (#8, Reddit), VIStA-H hyperpartisan titles (#9), and the emotion proxies (#16/#17).\n\nTOP RECOMMENDATION: take #1 (anismahmahi/10_techniques_train, +#3 as its test split) for a clean drop-in covering all five vectors, and add #2 (di-dimitrov SEMEVAL-2021-task6) as an independent-domain second source also covering all five. Add #4 (MAFALDA) and #7 (argotario) to strengthen authority-appeal, and #8/#9 to strengthen tribal (the project's weakest analog). Note a CONTAMINATION caveat: #1 shares the PTC source with parts of the taxonomy literature; run the project's planned Oren-2023 exchangeability check before trusting any of these against Llama-3.2-3B.\n\nGATED-FLAG INCONSISTENCY: the scout emitted conflicting gated values for SemEvalWorkshop/sem_eval_2020_task_11 (false in some entries, true in others). Practical truth: the HF repo yields no clean file (viewer disabled, needs QCRI or arbitrary Python), so treat it as unusable — but the identical corpus is freely on Zenodo 3952415 (CC-BY-4.0, no login), which is why #5 is ranked as a usable non-gated source and the HF/GitHub loader copies are dropped.\n\nEMOTION-PROXY CAVEAT: go_emotions (#16), dair-ai/emotion (#17), sem_eval_2018_task_1 (#18) carry EMOTION labels (fear/anger), NOT persuasion-technique labels. They are loose proxies for fear-mongering/outrage — usable at the gate/weak-supervision level, not as technique ground truth. The clean technique-labeled sets (#1,#2,#4) are strictly preferable for those two vectors.</parameter>\n<parameter name=\"flagged_unverifiable\">[\"Crowdsourced EML (Deep Blue Data, DOI 10.7302/yhpy-e679): DOI resolves so the record exists, but the scout was 403-blocked and could NOT confirm the actual file, format, or license — verify on the live page before use.\",\"punyajoy/Fearspeech-project: no committed labeled data file confirmed in the GitHub repo; data is only referenced via an anonymized view-only OSF link (osf.io/dc7vu) — download unconfirmed.\",\"LittlePea13/UsVsThem: the CSV was inferred from README + src/dataloader.py; figshare returned 403 to the automated fetcher, so the direct download (figshare.com/s/a2b99428c8be6c936c63) was never actually retrieved — plausible but download-unverified.\",\"MidhunKanadan/logical-fallacy-classification: returned 401 on every access path; existence is inferred from HF search + a paired model, but contents, labels, format, and license are all unconfirmed (also auth-gated).\",\"anismahmahi/Groupe1_CO_FW: one scout entry self-flagged that it did not file-verify the parquet/csv (existence only via the author API) — RESOLVED: the deduped '(HuggingFace)' entry verified /tree/main + raw CSV URLs (1,332 rows), so it is confirmed, not a hallucination.\"]"
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Scout"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Synthesize"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "scout:huggingface",
+      "phaseIndex": 1,
+      "phaseTitle": "Scout",
+      "agentId": "afa900d0ffb3c002f",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786147798669,
+      "queuedAt": 1786147795853,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "CRITICAL RULES:\n- Return ONLY datasets that actually appear in real search results or on a page you fetched. NEVER invent a dataset name, URL, or HuggingFace repo id. Fabrication is worse than returning nothing.\n- First load web tools: call ToolSearch with query \"select:WebSearch,WebFetch\". Then use them.\n- For each promising candidate, WebFetch its page to confirm it EXISTS and read its true form…",
+      "lastProgressAt": 1786148103841,
+      "tokens": 49357,
+      "toolCalls": 37,
+      "durationMs": 305172,
+      "resultPreview": "{\"datasets\":[{\"name\":\"anismahmahi/10_techniques_train\",\"url\":\"https://huggingface.co/datasets/anismahmahi/10_techniques_train\",\"download_hint\":\"HF repo anismahmahi/10_techniques_train — CSV + auto-converted Parquet (default config, train split). Load via datasets.load_dataset('anismahmahi/10_techniques_train').\",\"format\":\"csv\",\"license\":\"apache-2.0\",\"gated\":false,\"covers\":[\"fear-mongering\",\"outrag…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "scout:github",
+      "phaseIndex": 1,
+      "phaseTitle": "Scout",
+      "agentId": "a0e63121077ab9a3e",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786147800905,
+      "queuedAt": 1786147795853,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "CRITICAL RULES:\n- Return ONLY datasets that actually appear in real search results or on a page you fetched. NEVER invent a dataset name, URL, or HuggingFace repo id. Fabrication is worse than returning nothing.\n- First load web tools: call ToolSearch with query \"select:WebSearch,WebFetch\". Then use them.\n- For each promising candidate, WebFetch its page to confirm it EXISTS and read its true form…",
+      "lastProgressAt": 1786148038249,
+      "tokens": 38825,
+      "toolCalls": 22,
+      "durationMs": 237343,
+      "resultPreview": "{\"datasets\":[{\"name\":\"di-dimitrov/SEMEVAL-2021-task6-corpus (SemEval-2021 Task 6, text of memes/posts)\",\"url\":\"https://github.com/di-dimitrov/SEMEVAL-2021-task6-corpus\",\"gated\":false,\"covers\":[\"fear-mongering\",\"outrage\",\"tribal-in-group-bias\",\"authority-appeal\",\"critical-thinking-suppression\"],\"evidence\":\"CONFIRMED REAL by fetching the repo and a raw data file. data/training_set_task1.txt and data…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "scout:fear-emotion",
+      "phaseIndex": 1,
+      "phaseTitle": "Scout",
+      "agentId": "a0075854475f28455",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786147799649,
+      "queuedAt": 1786147795853,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "CRITICAL RULES:\n- Return ONLY datasets that actually appear in real search results or on a page you fetched. NEVER invent a dataset name, URL, or HuggingFace repo id. Fabrication is worse than returning nothing.\n- First load web tools: call ToolSearch with query \"select:WebSearch,WebFetch\". Then use them.\n- For each promising candidate, WebFetch its page to confirm it EXISTS and read its true form…",
+      "lastProgressAt": 1786148139226,
+      "tokens": 50226,
+      "toolCalls": 30,
+      "durationMs": 339577,
+      "resultPreview": "{\"datasets\":[{\"name\":\"SemEval-2020 Task 11 (Detection of Propaganda Techniques in News Articles) — Zenodo release\",\"url\":\"https://zenodo.org/records/3952415\",\"download_hint\":\"https://zenodo.org/records/3952415/files/datasets-v2.tgz  (raw txt articles + tab-separated .labels files; TC file rows: article_id  technique  begin_offset  end_offset)\",\"format\":\"tsv\",\"gated\":false,\"license\":\"CC-BY-4.0\",\"co…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "scout:tribal-hyperpartisan",
+      "phaseIndex": 1,
+      "phaseTitle": "Scout",
+      "agentId": "a66682e35f824cf4b",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786147801518,
+      "queuedAt": 1786147795854,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "CRITICAL RULES:\n- Return ONLY datasets that actually appear in real search results or on a page you fetched. NEVER invent a dataset name, URL, or HuggingFace repo id. Fabrication is worse than returning nothing.\n- First load web tools: call ToolSearch with query \"select:WebSearch,WebFetch\". Then use them.\n- For each promising candidate, WebFetch its page to confirm it EXISTS and read its true form…",
+      "lastProgressAt": 1786148102654,
+      "tokens": 44943,
+      "toolCalls": 25,
+      "durationMs": 301135,
+      "resultPreview": "{\"datasets\":[{\"name\":\"Us vs. Them (UsVsThem) — Reddit populist attitudes dataset (EACL 2021, Huguet Cabot et al.)\",\"url\":\"https://github.com/LittlePea13/UsVsThem\",\"download_hint\":\"CSV hosted on figshare: https://figshare.com/s/a2b99428c8be6c936c63 (read via pd.read_csv in src/dataloader.py)\",\"format\":\"csv\",\"gated\":false,\"license\":\"CC BY-NC 4.0\",\"covers\":[\"tribal-in-group-bias\",\"outrage\"],\"evidence…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "scout:authority-fallacy",
+      "phaseIndex": 1,
+      "phaseTitle": "Scout",
+      "agentId": "a93891c2a014bf53f",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786147800573,
+      "queuedAt": 1786147795854,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "CRITICAL RULES:\n- Return ONLY datasets that actually appear in real search results or on a page you fetched. NEVER invent a dataset name, URL, or HuggingFace repo id. Fabrication is worse than returning nothing.\n- First load web tools: call ToolSearch with query \"select:WebSearch,WebFetch\". Then use them.\n- For each promising candidate, WebFetch its page to confirm it EXISTS and read its true form…",
+      "lastProgressAt": 1786148097662,
+      "tokens": 46582,
+      "toolCalls": 25,
+      "durationMs": 297089,
+      "resultPreview": "{\"datasets\":[{\"name\":\"Chadi1992/MAFALDA (HuggingFace mirror)\",\"url\":\"https://huggingface.co/datasets/Chadi1992/MAFALDA\",\"download_hint\":\"HF repo id Chadi1992/MAFALDA, file data/gold_standard-00000-of-00001.parquet\",\"format\":\"parquet\",\"license\":\"unknown (README empty; original MAFALDA released for research)\",\"gated\":false,\"covers\":[\"authority-appeal\",\"fear-mongering\"],\"evidence\":\"Confirmed via HF A…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "scout:kaggle-zenodo",
+      "phaseIndex": 1,
+      "phaseTitle": "Scout",
+      "agentId": "ad93f69ef531ed6be",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786147802357,
+      "queuedAt": 1786147795854,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "CRITICAL RULES:\n- Return ONLY datasets that actually appear in real search results or on a page you fetched. NEVER invent a dataset name, URL, or HuggingFace repo id. Fabrication is worse than returning nothing.\n- First load web tools: call ToolSearch with query \"select:WebSearch,WebFetch\". Then use them.\n- For each promising candidate, WebFetch its page to confirm it EXISTS and read its true form…",
+      "lastProgressAt": 1786148099309,
+      "tokens": 46080,
+      "toolCalls": 31,
+      "durationMs": 296952,
+      "resultPreview": "{\"datasets\":[{\"name\":\"anismahmahi/Group_2_AF_DT_NCL_WH (HuggingFace)\",\"url\":\"https://huggingface.co/datasets/anismahmahi/Group_2_AF_DT_NCL_WH\",\"download_hint\":\"load_dataset('anismahmahi/Group_2_AF_DT_NCL_WH') OR raw: https://huggingface.co/datasets/anismahmahi/Group_2_AF_DT_NCL_WH/resolve/main/train%20(4).csv and /resolve/main/test_sentences_token_classification%20(9).csv\",\"format\":\"csv\",\"gated\":f…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "You are ranking candidate datasets for expanding a persuasio",
+      "phaseIndex": 2,
+      "phaseTitle": "Synthesize",
+      "agentId": "ab2dffda19dea8727",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1786148142829,
+      "queuedAt": 1786148140604,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "FRESHNESS CONTEXT (verified from the repo): the benchmark a…",
+      "promptPreview": "You are ranking candidate datasets for expanding a persuasion-technique benchmark. Here are raw scout findings (JSON):\n\n[\n {\n  \"name\": \"anismahmahi/10_techniques_train\",\n  \"url\": \"https://huggingface.co/datasets/anismahmahi/10_techniques_train\",\n  \"download_hint\": \"HF repo anismahmahi/10_techniques_train — CSV + auto-converted Parquet (default config, train split). Load via datasets.load_dataset('…",
+      "lastProgressAt": 1786148438937,
+      "tokens": 59622,
+      "toolCalls": 5,
+      "durationMs": 296108,
+      "resultPreview": "{\"ranked\":[{\"name\":\"anismahmahi/10_techniques_train\",\"url\":\"https://huggingface.co/datasets/anismahmahi/10_techniques_train\",\"gated\":false,\"covers\":[\"fear-mongering\",\"outrage\",\"tribal-in-group-bias\",\"authority-appeal\",\"critical-thinking-suppression\",\"hype\"],\"download_method\":\"HF: load_dataset('anismahmahi/10_techniques_train') (default config, train split), or raw parquet/CSV under https://hugging…"
+    }
+  ],
+  "totalTokens": 335635,
+  "totalToolCalls": 175
+}
