@@ -24,8 +24,9 @@ import sys
 sys.path.insert(0, str(HERE.parent))
 from server import SYSTEM, VECTORS  # noqa: E402
 
-# Sources we ARE allowed to fit on (self-authored + the external DEV half). Holdout excluded.
-TRAIN_SOURCES = ["eval_set", "realistic_set", "interpersonal_test", "external_dev"]
+# Sources we ARE allowed to fit on (self-authored + external DEV + the DISJOINT Mathur train
+# split). external_HOLDOUT and external_mathur (test) are excluded → both stay honest tests.
+TRAIN_SOURCES = ["eval_set", "realistic_set", "interpersonal_test", "external_dev", "external_mathur_train"]
 SEED = 20260807  # fixed (Math.random/Date unavailable-equivalent discipline: deterministic split)
 
 

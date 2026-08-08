@@ -11,7 +11,8 @@ Mapping (same category names as Yamana, so the mapping is unambiguous):
   Scarcity -> fomo | Urgency -> false-urgency | Social Proof -> social-proof-conformity
   Confirmshaming (Pattern Type) -> guilt-tripping  (shame-worded decline options)
 
-    python tests/build_mathur_set.py <dark-patterns.csv> > data/external_mathur.jsonl
+    python tests/build_mathur_set.py <dark-patterns.csv>       > data/external_mathur.jsonl        # test (default)
+    python tests/build_mathur_set.py <dark-patterns.csv> train > data/external_mathur_train.jsonl  # DISJOINT train split
 """
 import csv
 import json
@@ -24,14 +25,15 @@ random.seed(0)
 csv.field_size_limit(10_000_000)
 
 CAT_MAP = {"Scarcity": "fomo", "Urgency": "false-urgency", "Social Proof": "social-proof-conformity"}
-PER_CLASS = 80  # cap per class so the bench stays quick + balanced
+TEST_PER_CLASS = 80    # first 80/class -> external_mathur.jsonl (the held-out fresh TEST)
+TRAIN_PER_CLASS = 80   # next 80/class -> external_mathur_train.jsonl (DISJOINT, safe to fine-tune on)
 
 
 def norm(s: str) -> str:
     return re.sub(r"\s+", " ", s or "").strip()
 
 
-def main(path):
+def main(path, split="test"):
     buckets = defaultdict(list)
     seen = set()
     with open(path, encoding="utf-8", errors="replace") as f:
@@ -54,8 +56,9 @@ def main(path):
 
     rows = []
     for label, texts in buckets.items():
-        random.shuffle(texts)
-        for t in texts[:PER_CLASS]:
+        random.shuffle(texts)  # seed(0) -> deterministic, so test and train slices are stable + disjoint
+        sl = slice(0, TEST_PER_CLASS) if split == "test" else slice(TEST_PER_CLASS, TEST_PER_CLASS + TRAIN_PER_CLASS)
+        for t in texts[sl]:
             rows.append({"text": t, "label": label})
     random.shuffle(rows)
     for r in rows:
@@ -68,4 +71,4 @@ def main(path):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "test")
