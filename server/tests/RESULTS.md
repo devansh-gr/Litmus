@@ -2,6 +2,27 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Gate fix for the two weakest classes — authority + dopamine (2026-08-10)
+
+The confusion matrices showed the residual misses cluster in two classes, and both leaked into
+`none` (the GATE reading them as benign, not a stage-2 problem). On the shipped 3B: authority-appeal
+recall 0.42 (**35% → none**), dopamine-bait recall 0.62 (**22% → none**). Diagnosis: the gate already
+flagged classic clickbait ("you won't believe…") and expert-appeals-that-shut-down-doubt, but missed
+(a) subtler BuzzFeed listicle / curiosity headlines ("47 beauty hacks everyone should know", "…is
+causing a huge debate") and (b) plain appeal-to-authority ("Michael Jordan wears them, so you should
+too", "doctors smoke it, so it's healthy"). Added two guarded gate clauses for exactly those, each
+with a news-headline guard so plain wire copy ("60 killed in Iraq", "president inaugurated") stays `none`.
+
+| 3B (external_test, N=300) | accuracy | authority recall | dopamine recall | none recall |
+|---|---|---|---|---|
+| baseline (shipped) | 62.3% | 0.42 | 0.62 | 0.72 |
+| **+ gate class-fix** | **64.0%** | **0.53** | **0.68** | **0.74** |
+
++1.7 accuracy, both target classes up, and `none` did NOT regress (0.72→0.74) — the guards held, so
+no benign cost. Honest tradeoff: a small social-proof dip (recall 0.52→0.44) as a few crowd-count
+examples now read as the newly-sharpened authority/dopamine. Net positive, so it ships (gate prompt,
+on by default). Raw: `lora/results/bench_classfix.txt`.
+
 ## Bigger detector breaks the ceiling — a model-size ladder (2026-08-10)
 
 The whole 3B story below ends on "the next accuracy lever is a bigger model, parked." Ran it — twice,
