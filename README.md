@@ -113,13 +113,15 @@ to `~/Library/LaunchAgents/` and it starts at login and restarts on crash.
 
 | var | default | what |
 |---|---|---|
-| `CPD_GATE_NONE_THRESHOLD` | `0.70` | gate cutoff (tuned on external data by F0.5) |
-| `CPD_CALIB_A` / `CPD_CALIB_B` | `0.56` / `-1.10` | Platt calibration of the shown % |
-| `CPD_ABSTAIN_BELOW` | `0.45` | below this calibrated confidence, flag `uncertain` |
-| `CPD_CONTEXTUAL_CALIB` | `0` | Calibrate-Before-Use gate debias (needs re-tune; off) |
+| `CPD_GATE_NONE_THRESHOLD` | `0.65` | gate cutoff (swept on external-dev) — lower flags more |
+| `CPD_CALIB_A` / `CPD_CALIB_B` | `1.0` / `0.0` | Platt calibration of the shown %; **off by default** (assertive). Set `0.56` / `-1.10` for the honest (lower, calibrated) % |
+| `CPD_ABSTAIN_BELOW` | `0.45` | below this confidence, flag the technique as `uncertain` |
+| `CPD_FEWSHOT` | `1` | few-shot exemplars on the technique prompt (gate stays zero-shot) |
+| `CPD_MLX_ADAPTER` | *(empty)* | path to an optional LoRA adapter (`server/lora/`); empty = base model |
+| `CPD_CONTEXTUAL_CALIB` | `0` | Calibrate-Before-Use gate debias (evaluated → no gain; off) |
 | `CPD_LLM_BACKEND` | `mlx` | `mlx` (4-bit ~2 GB) or `transformers` (fp32 ~6.5 GB) |
 | `CPD_BRAINMAP_MODE` | `text` | text-only (default) or `audio` TRIBE path |
-| `CPD_TRIBE_WARM_SECS` | `120` | keep TRIBE warm between deep-scans |
+| `CPD_TRIBE_WARM_SECS` | `0` | keep TRIBE warm N s between deep-scans (launchd sets `120`) |
 | `CPD_HOTKEY` | `B` | the trigger key |
 
 ---
@@ -165,8 +167,8 @@ docs/                                # architecture, field manual, benchmarking
 ## Further reading
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — the whole system on one page.
 - **[docs/BENCHMARKING.md](docs/BENCHMARKING.md)** — how to properly benchmark this, and why.
-- Interactive **[architecture](https://claude.ai/code/artifact/33401b3a-e07f-4934-88b8-03056054a5fb)**
-  and **[field manual](https://claude.ai/code/artifact/d5fc32a8-e2dd-4f29-a041-e55580e8b2db)** pages.
+- Interactive **[docs/architecture.html](docs/architecture.html)** and
+  **[docs/field-manual.html](docs/field-manual.html)** — the same, as self-contained pages (open locally).
 
 ## Requirements
 macOS 14+, Apple Silicon (uses MPS), Xcode, Homebrew, `uv`, and a Hugging Face account
