@@ -2,6 +2,30 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Bigger detector breaks the ceiling — Llama-3.1-8B vs the shipped 3B (2026-08-10)
+
+The whole 3B story below ends on "the next accuracy lever is a bigger model, parked." Ran it.
+Swapped the detector to `mlx-community/Meta-Llama-3.1-8B-Instruct-4bit` (one env var,
+`CPD_MLX_MODEL`), zero-shot, same pipeline, same 300-example `external_test.jsonl`. Result:
+
+| config (external_test, N=300) | accuracy | macro-F1 | MCC | gate recall | gate PR-AUC |
+|---|---|---|---|---|---|
+| shipped 3B few-shot | 62.7% | 0.34 | ~0.55 | 0.78 | 0.93 |
+| **Llama-3.1-8B 4-bit (zero-shot)** | **69.0%** [63.6, 74.0] | **0.363** | **0.634** | 0.81 | **0.973** |
+
+**+6.7 accuracy points — the ceiling was model capacity, confirmed.** And it is not a lucky
+class: precision jumped almost everywhere (authority 0.95, false-urgency 0.93, social-proof 0.97,
+dopamine 1.00), fomo recall 0.45→0.93, social-proof recall 0.52→0.78, none recall 0.72→0.93. The
+one regression is **dopamine-bait recall (0.62→0.07)**: the 8B refuses to force clickbait onto the
+loose clickbait↦dopamine mapping and routes it to hype/none instead, which is arguably *more*
+correct and drags a metric built on that loose mapping. Net still clearly up.
+
+**Why it is not shipped: latency.** The 8B ran **~7.4 s/scan vs ~0.6 s for the 3B (~12x)** on the
+24GB Mac (partly memory pressure with other work running). ⌘B is meant to feel instant, so the fast
+3B stays the default and the 8B is the opt-in high-accuracy mode (`CPD_MLX_MODEL=…`, already wired).
+The honest ceiling for the *shipped* interactive tool is ~62%; the ceiling for the *method* is
+higher and bounded by how big a local model you'll wait for. Raw: `lora/results/bench_8b.txt`.
+
 ## Expanding the data — Mathur-into-training + fresh propaganda vectors (2026-08-09)
 
 Two experiments after the over-fitting probe below. Both used FRESH, hand-verified web data

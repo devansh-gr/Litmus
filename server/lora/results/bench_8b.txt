@@ -1,0 +1,65 @@
+/Users/devanshgaur/Documents/Projects/CorticalPersuasionDecoder/server/.venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2924: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+
+======================================================================
+BENCHMARK: external-8b   (N=300)
+======================================================================
+accuracy            69.0%   95% CI [63.6%, 74.0%]  (Wilson)
+macro-F1            0.363   95% CI [0.335, 0.388]  (bootstrap)
+weighted-F1         0.692
+balanced accuracy   0.636
+MCC                 0.634   (0=random, 1=perfect)
+
+per-class:
+                               precision    recall  f1-score   support
+
+             authority-appeal       0.95      0.47      0.63        40
+critical-thinking-suppression       0.00      0.00      0.00         0
+                dopamine-bait       1.00      0.07      0.14        40
+                false-urgency       0.93      0.62      0.75        40
+               fear-mongering       0.00      0.00      0.00         0
+                         fomo       0.74      0.93      0.82        40
+               guilt-tripping       0.00      0.00      0.00         0
+          hype-hope-mongering       0.00      0.00      0.00         0
+                         none       0.68      0.93      0.79        90
+      social-proof-conformity       0.97      0.78      0.87        50
+         tribal-in-group-bias       0.00      0.00      0.00         0
+
+                     accuracy                           0.69       300
+                    macro avg       0.48      0.35      0.36       300
+                 weighted avg       0.85      0.69      0.69       300
+
+confusion (rows=gold, cols=pred, row-normalized %):
+            authority- critical-t dopamine-b false-urge fear-monge       fomo guilt-trip hype-hope-       none social-pro tribal-in-
+authority-a         48          2          0          0          2          0          2          0         32          0         12
+critical-th          0          0          0          0          0          0          0          0          0          0          0
+dopamine-ba          0          0          8          0          2          0          0         30         58          0          2
+false-urgen          0          0          0         62          0         30          0          5          2          0          0
+fear-monger          0          0          0          0          0          0          0          0          0          0          0
+       fomo          0          0          0          2          0         92          0          0          5          0          0
+guilt-tripp          0          0          0          0          0          0          0          0          0          0          0
+hype-hope-m          0          0          0          0          0          0          0          0          0          0          0
+       none          0          0          0          1          0          0          0          1         93          1          3
+social-proo          2          0          0          0          0          2          0          4          2         78         12
+tribal-in-g          0          0          0          0          0          0          0          0          0          0          0
+
+----------------------------------------------------------------------
+GATE (binary: manipulation vs none)
+  precision 0.97  recall 0.81  F1 0.88
+  PR-AUC (avg precision) 0.973   (prevalence baseline 0.700)
+  Brier (gate prob)      0.143
+  gate false-negatives (manipulation → none): 40/210
+  gate false-positives (benign → flagged):    6/90
+
+----------------------------------------------------------------------
+CALIBRATION of the confidence %
+  ECE 0.185   Brier 0.196   (lower=better)
+  reliability (conf bin → mean confidence vs actual accuracy):
+    (0.2,0.3]  n=1    conf=26%  acc=0%  <-- overconfident
+    (0.3,0.4]  n=10   conf=34%  acc=0%  <-- overconfident
+    (0.4,0.5]  n=16   conf=46%  acc=19%  <-- overconfident
+    (0.5,0.6]  n=9    conf=56%  acc=22%  <-- overconfident
+    (0.6,0.7]  n=18   conf=65%  acc=61%
+    (0.7,0.8]  n=22   conf=75%  acc=50%  <-- overconfident
+    (0.8,0.9]  n=22   conf=86%  acc=64%  <-- overconfident
+    (0.9,1.0]  n=202  conf=99%  acc=82%  <-- overconfident

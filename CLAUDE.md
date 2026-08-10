@@ -31,6 +31,10 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
   (dark-patterns), technique disambiguation 44→61% (primary-lever), then few-shot/LoRA which hit the
   **3B-4bit ceiling** (the next accuracy lever is a bigger model — parked, swap-blocked). The
   interpersonal family is validated separately at 88%. See `tests/RESULTS.md`, `server/lora/README.md`.
+  **The bigger-model lever is now TESTED (2026-08-10):** `CPD_MLX_MODEL=mlx-community/Meta-Llama-3.1-8B-Instruct-4bit`
+  (zero-shot) scores **69.0%** on the same external_test (+6.7 pts, MCC 0.55→0.63, gate PR-AUC 0.97) —
+  the ceiling really was model capacity. NOT shipped by default: ~7.4s/scan vs ~0.6s (~12x slower), so
+  the fast 3B stays the interactive default and the 8B is the opt-in high-accuracy mode. Raw: `lora/results/bench_8b.txt`.
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
