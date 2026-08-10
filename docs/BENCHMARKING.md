@@ -24,10 +24,21 @@ changes yet.
 
 ---
 
-## Status (2026-08-07) — gate recall + technique accuracy recovered; few-shot/LoRA hit the ceiling
+## Status (2026-08-09) — gate + technique recovered; data expanded with FRESH web sets
 
 - ✅ **Tier 0 (metrics/hygiene):** `bench_full.py` reports macro-F1, per-class, confusion, MCC,
   Wilson/bootstrap CIs, gate PR-AUC, and ECE calibration. Dev/holdout split of the external set.
+- ✅ **Data expansion on FRESH web data (never fabricated).** (a) **Over-fitting probe** — Mathur
+  "Dark Patterns at Scale" (independent of the Yamana set we tuned on): the model TRANSFERS
+  (clean-3 fomo/urgency/social-proof 65% vs ~62%), so it learned patterns not phrasings — **not
+  over-fit** on the covered vectors. (b) **Mathur-into-LoRA** (disjoint train split): best 59.3%
+  holdout — improved dark-pattern *balance* but stayed at the model ceiling, below shipped few-shot
+  (62.7%); LoRA stays opt-in. (c) **Fresh propaganda vectors** (`external_propaganda`, PTC corpus,
+  fear/outrage/tribal/authority/critical-thinking): 19.9% — but this is a **data-quality floor**
+  (context-stripped SemEval spans + loose cross-taxonomy mapping: loaded-language≠our-outrage,
+  exaggeration≠our-hype), NOT a fair model verdict. Clean vectors transfer (fear 0.43, tribal 0.38).
+  **Real conclusion: the model is under-SCOPED on propaganda vectors, and fairly measuring/fixing that
+  needs cleaner full-sentence data with a tighter label mapping — a follow-up, not these spans.**
 - ✅ **Few-shot + LoRA evaluated → near the model ceiling.** Two accuracy levers on top of the
   disambiguated classifier, both measured on the **untouched holdout** (LoRA trained on external_dev
   only): accuracy **few-shot 62.7% / zero-shot 62.0% / LoRA 60.7% — statistically tied** (CIs
