@@ -84,18 +84,45 @@ DEFINITIONS = {
     "none": "neutral, factual or informational; a greeting, question, or ordinary conversation; no manipulation",
 }
 
-SYSTEM = (
+# Built from parts (head + rotatable definition list + tie-break tail) so self-consistency
+# voting can present the definitions in different orders to average out list-position bias.
+_SYSTEM_HEAD = (
     "You are a persuasion analyst. Identify the PRIMARY manipulation technique in "
     "the text. The techniques are:\n"
-    + "\n".join(f"- {k}: {v}" for k, v in DEFINITIONS.items())
-    + "\nWhen more than one seems to fit, choose by the PRIMARY LEVER the text pulls: "
-      "limited quantity / scarcity -> fomo; an explicit deadline or countdown clock -> "
-      "false-urgency; other people's activity or the crowd -> social-proof-conformity; a "
-      "reward or curiosity hook -> dopamine-bait; a personal upside / better future -> "
-      "hype-hope-mongering; a named person's fame / title / credential given as the reason "
-      "to believe or buy (celebrity endorsement, 'a doctor/expert says') -> authority-appeal.\n"
-      "Answer with the technique name only."
 )
+_SYSTEM_TAIL = (
+    "\nWhen more than one seems to fit, choose by the PRIMARY LEVER the text pulls: "
+    "limited quantity / scarcity -> fomo; an explicit deadline or countdown clock -> "
+    "false-urgency; other people's activity or the crowd -> social-proof-conformity; a "
+    "reward or curiosity hook -> dopamine-bait; a personal upside / better future -> "
+    "hype-hope-mongering; a named person's fame / title / credential given as the reason "
+    "to believe or buy (celebrity endorsement, 'a doctor/expert says') -> authority-appeal.\n"
+    "Answer with the technique name only."
+)
+
+
+def _build_system(order=None):
+    """The technique system prompt. `order` (a permutation of range(len(DEFINITIONS)))
+    reorders the definition listing for self-consistency voting; None = default order."""
+    items = list(DEFINITIONS.items())
+    if order is not None:
+        items = [items[i] for i in order]
+    return _SYSTEM_HEAD + "\n".join(f"- {k}: {v}" for k, v in items) + _SYSTEM_TAIL
+
+
+SYSTEM = _build_system()
+
+# Self-consistency voting (opt-in, CPD_SELF_CONSISTENCY=K, default 1 = off). The label
+# scorer is DETERMINISTIC, so plain resampling is a no-op — the form that fits is a prompt
+# ensemble: present the definitions in K rotated orders, score each, majority-vote the
+# argmax (probabilities averaged for the confidence). Averages out the list-position bias
+# in log-prob label scoring. K× the stage-2 cost, so it stays off for the instant ⌘B path.
+SELF_CONSISTENCY = max(1, int(os.environ.get("CPD_SELF_CONSISTENCY", "1")))
+
+
+def _vote_orders(n, k):
+    """k deterministic, evenly-spread cyclic rotations of range(n)."""
+    return [[(j + i * (n // k)) % n for j in range(n)] for i in range(k)]
 
 # Few-shot exemplars for the TECHNIQUE classifier (stage 2 only; the gate stays zero-shot).
 # One short demonstration per confusable technique, keyed on the primary-lever distinctions
@@ -632,11 +659,26 @@ def classify(inp: TextIn):
             _classify_cache[key] = result
         return _log(result)
 
-    # STAGE 2 — which technique. Identical to the standalone 12-way classifier (so
-    # technique discrimination is unchanged); the gate above just spared benign text.
-    scores = _detector.submit(_label_scores, inp.text, SYSTEM, VECTORS, TECHNIQUE_FEWSHOT).result()
-    probs = softmax(scores)
-    best = max(range(len(VECTORS)), key=lambda i: probs[i])
+    # STAGE 2 — which technique. Identical to the standalone classifier; the gate above
+    # just spared benign text. With CPD_SELF_CONSISTENCY>1, vote across rotated-definition
+    # prompt variants (averaging list-position bias) instead of a single pass.
+    if SELF_CONSISTENCY > 1:
+        import collections
+        prob_sum = [0.0] * len(VECTORS)
+        votes = []
+        for order in _vote_orders(len(VECTORS), SELF_CONSISTENCY):
+            sc = _detector.submit(_label_scores, inp.text, _build_system(order), VECTORS, TECHNIQUE_FEWSHOT).result()
+            pv = softmax(sc)
+            votes.append(max(range(len(VECTORS)), key=lambda i: pv[i]))
+            for i in range(len(VECTORS)):
+                prob_sum[i] += pv[i]
+        probs = [s / SELF_CONSISTENCY for s in prob_sum]
+        counts = collections.Counter(votes)
+        best = max(range(len(VECTORS)), key=lambda i: (counts.get(i, 0), prob_sum[i]))
+    else:
+        scores = _detector.submit(_label_scores, inp.text, SYSTEM, VECTORS, TECHNIQUE_FEWSHOT).result()
+        probs = softmax(scores)
+        best = max(range(len(VECTORS)), key=lambda i: probs[i])
     ranked = sorted(
         [{"vector": v, "p": round(p, 4)} for v, p in zip(VECTORS, probs)],
         key=lambda d: -d["p"],
