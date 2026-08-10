@@ -2,6 +2,41 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Expanding the data — Mathur-into-training + fresh propaganda vectors (2026-08-09)
+
+Two experiments after the over-fitting probe below. Both used FRESH, hand-verified web data
+(never fabricated). Findings:
+
+**(3) Mathur-augmented LoRA — did NOT beat the shipped baseline.** Folded a *disjoint* Mathur
+train split (276 ex, no test leakage) into the LoRA data (503 total; social-proof 38→113,
+fomo 29→106). Retrained, best checkpoint by holdout was iter-300:
+
+| config (holdout, 150) | accuracy | macro-F1 |
+|---|---|---|
+| shipped few-shot | **62.7%** | 0.34 |
+| prior LoRA (no Mathur) | 60.7% | 0.49 |
+| **Mathur-augmented LoRA (iter-300)** | 59.3% | 0.45 |
+
+The extra data improved dark-pattern *balance* a little (social-proof 0.11→0.37, fomo 0.65) but
+overall accuracy stayed at the ceiling and below shipped. iter-150 (best *val* loss) actually
+collapsed to 45% (fomo 0.00) — a reminder the 55-ex val loss doesn't track holdout. LoRA remains
+opt-in, not shipped. Raw: `lora/results/bench_holdout_lora_mathur.txt`.
+
+**(2) Fresh PROPAGANDA vectors — a cautionary DATA result, not a model verdict.** Built
+`external_propaganda.jsonl` (301) from an independent PTC corpus to test the vectors we'd never
+externally covered (fear/outrage/tribal/authority/critical-thinking). Shipped model scored **19.9%**
+— but that number is **dominated by cross-taxonomy + span-fragment noise, not model weakness**:
+the SemEval spans are context-stripped fragments, and their labels map poorly to ours (loaded-
+language↦our-outrage and exaggeration↦our-hype don't hold — the model calls "he was possessed by
+the devil" *fear* not *outrage*, which is more defensible; a fragment like "continuing to spread and
+worsen" is mislabeled *authority* in the source). Where the mapping is CLEAN the model shows real
+transfer despite never being tuned on political text: **fear-mongering recall 0.43, tribal 0.38**
+("global pandemic"→fear ✓, "North Korea… dangerous"→fear ✓). **Lesson: honestly expanding to
+propaganda vectors needs cleaner data (full sentences, tighter mapping), not these span fragments —
+the 19.9% is a data-quality floor, not a capability measurement.** Raw: `lora/results/bench_propaganda_shipped.txt`.
+
+---
+
 ## Over-fitting probe on FRESH web data — Mathur dark patterns (2026-08-07)
 
 Hypothesis: the classifier is over-fit to the *Yamana* dark patterns we tuned on. Test: downloaded

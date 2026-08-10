@@ -1,0 +1,70 @@
+/Users/devanshgaur/Documents/Projects/CorticalPersuasionDecoder/server/.venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2924: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+
+======================================================================
+BENCHMARK: propaganda-shipped   (N=301)
+======================================================================
+accuracy            19.9%   95% CI [15.8%, 24.8%]  (Wilson)
+macro-F1            0.086   95% CI [0.068, 0.103]  (bootstrap)
+weighted-F1         0.200
+balanced accuracy   0.199
+MCC                 0.109   (0=random, 1=perfect)
+
+per-class:
+                               precision    recall  f1-score   support
+
+             authority-appeal       0.12      0.16      0.14        37
+               blame-shifting       0.00      0.00      0.00         0
+critical-thinking-suppression       0.80      0.22      0.34        55
+                dopamine-bait       0.00      0.00      0.00         0
+                false-urgency       0.00      0.00      0.00         0
+               fear-mongering       0.29      0.43      0.35        60
+               guilt-tripping       0.00      0.00      0.00         0
+          hype-hope-mongering       0.00      0.00      0.00        47
+                 love-bombing       0.00      0.00      0.00         0
+             manufactured-awe       0.00      0.00      0.00         0
+                         none       0.00      0.00      0.00         0
+                      outrage       0.00      0.00      0.00        60
+      social-proof-conformity       0.00      0.00      0.00         0
+         tribal-in-group-bias       0.36      0.38      0.37        42
+
+                     accuracy                           0.20       301
+                    macro avg       0.11      0.09      0.09       301
+                 weighted avg       0.27      0.20      0.20       301
+
+confusion (rows=gold, cols=pred, row-normalized %):
+            authority- blame-shif critical-t dopamine-b false-urge fear-monge guilt-trip hype-hope- love-bombi manufactur       none    outrage social-pro tribal-in-
+authority-a         16          0          0          0          5         57          0          0          0          0         22          0          0          0
+blame-shift          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+critical-th         11          7         22          0          7         11         11          0          0          0         20          0          0         11
+dopamine-ba          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+false-urgen          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+fear-monger         18          3          0          0          5         43          0          0          0          3          8          0          2         17
+guilt-tripp          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+hype-hope-m         13          0          4          2          2         32          2          0          2         13         19          0          2          9
+love-bombin          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+manufacture          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+       none          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+    outrage         15         10          2          2          5         28          3          0          5          5         10          0          0         15
+social-proo          0          0          0          0          0          0          0          0          0          0          0          0          0          0
+tribal-in-g         24          0          0          0          0         12          0          0          0          0         26          0          0         38
+
+----------------------------------------------------------------------
+GATE (binary: manipulation vs none)
+  precision 1.00  recall 0.83  F1 0.91
+  gate false-negatives (manipulation → none): 50/301
+  gate false-positives (benign → flagged):    0/0
+
+----------------------------------------------------------------------
+CALIBRATION of the confidence %
+  ECE 0.488   Brier 0.431   (lower=better)
+  reliability (conf bin → mean confidence vs actual accuracy):
+    (0.1,0.2]  n=1    conf=18%  acc=0%  <-- overconfident
+    (0.2,0.3]  n=15   conf=26%  acc=7%  <-- overconfident
+    (0.3,0.4]  n=26   conf=36%  acc=19%  <-- overconfident
+    (0.4,0.5]  n=41   conf=45%  acc=20%  <-- overconfident
+    (0.5,0.6]  n=28   conf=56%  acc=21%  <-- overconfident
+    (0.6,0.7]  n=31   conf=66%  acc=19%  <-- overconfident
+    (0.7,0.8]  n=47   conf=74%  acc=17%  <-- overconfident
+    (0.8,0.9]  n=39   conf=85%  acc=13%  <-- overconfident
+    (0.9,1.0]  n=73   conf=96%  acc=29%  <-- overconfident
