@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cortical Persuasion Decoder — an on-device manipulation x-ray</title>
+<meta name="description" content="Highlight any text, press ⌘B, and a local AI names the persuasion technique being used on you — with an optional map of where it lands in your cortex. Runs entirely on your Mac.">
+<style>
+  :root{
+    --ground:#EDF1F5; --surface:#FFFFFF; --surface-2:#F5F8FB;
+    --ink:#0E141B; --ink-soft:#55616F; --ink-faint:#8592A1;
+    --line:#D3DBE4; --line-soft:#E7ECF1;
+    --signal:#0B6F8C; --signal-bright:#0B7E9E; --activation:#C8431F;
+    --good:#2E7D57;
+    --serif:ui-serif,"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,-apple-system,system-ui,"Segoe UI","Helvetica Neue",sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --shadow:0 1px 2px rgba(14,20,27,.05), 0 10px 30px rgba(14,20,27,.07);
+    --shadow-lg:0 2px 6px rgba(14,20,27,.08), 0 24px 60px rgba(14,20,27,.14);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0A0E13; --surface:#131C25; --surface-2:#0F1720;
+    --ink:#E7EDF3; --ink-soft:#9AA8B6; --ink-faint:#65747F;
+    --line:#243543; --line-soft:#1A2732;
+    --signal:#37C6E8; --signal-bright:#52D3F1; --activation:#FF6B45; --good:#4FBE8B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 34px rgba(0,0,0,.5);
+    --shadow-lg:0 2px 8px rgba(0,0,0,.5), 0 30px 70px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="light"]{
+    --ground:#EDF1F5; --surface:#FFFFFF; --surface-2:#F5F8FB;
+    --ink:#0E141B; --ink-soft:#55616F; --ink-faint:#8592A1;
+    --line:#D3DBE4; --line-soft:#E7ECF1;
+    --signal:#0B6F8C; --signal-bright:#0B7E9E; --activation:#C8431F; --good:#2E7D57;
+    --shadow:0 1px 2px rgba(14,20,27,.05), 0 10px 30px rgba(14,20,27,.07);
+    --shadow-lg:0 2px 6px rgba(14,20,27,.08), 0 24px 60px rgba(14,20,27,.14);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0A0E13; --surface:#131C25; --surface-2:#0F1720;
+    --ink:#E7EDF3; --ink-soft:#9AA8B6; --ink-faint:#65747F;
+    --line:#243543; --line-soft:#1A2732;
+    --signal:#37C6E8; --signal-bright:#52D3F1; --activation:#FF6B45; --good:#4FBE8B;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 34px rgba(0,0,0,.5);
+    --shadow-lg:0 2px 8px rgba(0,0,0,.5), 0 30px 70px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 clamp(20px,4vw,48px);}
+  a{color:var(--signal-bright);text-decoration:none;}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.02em;text-wrap:balance;margin:0;}
+  .mono{font-family:var(--mono);}
+  code{font-family:var(--mono);font-size:.85em;background:var(--surface-2);
+    border:1px solid var(--line-soft);border-radius:4px;padding:.08em .4em;}
+  :focus-visible{outline:2px solid var(--signal-bright);outline-offset:3px;border-radius:3px;}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:20;background:color-mix(in oklab,var(--ground) 82%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line-soft);}
+  nav .wrap{display:flex;align-items:center;gap:16px;height:56px;}
+  .brand{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink);}
+  .brand .dot{color:var(--signal-bright);}
+  nav .sp{flex:1;}
+  nav a.nl{font-size:13.5px;color:var(--ink-soft);}
+  nav a.nl:hover{color:var(--ink);}
+  .ghbtn{font-size:13px;font-family:var(--mono);border:1px solid var(--line);border-radius:8px;
+    padding:6px 12px;color:var(--ink);background:var(--surface);}
+  .ghbtn:hover{border-color:var(--signal-bright);}
+  .themebtn{font-family:var(--mono);font-size:12px;background:none;border:1px solid var(--line);
+    border-radius:8px;padding:6px 9px;color:var(--ink-soft);cursor:pointer;}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(24px,5vw,60px);
+    align-items:center;padding:clamp(48px,8vw,96px) 0 clamp(36px,6vw,72px);}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--signal-bright);display:flex;align-items:center;gap:10px;margin:0 0 18px;}
+  .eyebrow::before{content:"";width:24px;height:1px;background:var(--signal-bright);}
+  h1{font-size:clamp(34px,5.4vw,58px);line-height:1.02;}
+  .hero p.lede{font-size:clamp(17px,2vw,20px);color:var(--ink-soft);max-width:52ch;margin:22px 0 0;}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 0;}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600;
+    padding:12px 20px;border-radius:11px;border:1px solid transparent;}
+  .btn.primary{background:var(--signal-bright);color:#04121a;}
+  .btn.primary:hover{filter:brightness(1.06);}
+  .btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line);}
+  .btn.ghost:hover{border-color:var(--signal-bright);}
+  .microcta{margin:16px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);}
+
+  /* verdict-card mock (the product visual) */
+  .stage{position:relative;display:flex;justify-content:center;}
+  .stage::before{content:"";position:absolute;inset:-8% -6%;border-radius:30px;
+    background:radial-gradient(120% 120% at 70% 20%,color-mix(in oklab,var(--signal) 22%,transparent),transparent 60%);
+    filter:blur(8px);z-index:0;}
+  .card{position:relative;z-index:1;width:min(360px,86vw);background:#12181f;color:#eef2f6;
+    border:1px solid rgba(255,255,255,.09);border-radius:17px;padding:18px;box-shadow:var(--shadow-lg);
+    font-family:var(--sans);}
+  .card .row1{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+  .card .badge{width:28px;height:28px;border-radius:50%;background:rgba(255,90,60,.16);
+    display:flex;align-items:center;justify-content:center;color:#ff6b45;font-size:14px;}
+  .card .kbd{font-family:var(--mono);font-size:10px;letter-spacing:.13em;color:#8fa0b0;flex:1;}
+  .card .pct{font-family:var(--serif);font-size:22px;font-weight:700;color:#ff6b45;}
+  .card .title{font-size:21px;font-weight:700;letter-spacing:-.01em;}
+  .card .barwrap{height:6px;background:rgba(255,255,255,.08);border-radius:6px;margin:11px 0 12px;overflow:hidden;}
+  .card .bar{height:100%;width:96%;border-radius:6px;background:linear-gradient(90deg,#ff8a5c,#ff5a3c);}
+  .card .mech{font-size:12.5px;color:#9db0c0;line-height:1.45;}
+  .card .also{font-size:11px;color:#7c8ea0;margin-top:8px;}
+  .card hr{border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;}
+  .card .brainrow{display:flex;align-items:center;gap:13px;}
+  .card .brain{width:110px;height:74px;flex:none;}
+  .card .sys{font-size:11.5px;color:#b9c6d2;display:flex;flex-direction:column;gap:5px;}
+  .card .sys .s{display:flex;align-items:center;gap:7px;}
+  .card .sys .d{width:7px;height:7px;border-radius:50%;}
+  .card .capt{font-size:9px;color:#6f8193;margin-top:2px;font-family:var(--mono);}
+  .msg{position:absolute;z-index:2;top:-26px;left:6px;background:#e9e9eb;color:#111;
+    font-size:12.5px;padding:7px 12px;border-radius:16px;max-width:230px;box-shadow:var(--shadow);}
+  .msg .sel{background:#ffd27a;border-radius:3px;box-shadow:0 0 0 2px #ffd27a;}
+
+  /* sections */
+  section{padding:clamp(40px,7vw,84px) 0;border-top:1px solid var(--line-soft);}
+  .sechead{max-width:60ch;margin:0 0 34px;}
+  .sechead .tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);}
+  .sechead h2{font-size:clamp(24px,3.4vw,34px);margin:11px 0 0;}
+  .sechead p{color:var(--ink-soft);margin:13px 0 0;font-size:16.5px;}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow);}
+  .panel.det{border-top:3px solid var(--signal-bright);}
+  .panel.interp{border-top:3px solid var(--activation);}
+  .panel .plabel{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;}
+  .panel.det .plabel{color:var(--signal-bright);} .panel.interp .plabel{color:var(--activation);}
+  .panel h3{font-size:19px;margin:8px 0 8px;}
+  .panel p{color:var(--ink-soft);font-size:14.5px;margin:0;}
+  .panel .meta{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-top:12px;}
+
+  .flow{font-family:var(--mono);font-size:13px;color:var(--ink-soft);background:var(--surface);
+    border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow);
+    overflow-x:auto;line-height:1.9;margin-top:16px;}
+  .flow b{color:var(--ink);} .flow .no{color:var(--good);} .flow .yes{color:var(--activation);}
+
+  /* stat band */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow);}
+  .stat .v{font-family:var(--serif);font-size:34px;font-weight:600;line-height:1;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:13px;color:var(--ink-soft);margin-top:9px;}
+  .stat .h{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);margin-top:3px;}
+  .honest{margin-top:20px;color:var(--ink-soft);font-size:14.5px;max-width:74ch;}
+  .honest b{color:var(--ink);}
+
+  /* deep-dive cards */
+  .dive{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+  a.dcard{display:block;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:22px;box-shadow:var(--shadow);color:var(--ink);transition:border-color .15s,transform .15s;}
+  a.dcard:hover{border-color:var(--signal-bright);transform:translateY(-2px);}
+  a.dcard .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal-bright);}
+  a.dcard h3{font-size:17px;margin:9px 0 7px;}
+  a.dcard p{color:var(--ink-soft);font-size:13.5px;margin:0;}
+  a.dcard .arrow{margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);}
+
+  .shot{margin-top:20px;border:1px dashed var(--line);border-radius:14px;background:var(--surface-2);
+    min-height:200px;display:flex;align-items:center;justify-content:center;text-align:center;
+    color:var(--ink-faint);font-family:var(--mono);font-size:12.5px;padding:24px;}
+
+  footer{border-top:1px solid var(--line);padding:40px 0 64px;color:var(--ink-faint);
+    font-family:var(--mono);font-size:12px;}
+  footer a{color:var(--ink-soft);}
+
+  @media(max-width:820px){
+    .hero{grid-template-columns:1fr;} .two{grid-template-columns:1fr;}
+    .stage{margin-top:26px;}
+  }
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <span class="brand">cortical<span class="dot">·</span>persuasion<span class="dot">·</span>decoder</span>
+  <span class="sp"></span>
+  <a class="nl" href="#how">How it works</a>
+  <a class="nl" href="#numbers">The numbers</a>
+  <a class="nl" href="field-manual.html">Field manual</a>
+  <a class="ghbtn" href="https://github.com/devansh-gr/CorticalPersuasionDecoder">GitHub ↗</a>
+  <button class="themebtn" id="tg" aria-label="Toggle theme">◐</button>
+</div></nav>
+
+<header class="wrap hero">
+  <div>
+    <div class="eyebrow">On-device · macOS · zero telemetry</div>
+    <h1>Manipulation has a tell.<br>Now it has a detector.</h1>
+    <p class="lede">Highlight any text — a DM, an ad, a headline — and press <b>⌘B</b>. A local AI names
+      the persuasion technique being used on you, and can show <em>where in your cortex</em> the words land.
+      Nothing leaves your Mac.</p>
+    <div class="cta">
+      <a class="btn primary" href="#how">See how it works</a>
+      <a class="btn ghost" href="https://github.com/devansh-gr/CorticalPersuasionDecoder">Read the code ↗</a>
+    </div>
+    <p class="microcta">14 techniques · ~0.6 s per scan · 100% on-device (local LLM + Meta's TRIBE&nbsp;v2 fMRI model)</p>
+  </div>
+
+  <div class="stage">
+    <div class="msg">wow. after everything I've done for you, you can't even <span class="sel">make time for me</span>?</div>
+    <div class="card" role="img" aria-label="Verdict card reading Guilt-tripping, 96 percent">
+      <div class="row1">
+        <span class="badge">◉</span>
+        <span class="kbd">INTERPERSONAL MANIPULATION</span>
+        <span class="pct">96%</span>
+      </div>
+      <div class="title">Guilt-tripping</div>
+      <div class="barwrap"><div class="bar"></div></div>
+      <div class="mech">Uses guilt or obligation as leverage — “after all I’ve done for you” — so you comply to relieve the guilt, not because it’s right.</div>
+      <div class="also">also: blame-shifting 7% · love-bombing 4%</div>
+      <hr>
+      <div class="brainrow">
+        <canvas class="brain" width="220" height="148"></canvas>
+        <div class="sys">
+          <div class="s"><span class="d" style="background:#ff5a3c"></span> Value / orbitofrontal — high</div>
+          <div class="s"><span class="d" style="background:#f2a54a"></span> Language / inf-frontal — elevated</div>
+          <div class="s"><span class="d" style="background:#5aa9ff"></span> Executive / dlPFC — low</div>
+          <div class="capt">measured vs neutral · TRIBE v2</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sechead">
+      <div class="tag">How it works</div>
+      <h2>Two models, each doing only what it’s genuinely good at</h2>
+      <p>The whole design falls out of one honest result: the brain model is a <em>worse</em> detector than the
+        text it’s built from (100% vs 75% in a fair test — information theory guarantees it). So detection is the
+        language model’s job; the brain map exists to make manipulation <em>felt</em>, never to raise accuracy.</p>
+    </div>
+    <div class="two">
+      <div class="panel det">
+        <div class="plabel">Detection · the verdict</div>
+        <h3>A local language model names the technique</h3>
+        <p>Llama-3.2-3B (4-bit, ~2 GB, Apple-native MLX) scores the log-probability of every candidate label and
+          returns the most likely one with an honest confidence. Fast — about 0.6 s per ⌘B.</p>
+        <div class="meta">accurate · always resident · the judge</div>
+      </div>
+      <div class="panel interp">
+        <div class="plabel">Interpretation · the picture</div>
+        <h3>TRIBE v2 shows where it lands in cortex</h3>
+        <p>Meta’s fMRI foundation model predicts cortical activation for the text, z-scored against a neutral
+          baseline. It’s cortex-only, so we say “engages your value / language cortex,” never “fires your fear center.”</p>
+        <div class="meta">visceral · loaded on demand (~15 s) · never the detector</div>
+      </div>
+    </div>
+
+    <div class="sechead" style="margin-top:48px">
+      <div class="tag">Detection is two-stage</div>
+      <h2>A gate first, then the label</h2>
+      <p>A single classifier forced <em>every</em> input toward its nearest label — a friendly “Hello!” came back
+        “Hype 84%.” The fix is a clean yes/no gate that decides intent before naming a technique.</p>
+    </div>
+    <div class="flow">
+text ─▶ <b>[ Stage 1 · is this manipulation at all? ]</b> ──<span class="no">no</span>─▶ “No manipulation ✓”
+                         │ <span class="yes">yes</span>
+                         ▼
+        <b>[ Stage 2 · which of 14 techniques? ]</b> ─▶ verdict + confidence
+    </div>
+    <p class="honest" style="margin-top:18px">The 14 techniques span two families: <b>broadcast persuasion</b>
+      (fear, false urgency, FOMO, hype, authority, social proof, dopamine bait, outrage, tribal, awe) and
+      <b>interpersonal manipulation</b> (guilt-tripping, gaslighting, love-bombing, blame-shifting / DARVO).</p>
+  </div>
+</section>
+
+<section id="numbers">
+  <div class="wrap">
+    <div class="sechead">
+      <div class="tag">Measured honestly</div>
+      <h2>Most detectors quote accuracy on data the authors wrote. This one doesn’t.</h2>
+      <p>Every number below is on <b>300 independently-labeled examples from public datasets</b> — dark patterns,
+        logical fallacies, clickbait — that we neither wrote nor tuned on. The self-authored number reads ~80%;
+        that’s grading your own homework.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">62<span style="font-size:20px">%</span></div><div class="l">Technique accuracy</div><div class="h">external · never tuned on</div></div>
+      <div class="stat"><div class="v">0.93</div><div class="l">Gate PR-AUC</div><div class="h">manipulation vs benign</div></div>
+      <div class="stat"><div class="v">65<span style="font-size:20px">%</span></div><div class="l">On fresh data</div><div class="h">independent corpus — it transfers</div></div>
+      <div class="stat"><div class="v">100<span style="font-size:20px">%</span></div><div class="l">On-device</div><div class="h">no cloud · no telemetry</div></div>
+    </div>
+    <p class="honest"><b>The honest read:</b> the detector tells manipulation from benign very well (gate PR-AUC
+      0.93) and names the technique decently (~62%). It transfers to a completely independent dataset at 65% — so it
+      learned the patterns, not the phrasings. What’s left is the ceiling of a small on-device model, and we say so
+      plainly. Full methodology, confidence intervals, and the failure modes are in the
+      <a href="BENCHMARKING.md">benchmarking write-up</a>.</p>
+  </div>
+</section>
+
+<section id="read">
+  <div class="wrap">
+    <div class="sechead">
+      <div class="tag">Go deeper</div>
+      <h2>The system, the math, and how we built it</h2>
+      <p>Everything is open. Read the architecture, follow the experiments that forced every design decision, or
+        just clone it and run it on your own Mac.</p>
+    </div>
+    <div class="dive">
+      <a class="dcard" href="architecture.html">
+        <div class="k">The system</div><h3>Architecture</h3>
+        <p>The whole two-process design on one page — capture, the gate, the two models, the cortical pipeline.</p>
+        <div class="arrow">Read →</div>
+      </a>
+      <a class="dcard" href="field-manual.html">
+        <div class="k">The journey + math</div><h3>Field manual</h3>
+        <p>Origins, the experiments (A1–A7), the label-scoring math, and five honest pivots — including the ones that failed.</p>
+        <div class="arrow">Read →</div>
+      </a>
+      <a class="dcard" href="BENCHMARKING.md">
+        <div class="k">The evidence</div><h3>Benchmarking</h3>
+        <p>How to fairly measure a subjective, imbalanced, confidence-scored classifier — and why the numbers are what they are.</p>
+        <div class="arrow">Read →</div>
+      </a>
+      <a class="dcard" href="https://github.com/devansh-gr/CorticalPersuasionDecoder">
+        <div class="k">The code</div><h3>GitHub ↗</h3>
+        <p>Swift menu-bar app + local FastAPI server. Clone, build, run — 100% on your machine.</p>
+        <div class="arrow">Open repo →</div>
+      </a>
+    </div>
+
+    <div class="shot">Drop a product screenshot or demo GIF here (replace this block in <code>docs/index.html</code>)</div>
+  </div>
+</section>
+
+<footer><div class="wrap">
+  Cortical Persuasion Decoder · a local cognitive-manipulation x-ray for macOS · built to defend attention, not harvest it.<br>
+  <a href="https://github.com/devansh-gr/CorticalPersuasionDecoder">github.com/devansh-gr/CorticalPersuasionDecoder</a> · detection = local Llama-3.2-3B · interpretation = TRIBE v2 · everything on-device.
+</div></footer>
+
+<script>
+  // theme toggle
+  document.getElementById('tg').addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur?(cur==='dark'?'light':'dark'):(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
+    document.documentElement.setAttribute('data-theme',next);
+  });
+  // mini brain glow on the mock card
+  (function(){
+    var c=document.querySelector('.brain'); if(!c) return; var x=c.getContext('2d');
+    var W=c.width,H=c.height;
+    function blob(cx,cy,r,col){var g=x.createRadialGradient(cx,cy,0,cx,cy,r);
+      g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;
+      x.beginPath();x.arc(cx,cy,r,0,7);x.fill();}
+    // faint cortex silhouette
+    x.fillStyle='rgba(255,255,255,.05)';
+    x.beginPath();x.ellipse(W*0.5,H*0.52,W*0.42,H*0.4,0,0,7);x.fill();
+    blob(W*0.34,H*0.62,52,'rgba(255,90,60,.85)');   // orbitofrontal - high
+    blob(W*0.30,H*0.45,40,'rgba(242,165,74,.7)');   // inf-frontal - elevated
+    blob(W*0.26,H*0.30,26,'rgba(90,169,255,.4)');   // dlPFC - low
+    x.strokeStyle='rgba(255,255,255,.5)';x.lineWidth=1.1;
+    x.beginPath();x.ellipse(W*0.5,H*0.52,W*0.42,H*0.4,0,0,7);x.stroke();
+  })();
+</script>
+</body>
+</html>
