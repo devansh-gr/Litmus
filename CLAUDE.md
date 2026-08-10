@@ -153,6 +153,13 @@ shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `d
   **~62% accuracy** (holdout: few-shot 62.7% / zero-shot 62.0% / LoRA 60.7%, tied), macro-F1 up to
   0.49 (LoRA), gate PR-AUC 0.93 / recall 0.78 (2026-08-07). `tests/gate_diag.py` localizes gate
   misses; `server/lora/` holds the fine-tune experiment (shipped OFF — near the model ceiling).
+- **FRESH web sets (downloaded, verified, never fabricated).** `external_mathur.jsonl` (Mathur dark
+  patterns, independent of our tuning) — model TRANSFERS at 65% ⇒ NOT over-fit on covered vectors.
+  `external_propaganda.jsonl` (PTC fear/outrage/tribal/authority/critical-thinking) — model is
+  under-SCOPED here; the 19.9% is a data-quality floor (noisy SemEval spans + loose cross-taxonomy
+  mapping), not a fair verdict. Fixing propaganda coverage needs cleaner full-sentence data. Builders:
+  `tests/build_mathur_set.py`, `tests/build_propaganda_set.py`; datasets found via a discovery workflow
+  (`server/lora/results/dataset_discovery_workflow.txt`).
   Self-authored sets (`run_eval.py`, `realistic_set`) read ~80% but that's overfit — grading your
   own homework. Interpersonal family has no external analog yet; validated on the curated behavioral
   set instead: `python tests/interpersonal_report.py` (**88%**) + `pytest tests/test_interpersonal.py`.
