@@ -1,4 +1,4 @@
-# Cortical Persuasion Decoder — Architecture & Debrief
+# Litmus — Architecture & Debrief
 
 A plain-English map of how the whole system fits together. For the deep dive (origins,
 experiments, and pivots), see the interactive **[field manual](field-manual.html)**; for the

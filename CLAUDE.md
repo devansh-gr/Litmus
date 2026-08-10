@@ -1,4 +1,4 @@
-# Cortical Persuasion Decoder — agent context
+# Litmus — agent context
 
 **What it is:** a local macOS tool. Select text, press **⌘B** → it names the persuasion
 technique (+ calibrated confidence + runner-up "mixture"). Optionally (🧠 menu → Deep-scan)
@@ -134,7 +134,7 @@ reclaim swap" error; measure warm-vs-cold only after a reboot.
 `server/experiments/` the A1–A7 + text-only validation scripts (README table = results).
 `scripts/` `make_signing_identity.sh` · `sign_app.sh` · `build.sh`.
 Full narrative + literature checks: Obsidian vault `03 Projects/Cortical_Persuasion_Decoder/`.
-Repo: github.com/devansh-gr/CorticalPersuasionDecoder (private; renamed from Media_Emotion_Detector, old URL redirects).
+Repo: github.com/devansh-gr/Litmus (private; renamed from Media_Emotion_Detector, old URL redirects).
 
 ## Demo (how to film it)
 Lead with the magic: highlight manipulative text → ⌘B → verdict card. Then range (3 tactics),

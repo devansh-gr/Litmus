@@ -1,4 +1,4 @@
-# Cortical Persuasion Decoder
+# Litmus
 
 **A cognitive-manipulation x-ray for your Mac.** Highlight any text — a headline, a
 DM, an ad, an AI answer — press **⌘B**, and a local AI names the persuasion technique
