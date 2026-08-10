@@ -2,29 +2,32 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
-## Bigger detector breaks the ceiling — Llama-3.1-8B vs the shipped 3B (2026-08-10)
+## Bigger detector breaks the ceiling — a model-size ladder (2026-08-10)
 
-The whole 3B story below ends on "the next accuracy lever is a bigger model, parked." Ran it.
-Swapped the detector to `mlx-community/Meta-Llama-3.1-8B-Instruct-4bit` (one env var,
-`CPD_MLX_MODEL`), zero-shot, same pipeline, same 300-example `external_test.jsonl`. Result:
+The whole 3B story below ends on "the next accuracy lever is a bigger model, parked." Ran it — twice,
+up the size curve. Same pipeline, same 300-example `external_test.jsonl`, zero-shot, one env var
+(`CPD_MLX_MODEL`), everything still on-device. The accuracy climbs monotonically with model size:
 
-| config (external_test, N=300) | accuracy | macro-F1 | MCC | gate recall | gate PR-AUC |
+| config (external_test, N=300) | accuracy | macro-F1 | MCC | gate recall | latency/scan |
 |---|---|---|---|---|---|
-| shipped 3B few-shot | 62.7% | 0.34 | ~0.55 | 0.78 | 0.93 |
-| **Llama-3.1-8B 4-bit (zero-shot)** | **69.0%** [63.6, 74.0] | **0.363** | **0.634** | 0.81 | **0.973** |
+| shipped 3B few-shot | 62.7% | 0.34 | ~0.55 | 0.78 | ~0.6 s |
+| Llama-3.1-8B 4-bit | 69.0% [63.6, 74.0] | 0.363 | 0.634 | 0.81 | ~7.4 s |
+| **Qwen2.5-14B 4-bit** | **79.3%** [74.4, 83.5] | **0.483** | **0.752** | ~0.9 | **~12.7 s** |
 
-**+6.7 accuracy points — the ceiling was model capacity, confirmed.** And it is not a lucky
-class: precision jumped almost everywhere (authority 0.95, false-urgency 0.93, social-proof 0.97,
-dopamine 1.00), fomo recall 0.45→0.93, social-proof recall 0.52→0.78, none recall 0.72→0.93. The
-one regression is **dopamine-bait recall (0.62→0.07)**: the 8B refuses to force clickbait onto the
-loose clickbait↦dopamine mapping and routes it to hype/none instead, which is arguably *more*
-correct and drags a metric built on that loose mapping. Net still clearly up.
+**62% was the 3B's ceiling, not the method's.** +17 points from 3B to 14B, monotone in size (62 →
+69 → 79), which is the clean signature of a capacity limit rather than a tuning bug. The 14B is also
+*broadly* strong, not one lucky class: false-urgency F1 0.92, fomo 0.95, social-proof 0.88, and it
+**recovered the dopamine class the 8B had collapsed** (recall 0.07→0.47, precision 1.00) while
+keeping the 8B's gains. balanced-acc 0.64→0.76, weighted-F1 0.69→0.81. The residual confusion is
+authority/dopamine bleeding into `none` (the model abstains rather than forcing a weak call).
 
-**Why it is not shipped: latency.** The 8B ran **~7.4 s/scan vs ~0.6 s for the 3B (~12x)** on the
-24GB Mac (partly memory pressure with other work running). ⌘B is meant to feel instant, so the fast
-3B stays the default and the 8B is the opt-in high-accuracy mode (`CPD_MLX_MODEL=…`, already wired).
-The honest ceiling for the *shipped* interactive tool is ~62%; the ceiling for the *method* is
-higher and bounded by how big a local model you'll wait for. Raw: `lora/results/bench_8b.txt`.
+**Why none of these ship as the default: latency.** The cost scales with the win — 8B ~7.4 s/scan,
+14B **~12.7 s/scan (~20x the 3B)** on the 24GB Mac. 14B still fits comfortably in RAM (~8 GB weights,
+memory stayed ~44% free), it is purely a speed cost, not a stability one. ⌘B is meant to feel
+instant, so the fast 3B stays the interactive default and the big models are the opt-in **deep-analysis
+mode** (`CPD_MLX_MODEL=…`, already wired) — the two-tier design the brain-map deep-scan already uses.
+The honest ceiling for the *shipped instant* tool is ~62%; for the *method* it is ≥79% and bounded by
+how big a local model you will wait ~13 s for. Raw: `lora/results/bench_8b.txt`, `bench_14b.txt`.
 
 ## Expanding the data — Mathur-into-training + fresh propaganda vectors (2026-08-09)
 

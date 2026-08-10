@@ -141,10 +141,11 @@ on-device.
   taxonomy-drift / robustness), the `run_eval.py` accuracy harness, a latency bench, and Swift
   self-tests for OCR + the secret guard.
 - **Accuracy ceiling, and the lever past it (tested 2026-08-10).** The shipped 3B-4bit sits at
-  ~62% on a 300-example external set (three methods tied → a real ceiling, not a tuning bug).
-  Swapping in **Llama-3.1-8B-4bit** (one env var, `CPD_MLX_MODEL`) takes that to **69%** — so the
-  ceiling was model capacity. It costs ~12x the latency (~7.4s vs ~0.6s/scan), so the fast 3B stays
-  the interactive default and the 8B is the opt-in high-accuracy mode. See `tests/RESULTS.md`.
+  ~62% on a 300-example external set (three methods tied → a real ceiling for *that* model). Scaling
+  the on-device model (one env var, `CPD_MLX_MODEL`) climbs monotonically: **3B 62% → Llama-3.1-8B
+  69% → Qwen2.5-14B 79%** — so 62% was the 3B's ceiling, not the method's. The cost is latency
+  (8B ~7.4s, 14B ~12.7s/scan vs 3B ~0.6s; 14B still fits RAM at ~8GB), so the fast 3B stays the
+  interactive default and the big models are the opt-in **deep-analysis** tier. See `tests/RESULTS.md`.
 
 ## Status
 

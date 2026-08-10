@@ -1,0 +1,60 @@
+/Users/devanshgaur/Documents/Projects/CorticalPersuasionDecoder/server/.venv/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2924: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+
+======================================================================
+BENCHMARK: external-14b   (N=300)
+======================================================================
+accuracy            79.3%   95% CI [74.4%, 83.5%]  (Wilson)
+macro-F1            0.483   95% CI [0.454, 0.507]  (bootstrap)
+weighted-F1         0.808
+balanced accuracy   0.762
+MCC                 0.752   (0=random, 1=perfect)
+
+per-class:
+                               precision    recall  f1-score   support
+
+             authority-appeal       0.80      0.50      0.62        40
+critical-thinking-suppression       0.00      0.00      0.00         0
+                dopamine-bait       1.00      0.47      0.64        40
+                false-urgency       0.95      0.90      0.92        40
+               fear-mongering       0.00      0.00      0.00         0
+                         fomo       0.97      0.93      0.95        40
+          hype-hope-mongering       0.00      0.00      0.00         0
+                         none       0.72      0.93      0.81        90
+      social-proof-conformity       0.93      0.84      0.88        50
+         tribal-in-group-bias       0.00      0.00      0.00         0
+
+                     accuracy                           0.79       300
+                    macro avg       0.54      0.46      0.48       300
+                 weighted avg       0.87      0.79      0.81       300
+
+confusion (rows=gold, cols=pred, row-normalized %):
+            authority- critical-t dopamine-b false-urge fear-monge       fomo hype-hope-       none social-pro tribal-in-
+authority-a         50          5          0          0          0          0          0         30          0         15
+critical-th          0          0          0          0          0          0          0          0          0          0
+dopamine-ba          8          0         48          0          0          0          5         30          0         10
+false-urgen          0          0          0         90          0          2          0          8          0          0
+fear-monger          0          0          0          0          0          0          0          0          0          0
+       fomo          0          0          0          2          0         92          0          0          5          0
+hype-hope-m          0          0          0          0          0          0          0          0          0          0
+       none          2          0          0          1          1          0          0         93          1          1
+social-proo          0          0          0          0          0          0          0         12         84          4
+tribal-in-g          0          0          0          0          0          0          0          0          0          0
+
+----------------------------------------------------------------------
+GATE (binary: manipulation vs none)
+  precision 0.97  recall 0.84  F1 0.90
+  PR-AUC (avg precision) 0.976   (prevalence baseline 0.700)
+  Brier (gate prob)      0.124
+  gate false-negatives (manipulation → none): 33/210
+  gate false-positives (benign → flagged):    6/90
+
+----------------------------------------------------------------------
+CALIBRATION of the confidence %
+  ECE 0.191   Brier 0.186   (lower=better)
+  reliability (conf bin → mean confidence vs actual accuracy):
+    (0.5,0.6]  n=2    conf=55%  acc=50%
+    (0.6,0.7]  n=5    conf=66%  acc=0%  <-- overconfident
+    (0.7,0.8]  n=2    conf=80%  acc=0%  <-- overconfident
+    (0.8,0.9]  n=8    conf=85%  acc=25%  <-- overconfident
+    (0.9,1.0]  n=283  conf=100%  acc=83%  <-- overconfident
