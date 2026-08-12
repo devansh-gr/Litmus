@@ -1,0 +1,12 @@
+Iter 1: Val loss 4.045, Val took 122.943s
+Iter 25: Train loss 0.660, Learning Rate 1.000e-04, It/sec 0.056, Tokens/sec 0.725, Trained Tokens 325, Peak mem 12.552 GB
+Iter 50: Val loss 0.400, Val took 124.278s
+Iter 50: Train loss 0.325, Learning Rate 1.000e-04, It/sec 0.054, Tokens/sec 0.686, Trained Tokens 644, Peak mem 12.552 GB
+Iter 75: Train loss 0.352, Learning Rate 1.000e-04, It/sec 0.054, Tokens/sec 0.664, Trained Tokens 954, Peak mem 12.552 GB
+Iter 100: Val loss 0.109, Val took 120.759s
+Iter 100: Train loss 0.125, Learning Rate 1.000e-04, It/sec 0.056, Tokens/sec 0.720, Trained Tokens 1274, Peak mem 12.552 GB
+Iter 125: Train loss 0.156, Learning Rate 1.000e-04, It/sec 0.056, Tokens/sec 0.740, Trained Tokens 1602, Peak mem 12.552 GB
+Iter 150: Val loss 0.077, Val took 121.098s
+Iter 150: Train loss 0.269, Learning Rate 1.000e-04, It/sec 0.056, Tokens/sec 0.790, Trained Tokens 1954, Peak mem 12.552 GB
+Iter 175: Train loss 0.183, Learning Rate 1.000e-04, It/sec 0.056, Tokens/sec 0.718, Trained Tokens 2273, Peak mem 12.552 GB
+Iter 200: Val loss 0.285, Val took 124.098s
