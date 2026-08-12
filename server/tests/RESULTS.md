@@ -2,6 +2,30 @@
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 
+## Two cheap levers measured — voting is a confound, data cleaning is real (2026-08-11)
+
+After the class-fix (64.0%), measured the two remaining cheap levers on the 3B, on external_test
+(N=300) and the cleaned variant `external_test_clean` (N=290, 10 non-instances removed — see
+`data/CLEANING_LOG.md`):
+
+| 3B config | accuracy |
+|---|---|
+| class-fix baseline (external_test) | 64.0% |
+| + self-consistency voting K=3 (external_test) | 66.7% [61.2, 71.8] |
+| **class-fix on external_test_clean** | **66.9%** [61.3, 72.1] |
+| + voting K=3 on external_test_clean | 66.9% [61.3, 72.1] |
+
+**Data cleaning is the real +2.9** (64.0 → 66.9): removing definitions, quiz stems, and cross-fallacy
+mislabels — items the model can *never* get right because they aren't manipulation — raised the honest
+score with zero model change.
+
+**Self-consistency voting is a confound, not a lever.** It looks like +2.7 on the noisy set (64.0 →
+66.7), but on the cleaned set it adds *exactly nothing* (66.9 = 66.9). Its apparent gain was entirely
+recovering flip-floppy garbage examples; once the non-instances are gone, the prompt-ensemble vote
+flips no genuine verdict. So it stays OFF by default (opt-in `CPD_SELF_CONSISTENCY`) and is reported as
+a null result — a clean reminder to control for data quality before crediting a method. Raw:
+`lora/results/bench_sc.txt`, `bench_clean.txt`, `bench_sc_clean.txt`.
+
 ## Gate fix for the two weakest classes — authority + dopamine (2026-08-10)
 
 The confusion matrices showed the residual misses cluster in two classes, and both leaked into
