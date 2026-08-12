@@ -47,6 +47,23 @@ no benign cost. Honest tradeoff: a small social-proof dip (recall 0.52→0.44) a
 examples now read as the newly-sharpened authority/dopamine. Net positive, so it ships (gate prompt,
 on by default). Raw: `lora/results/bench_classfix.txt`.
 
+## Few-shot on the 14B — 79.3 → 82.3% (2026-08-11)
+
+The 79.3% below was ZERO-shot. Turned the few-shot exemplars back on (`CPD_FEWSHOT=1`) with the 14B
+on external_test (N=300):
+
+| 14B config (external_test) | accuracy | MCC | macro-F1 |
+|---|---|---|---|
+| zero-shot | 79.3% [74.4, 83.5] | 0.752 | 0.483 |
+| **+ few-shot** | **82.3%** [77.6, 86.2] | **0.787** | 0.456 |
+
+**+3 points — few-shot HELPS the 14B**, unlike the 3B where it was a statistical tie (62.7 vs 62.0).
+Big enough to use the exemplars, the 14B turns them into real gains: authority recall 0.50→0.62,
+false-urgency F1 0.75→0.91, social-proof 0.87→0.91, fomo 0.96. Caveat: this run also carries the
+class-fix gate (shipped after the 79.3% run), so +3 is the *best-config* gain, not a pure few-shot
+delta; a clean isolation would re-bench 14B zero-shot on the current gate. Best honest on-device number
+so far. Raw: `lora/results/bench_14b_fewshot.txt`.
+
 ## Bigger detector breaks the ceiling — a model-size ladder (2026-08-10)
 
 The whole 3B story below ends on "the next accuracy lever is a bigger model, parked." Ran it — twice,
