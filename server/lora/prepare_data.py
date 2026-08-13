@@ -26,8 +26,13 @@ from server import SYSTEM, VECTORS  # noqa: E402
 
 # Sources we ARE allowed to fit on (self-authored + external DEV + the DISJOINT Mathur train
 # split). external_HOLDOUT and external_mathur (test) are excluded → both stay honest tests.
-TRAIN_SOURCES = ["eval_set", "realistic_set", "interpersonal_test", "external_dev", "external_mathur_train"]
+TRAIN_SOURCES = ["eval_set", "realistic_set", "interpersonal_test", "external_dev",
+                 "external_mathur_train", "external_propaganda_train"]
 SEED = 20260807  # fixed (Math.random/Date unavailable-equivalent discipline: deterministic split)
+# Cap examples per class so the dark-pattern vectors (social-proof/fomo/urgency) don't drown out
+# the propaganda + interpersonal families the fine-tune was starved on. 0 = no cap. Applied AFTER
+# the deterministic shuffle, so the kept subset per class is random-but-reproducible.
+PER_CLASS_CAP = 90
 
 
 def load(name):
@@ -56,6 +61,15 @@ def main():
             rows.append(r)
     rng = random.Random(SEED)
     rng.shuffle(rows)
+
+    if PER_CLASS_CAP:
+        from collections import Counter
+        capped, per = [], Counter()
+        for r in rows:                       # already shuffled → kept subset per class is random
+            if per[r["label"]] < PER_CLASS_CAP:
+                capped.append(r)
+                per[r["label"]] += 1
+        rows = capped
 
     n_valid = max(20, len(rows) // 10)
     valid, train = rows[:n_valid], rows[n_valid:]

@@ -1,11 +1,19 @@
 # Technique fine-tune (LoRA) — experiment record
 
 **Question:** can few-shot (strategy 2) or LoRA (strategy 3) push technique accuracy past
-the zero-shot 61%? **Answer: not robustly — the 3B-4bit model is near its ceiling on this set.**
+the zero-shot 61%? **Answer (3B): not robustly — near its ceiling on this set. (14B): the LoRA
+tied zero-shot / lost to few-shot too, because the training data was starved on most vectors.**
+
+> **2026-08-12 update — data expansion.** The split was rebalanced to fix that starvation: added
+> `external_propaganda_train` (592 ex of fear/outrage/tribal/authority/crit-think/hype from the
+> disjoint `anismahmahi/10_techniques_train` split — leakage-free vs the propaganda bench) and a
+> `PER_CLASS_CAP=90` in `prepare_data.py`. The split is now **train 884 / valid 98** (was 503/55),
+> with the six previously-starved vectors at 90 each. Retrain of the 14B on this pending a charge.
+> (Counts below are from the OLD 267/29 run; the accuracy table is the OLD result.)
 
 ## Setup
-- `prepare_data.py` → leakage-free split: train 267 / valid 29 from self-authored sets +
-  external_**dev**; external_**holdout** (150) NEVER trained on → the honest test.
+- `prepare_data.py` → leakage-free split: (now) train 884 / valid 98 from self-authored sets +
+  external_**dev** + Mathur-train + propaganda-train; external_**holdout** (150) NEVER trained on → the honest test.
 - `train.sh` → `mlx_lm.lora`, adapters only (~3.5M params, 8 layers), `--mask-prompt`, peak 5.2GB.
 - Overfitting watch: val loss 6.46 → **0.44 (iter 50/100)** → 0.51 (150) → 2.54 (200, overfit).
   Shipped the **iter-100** checkpoint.
