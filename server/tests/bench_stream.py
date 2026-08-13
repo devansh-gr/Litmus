@@ -19,7 +19,11 @@ def score(path):
     rows = [json.loads(l) for l in open(path) if l.strip()]
     n = len(rows)
     correct = sum(r["ok"] for r in rows)
-    print(f"N={n}  accuracy={100*correct/n:.1f}%  ({correct}/{n})" if n else "empty")
+    top2 = sum(r.get("top2", r["ok"]) for r in rows)
+    if n:
+        print(f"N={n}  accuracy={100*correct/n:.1f}%  ({correct}/{n})  top-2={100*top2/n:.1f}%  ({top2}/{n})")
+    else:
+        print("empty")
     # per-class recall
     gold_tot, gold_ok = Counter(), Counter()
     for r in rows:
@@ -42,14 +46,17 @@ def run(data, out, url, limit):
                 url, data=json.dumps({"text": text}).encode(),
                 headers={"Content-Type": "application/json"})
             try:
-                pred = json.loads(urllib.request.urlopen(req, timeout=180).read())["vector"]
+                resp = json.loads(urllib.request.urlopen(req, timeout=180).read())
+                pred = resp["vector"]
+                alts = [a.get("vector") for a in resp.get("alternatives", [])]
             except Exception as e:  # noqa: BLE001
                 print(f"  (request failed at n={n}: {e})", flush=True)
                 break
             ok = int(pred == gold)
+            top2 = int(gold == pred or gold in alts[:1])   # winner + 1st runner-up (the mixture case)
             correct += ok
             n += 1
-            f.write(json.dumps({"gold": gold, "pred": pred, "ok": ok}) + "\n")
+            f.write(json.dumps({"gold": gold, "pred": pred, "ok": ok, "top2": top2, "alts": alts[:3]}) + "\n")
             f.flush()
             if n % 10 == 0:
                 print(f"running acc: {correct}/{n} = {100*correct/n:.1f}%", flush=True)

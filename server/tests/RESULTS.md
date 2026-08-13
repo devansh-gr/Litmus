@@ -3,6 +3,26 @@
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 Battery-limited? `tests/bench_stream.py` streams each prediction to disk (resilient to kills).
 
+## Multi-label "mixture" — top-2 accuracy quantifies the co-presence ceiling (2026-08-12)
+
+Manipulation is often two techniques at once ("act now, only 2 left, everyone's buying" = false-urgency
+AND fomo AND social-proof), so single-label accuracy penalizes the model for picking the *other* correct
+label. Added a `mixture` field to the verdict (every technique above `CPD_MIXTURE_FLOOR`, default 0.15,
+winner first — e.g. "act now, only 2 left, everyone's buying" → `fomo 66%, false-urgency 24%`) and
+top-2/top-3 accuracy to `bench_full.py` + `bench_stream.py`. On the 3B (external_test, N=300):
+
+| metric | accuracy |
+|---|---|
+| top-1 (single label) | 64.0% [58.4, 69.2] |
+| **top-2** (winner or 1st runner-up) | **73.0%** [67.7, 77.7] |
+| top-3 | 74.0% [68.8, 78.6] |
+
+**+9 points from top-1 to top-2** — most single-label "errors" are the model's 2nd pick being the
+co-present technique, not a real miss. The honest question isn't "which one label" but "did we name the
+manipulation at all". Contract-safe: the `mixture` field is a new top-level key (Swift ignores unknown
+keys; the 6 `test_classify_contract.py` assertions still pass). `bench_stream.py` now persists
+`alternatives`, so battery-killed partials keep the top-2 number too.
+
 ## LoRA fine-tune the 14B — trained, but does NOT beat few-shot (2026-08-12)
 
 Fine-tuned Qwen2.5-14B (LoRA, 8 layers, the leakage-free 503/55 split). Best checkpoint by

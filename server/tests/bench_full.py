@@ -86,13 +86,17 @@ def main():
 
     rows = [json.loads(l) for l in Path(args.data).read_text().splitlines() if l.strip()]
     y_true, y_pred, confs, correct, manip_p, is_manip = [], [], [], [], [], []
+    correct_top2, correct_top3 = [], []   # gold caught by winner + close runner-ups (the mixture case)
     for r in rows:
         resp = classify(r["text"])
         gold, pred = r["label"], resp.get("vector", "?")
+        alts = [a.get("vector") for a in resp.get("alternatives", [])]
         y_true.append(gold)
         y_pred.append(pred)
         confs.append(resp.get("confidence", 0) / 100)
         correct.append(int(pred == gold))
+        correct_top2.append(int(gold == pred or gold in alts[:1]))   # winner + 1st runner-up
+        correct_top3.append(int(gold == pred or gold in alts[:2]))   # winner + top-2 runner-ups
         manip_p.append(resp.get("manip_prob", 1.0 if pred != "none" else 0.0))
         is_manip.append(int(gold != "none"))
 
@@ -108,6 +112,10 @@ def main():
 
     print(f"\n{'='*70}\nBENCHMARK: {args.name}   (N={N})\n{'='*70}")
     print(f"accuracy            {acc:.1%}   95% CI [{lo:.1%}, {hi:.1%}]  (Wilson)")
+    t2lo, t2hi = wilson(sum(correct_top2), N)
+    t3lo, t3hi = wilson(sum(correct_top3), N)
+    print(f"top-2 accuracy      {sum(correct_top2)/N:.1%}   95% CI [{t2lo:.1%}, {t2hi:.1%}]  (gold = winner or 1st runner-up)")
+    print(f"top-3 accuracy      {sum(correct_top3)/N:.1%}   95% CI [{t3lo:.1%}, {t3hi:.1%}]  (gold in top 3)")
     mf1 = f1_score(y_true, y_pred, labels=labels, average="macro", zero_division=0)
     blo, bhi = bootstrap_macro_f1(y_true, y_pred, labels)
     print(f"macro-F1            {mf1:.3f}   95% CI [{blo:.3f}, {bhi:.3f}]  (bootstrap)")

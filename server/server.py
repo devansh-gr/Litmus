@@ -282,6 +282,12 @@ CALIB_B = float(os.environ.get("CPD_CALIB_B", "0.0"))
 # Abstain: below this CALIBRATED confidence the technique label is not trustworthy (the
 # calibration makes this honest), so flag it rather than assert a shaky verdict.
 ABSTAIN_BELOW = float(os.environ.get("CPD_ABSTAIN_BELOW", "0.45"))
+# Multi-label "mixture": techniques whose probability clears this floor are treated as
+# co-present (e.g. "act now, only 2 left, everyone's buying" is fomo AND false-urgency AND social
+# proof). The verdict carries a `mixture` list (every technique above the floor) alongside the
+# single top `vector`. A floor (not a margin off the winner) is used because the confidence softmax
+# is sharpened, and it matches the macOS card's existing "also:" selection.
+MIXTURE_FLOOR = float(os.environ.get("CPD_MIXTURE_FLOOR", "0.15"))
 
 
 def _calibrate(p: float) -> float:
@@ -683,6 +689,11 @@ def classify(inp: TextIn):
         [{"vector": v, "p": round(p, 4)} for v, p in zip(VECTORS, probs)],
         key=lambda d: -d["p"],
     )
+    # Multi-label mixture: every technique above MIXTURE_FLOOR (excluding "none"), winner first.
+    # Surfaces co-present techniques without changing the single top `vector`.
+    mixture = [{"vector": r["vector"], "pct": int(round(r["p"] * 100))}
+               for r in ranked
+               if r["vector"] != "none" and r["p"] >= MIXTURE_FLOOR][:3]
     cal = _calibrate(probs[best])
     uncertain = cal < ABSTAIN_BELOW
     result = {
@@ -692,6 +703,7 @@ def classify(inp: TextIn):
                       "the label as a guess." if uncertain else DEFINITIONS[VECTORS[best]]),
         "uncertain": uncertain,
         "alternatives": ranked[1:4],
+        "mixture": mixture,
         "manip_prob": round(gp["yes"], 4),   # gate P(manipulation) — for eval/PR-AUC
         "source": f"llama-3.2-3b-instruct ({LLM_BACKEND}, gated label scoring)",
     }
