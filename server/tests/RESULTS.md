@@ -1,6 +1,27 @@
 # Detector benchmark — results
 
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
+Battery-limited? `tests/bench_stream.py` streams each prediction to disk (resilient to kills).
+
+## LoRA fine-tune the 14B — trained, but does NOT beat few-shot (2026-08-12)
+
+Fine-tuned Qwen2.5-14B (LoRA, 8 layers, the leakage-free 503/55 split). Best checkpoint by
+validation loss = **iter-150** (4.045→0.400→0.109→**0.077**→0.285 at 200, i.e. overfitting past 150).
+Benched with the streaming harness (`bench_stream.py`) because the 14B draws ~1.5%/min under load —
+faster than the charger — so it stopped at the 7% battery watchdog after **123/300**:
+
+| 14B config | accuracy |
+|---|---|
+| zero-shot (full 300) | 79.3% |
+| **few-shot (full 300)** | **82.3%** |
+| LoRA iter-150 (partial, 123/300) | 78.9% (97/123) |
+
+On the 123 examples benched the LoRA is **78.9% ≈ zero-shot's 79.3% and below few-shot's 82.3%** —
+the CIs overlap (±~7% at N=123), so it's a wash-to-slightly-worse, NOT a win. Same story as the 3B
+(LoRA tied/below few-shot): 503 imbalanced examples can't beat in-context exemplars on a model this
+size. **Few-shot stays the best config.** (Partial run; a full-300 confirm needs an uninterrupted
+charge, but the representative 123 makes the direction clear.) Raw: `lora/results/pred_lora14b_partial.jsonl`,
+adapter in `lora/adapters_14b/`.
 
 ## Two cheap levers measured — voting is a confound, data cleaning is real (2026-08-11)
 
