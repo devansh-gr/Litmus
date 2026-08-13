@@ -263,6 +263,12 @@ MLX_MODEL = os.environ.get("CPD_MLX_MODEL", "mlx-community/Llama-3.2-3B-Instruct
 # Optional LoRA adapter (technique fine-tune). Empty = base model. Trained on the
 # leakage-free split (lora/prepare_data.py) and reported on the untouched holdout.
 MLX_ADAPTER = os.environ.get("CPD_MLX_ADAPTER", "")
+# Reasoning-model path (opt-in, CPD_REASONING=1). Stage 2 then GENERATES a chain-of-thought and
+# reads the label off the end instead of log-prob scoring — for reasoning models (e.g.
+# DeepSeek-R1-Distill). Slow (long thinking traces) so it's off by default; pair with
+# CPD_MLX_MODEL=mlx-community/DeepSeek-R1-Distill-Qwen-14B-4bit. The gate (Stage 1) stays log-prob.
+REASONING = os.environ.get("CPD_REASONING", "0") == "1"
+REASON_MAX_TOKENS = int(os.environ.get("CPD_REASON_MAX_TOKENS", "1536"))
 
 # Confidence sharpening. With 12 candidate labels a raw softmax dilutes the winner
 # (a clear false-urgency landed at ~20%), which reads as unsure. Dividing the
@@ -474,6 +480,46 @@ def _label_scores(text: str, system: str = None, labels=None, fewshot=None) -> l
     return scores
 
 
+def _reason_label(text: str, system: str, labels) -> tuple:
+    """Reasoning path (CPD_REASONING): the model GENERATES a chain-of-thought, then names one
+    label; we read the answer off the end. Returns (best_index, generated_text). Slow (long
+    thinking traces) so it's opt-in only; classify() synthesizes confidence from the single label.
+    Runs on the _detector thread like _label_scores (MLX streams are thread-local)."""
+    from mlx_lm import generate
+    model, tok = get_mlx()
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": (
+            text + "\n\nReason briefly, then end your reply with a line exactly like "
+            "`ANSWER: <name>`, where <name> is the single best-fitting technique from: "
+            + ", ".join(labels))},
+    ]
+    prompt = tok.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+    try:
+        out = generate(model, tok, prompt=prompt, max_tokens=REASON_MAX_TOKENS, verbose=False)
+    except TypeError:  # older mlx_lm positional signature
+        out = generate(model, tok, prompt, REASON_MAX_TOKENS)
+    # Read the answer off the tail (after </think> if present; the model restates it last).
+    tail = out.split("</think>")[-1]
+    if "ANSWER:" in tail:
+        tail = tail.split("ANSWER:")[-1]
+    low = tail.lower()
+    best = None
+    for i, lab in enumerate(labels):
+        pos = low.rfind(lab.lower())
+        if pos >= 0 and (best is None or pos > best[1]):
+            best = (i, pos)
+    if best is None:                       # fall back to scanning the whole generation
+        low_all = out.lower()
+        for i, lab in enumerate(labels):
+            if lab.lower() in low_all:
+                best = (i, 0)
+                break
+    if best is None:                       # last resort
+        return (labels.index("none") if "none" in labels else 0), out
+    return best[0], out
+
+
 def get_tribe():
     global _tribe
     with _lock:
@@ -668,7 +714,11 @@ def classify(inp: TextIn):
     # STAGE 2 — which technique. Identical to the standalone classifier; the gate above
     # just spared benign text. With CPD_SELF_CONSISTENCY>1, vote across rotated-definition
     # prompt variants (averaging list-position bias) instead of a single pass.
-    if SELF_CONSISTENCY > 1:
+    if REASONING:
+        best, _gen = _detector.submit(_reason_label, inp.text, SYSTEM, VECTORS).result()
+        probs = [0.0] * len(VECTORS)
+        probs[best] = 1.0   # generative path returns one label, not a full distribution
+    elif SELF_CONSISTENCY > 1:
         import collections
         prob_sum = [0.0] * len(VECTORS)
         votes = []

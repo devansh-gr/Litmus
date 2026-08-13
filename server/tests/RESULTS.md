@@ -3,6 +3,24 @@
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 Battery-limited? `tests/bench_stream.py` streams each prediction to disk (resilient to kills).
 
+## Reasoning model — DeepSeek-R1-Distill-14B: works, not better, and 50x slower (2026-08-12)
+
+Added a generative "think-then-label" path (`CPD_REASONING=1`, new `_reason_label` in server.py) for a
+reasoning model — the detector is log-prob scoring otherwise. Benched `DeepSeek-R1-Distill-Qwen-14B-4bit`
+with the streaming harness on a balanced 42-example subset (7/class):
+
+| config | accuracy | latency/scan |
+|---|---|---|
+| few-shot 14B (full 300) | 82.3% | ~7-13 s |
+| **R1-Distill-14B reasoning** (balanced 42) | **76.2%** (32/42) | **~35 s** |
+
+The path WORKS — valid labels extracted from the chain-of-thought (authority recall 0.86, fomo 1.00,
+none 1.00; weak on dopamine 0.43 / false-urgency 0.57). But (a) 76.2% on a *balanced* subset is NOT a
+clear win over few-shot (balanced subsets run lower than the none-heavy full 300, so this is roughly
+comparable), and (b) it costs **~35 s/scan — 50x the 3B, 5x the 14B few-shot**. A 35-second ⌘B can't
+ship, and a full 300-bench would be ~3 hours. **Conclusion: disqualified on latency; the accuracy
+doesn't justify it either.** Code kept as opt-in (off by default). Raw: `lora/results/pred_reason_r1_14b.jsonl`.
+
 ## Multi-label "mixture" — top-2 accuracy quantifies the co-presence ceiling (2026-08-12)
 
 Manipulation is often two techniques at once ("act now, only 2 left, everyone's buying" = false-urgency
