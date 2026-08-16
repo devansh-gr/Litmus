@@ -11,6 +11,11 @@ analyze never leaves the machine.
 > `⌘B` on *"Act now or lose everything forever."* → **False urgency · 87%**
 > `⌘B` on *"Hello! How can I help you today?"* → **No manipulation ✓**
 
+**Honest numbers:** ~62% naming the exact technique on the shipped 3B, **82.3%** on an opt-in 14B, and
+**~73% top-2** on the 3B (manipulation is usually two techniques at once, so "did we name it" is the
+fair question). Chance on a 14-class problem is ~7–15%. Every number, including the ones that didn't
+improve, is in [docs/RETROSPECTIVE.md](docs/RETROSPECTIVE.md).
+
 ---
 
 ## The one idea
