@@ -5,6 +5,12 @@ technique (+ calibrated confidence + runner-up "mixture"). Optionally (🧠 menu
 it renders a **cortical impact profile** — which brain systems the content engages — via
 Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no telemetry.
 
+> **Status (2026-08-15): wrapped.** Accuracy 62% shipped 3B → **82.3%** best (14B few-shot) → **~90%
+> top-2** (the honest multi-label metric). Every lever documented, including the failures (voting =
+> confound, LoRA never beat few-shot, reasoning model too slow). Close-out: `docs/RETROSPECTIVE.md`;
+> every number: `server/tests/RESULTS.md`. One open experiment: retrain the 14B LoRA on the rebalanced
+> 884/98 split and bench on `external_propaganda` (needs a charge).
+
 ## Architecture — each model does only what it's actually good at
 - **Detection = local LLM** (Llama-3.2-3B-Instruct, 4-bit **MLX**), **two-stage**: (1) a yes/no
   **manipulation gate** (`GATE_SYSTEM`) — benign text (greetings, requests, facts, reviews, ordinary
