@@ -163,3 +163,9 @@ on-device.
 - 📌 **Honest gaps:** the *algorithm* is validated by experiments **and** now by the eval/benchmark
   suite; the Swift *app UI* still has no automated UI tests (logic is covered by the self-tests).
   Deep-scan latency needs a reboot to re-measure (swap was maxed during the last sprint).
+- 🏁 **Project wrapped (2026-08-15).** Accuracy: **62% shipped 3B → 82.3% best (14B few-shot) →
+  ~90%+ top-2** (the honest multi-label metric). Every lever documented, including the ones that
+  failed (voting, LoRA, reasoning). Only open experiment: retrain the 14B LoRA on the rebalanced
+  data (884/98) and bench it on `external_propaganda` — forecast a wash on `external_test` but a real
+  win on the starved vectors. Full write-up: `tests/RESULTS.md`; the "how the math works" explainer is
+  live at devanshgaur.com/litmus.
