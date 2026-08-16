@@ -45,8 +45,14 @@ changes yet.
   overlap). Few-shot wins accuracy within noise (trades macro-F1 0.41→0.34); LoRA (4-bit base +
   ~3.5M-param adapter, `--mask-prompt`) wins balance (**macro-F1 0.49**) but not accuracy — 267
   imbalanced examples starved social-proof (recall 0.11). Shipped default = few-shot on, adapter
-  opt-in (`CPD_MLX_ADAPTER`). **The remaining accuracy lever is a bigger detector model** (parked;
-  blocked by the 24GB swap ceiling). Record: `server/lora/README.md`.
+  opt-in (`CPD_MLX_ADAPTER`). Record: `server/lora/README.md`.
+- ✅ **The bigger-model lever is TESTED (2026-08-15), and it's the driver.** Same external_test, one
+  env var (`CPD_MLX_MODEL`): 3B **62%** → 8B **69%** → 14B **79%** zero-shot → **82.3%** 14B+few-shot.
+  Monotone in size ⇒ 62% was the 3B's ceiling, not the method's. Few-shot HELPS the 14B (a tie on the
+  3B). Two levers that FAILED (kept honest): self-consistency voting = a confound (+0 on cleaned data);
+  a 14B LoRA never beat few-shot (data-limited); a reasoning model (R1-Distill-14B) hit 76% but ~35s/scan
+  → disqualified. The real path past the single-label ceiling is **multi-label / top-2**: 3B top-1 64%
+  → **top-2 73%**, 14B top-2 forecast ~90%+.
 - ✅ **Technique disambiguation (accuracy 44% → 61%):** once the gate caught manipulation, stage-2
   still collapsed distinct techniques into `false-urgency` (fomo→false-urgency 55%, dopamine recall
   0.00). Sharpened the confusable `DEFINITIONS` to key on the **primary lever** (supply→fomo,
