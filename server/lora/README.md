@@ -11,6 +11,23 @@ tied zero-shot / lost to few-shot too, because the training data was starved on 
 > with the six previously-starved vectors at 90 each. Retrain of the 14B on this pending a charge.
 > (Counts below are from the OLD 267/29 run; the accuracy table is the OLD result.)
 
+## The 14B round (2026-08-12 → 15) — fine-tune still loses to prompting
+
+The "bigger model" the 3B round pointed at got run. On `external_test` (N=300):
+
+| config | accuracy |
+|---|---|
+| Qwen2.5-14B zero-shot | 79.3% |
+| **Qwen2.5-14B + few-shot** | **82.3%** (best) |
+| Qwen2.5-14B LoRA (iter-150, old 503 data) | 78.9% (partial) — ties zero-shot, below few-shot |
+| DeepSeek-R1-Distill-14B (reasoning path) | 76.2% on a balanced-42 subset, ~35s/scan → disqualified |
+
+Same story as the 3B: **a LoRA fine-tune does not beat in-context few-shot** at this data scale, so
+few-shot stays the shipped high-accuracy config. The one thing not yet tried: retrain on the rebalanced
+**884/98** split (above) and bench on `external_propaganda` — forecast a wash on `external_test` (only 6
+of 14 classes present) but a real win on the starved vectors the new data feeds. Raw:
+`results/bench_14b*.txt`, `results/pred_lora14b_partial.jsonl`, `results/pred_reason_r1_14b.jsonl`.
+
 ## Setup
 - `prepare_data.py` → leakage-free split: (now) train 884 / valid 98 from self-authored sets +
   external_**dev** + Mathur-train + propaganda-train; external_**holdout** (150) NEVER trained on → the honest test.
