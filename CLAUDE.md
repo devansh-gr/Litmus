@@ -208,6 +208,11 @@ shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `d
   and `sensitive_selftest.swift` (secret guard) — compile with `swiftc` against the real sources.
 
 ## Known issues (TODO)
+- **⌘B silently dies after a reboot** (2026-08-15). The menu-bar APP holds the ⌘B hotkey listener and
+  is a SEPARATE process from the server. The server auto-restarts via launchd on reboot, but the app is
+  NOT a launchd service → it does not come back, so ⌘B does nothing while the server looks healthy.
+  Fix: `open build/Debug/CorticalPersuasionDecoder.app`. Permanent fix: add the app to Login Items (or
+  give it its own launchd agent). If ⌘B still dead after relaunch, re-grant Accessibility.
 - **Capture Region now WORKS** (2026-07-29). It was blocked by (a) Screen Recording not granted
   and (b) the `.transient` overlay bug (the card was hidden because this LSUIElement app is never
   "active"). Both fixed; the pipeline logs a successful drag-select → screenshot → OCR → verdict.
