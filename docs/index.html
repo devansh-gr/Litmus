@@ -284,9 +284,12 @@ text ─▶ <b>[ Stage 1 · is this manipulation at all? ]</b> ──<span class
       <div class="stat"><div class="v">100<span style="font-size:20px">%</span></div><div class="l">On-device</div><div class="h">no cloud · no telemetry</div></div>
     </div>
     <p class="honest"><b>The honest read:</b> the detector tells manipulation from benign very well (gate PR-AUC
-      0.93) and names the technique decently (~62%). It transfers to a completely independent dataset at 65% — so it
-      learned the patterns, not the phrasings. What’s left is the ceiling of a small on-device model, and we say so
-      plainly. Full methodology, confidence intervals, and the failure modes are in the
+      0.93) and names the technique at ~62% on the shipped 3B — that was the small model's ceiling, not the
+      method's. A bigger on-device model climbs 3B 62% → 8B 69% → 14B 79%, and the 14B with few-shot examples
+      reaches <b>82.3%</b> (an opt-in high-accuracy mode; the fast 3B stays the instant default). And because
+      manipulation is usually two techniques at once, scored as top-2 the number is ~73% on the 3B and near 90%
+      on the 14B. Full methodology, confidence intervals, and the levers that failed (a voting confound, a
+      fine-tune that never beat prompting, a reasoning model too slow to ship) are in the
       <a href="BENCHMARKING.md">benchmarking write-up</a>.</p>
   </div>
 </section>
