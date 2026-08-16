@@ -71,10 +71,14 @@ The honest read: the detector **tells manipulation from benign well** (gate PR-A
 recall 0.78 — up from 0.56 after we taught the gate e-commerce dark patterns it was reading
 as plain facts) **and now names the technique far better** (accuracy 44→61% after teaching
 stage-2 to route by the *primary lever* — supply=FOMO, clock=urgency, crowd=social-proof,
-reward/curiosity=dopamine, credential=authority). We then tried two more accuracy levers —
-**few-shot exemplars** and a **LoRA fine-tune** — and, honestly, both landed at the same ~62%
-(statistically tied on a held-out set): the 3B-4bit model is near its ceiling here, so the next
-real lever is a bigger detector. The shown confidence is **assertive by product choice** —
+reward/curiosity=dopamine, credential=authority). We then reported every lever, including the
+failures. On the 3B, few-shot and a LoRA fine-tune both tied at ~62% (its ceiling). The real
+driver was **model size**: a bigger on-device model climbs 3B 62% → 8B 69% → 14B 79%, and the
+**14B with few-shot reaches 82.3%** (the fast 3B stays the instant default; the 14B is an opt-in
+high-accuracy mode). Self-consistency voting *looked* like a win but was a confound (+0 once we
+cleaned the test data), and the fine-tune never beat plain prompting. And because manipulation is
+often two techniques at once, we also report a **top-2** number: ~73% on the 3B, ~90%+ forecast on
+the 14B — the honest question is "did we name the manipulation," not "which single label." The shown confidence is **assertive by product choice** —
 calibration is available (`CPD_CALIB_A/B`, ECE→0.10) but ships off so the % reads high. What's
 left is mostly gate misses and cross-taxonomy label noise. We show these numbers on purpose —
 the full methodology lives in `docs/BENCHMARKING.md` and `server/lora/README.md`.
