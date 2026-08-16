@@ -59,7 +59,9 @@ that we neither wrote nor tuned on:
 
 | | self-authored (tuned on) | **external (never seen)** |
 |---|---|---|
-| accuracy | ~80% | **~62%** (was 38% three sprints ago) |
+| accuracy (shipped 3B, single-label) | ~80% | **~62%** (was 38% three sprints ago) |
+| accuracy (best on-device, 14B + few-shot) | — | **82.3%** |
+| top-2 accuracy (honest multi-label metric) | — | **73%** (3B) · ~90%+ forecast (14B) |
 | macro-F1 | — | **0.37–0.49** (config-dependent) |
 | gate PR-AUC (ranks manipulation vs benign) | — | **0.93** |
 | gate recall @ shipped threshold | — | **0.78** |
