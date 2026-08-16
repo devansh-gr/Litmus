@@ -134,7 +134,11 @@ Env: `CPD_CLASSIFIER=mock|remote`, `CPD_LLM_BACKEND=mlx|transformers`, `CPD_HOTK
 `CPD_ENDPOINT_URL`, `CPD_BRAINMAP_MODE=text|audio` (default `text`;
 rebuild `baseline.npz` with the matching mode via `build_baseline.py`),
 `CPD_TRIBE_WARM_SECS` (keep TRIBE resident N s after a `/brainmap` so back-to-back deep
-scans skip the ~7GB reload; launchd default 120, code default 0 = free immediately).
+scans skip the ~7GB reload; launchd default 120, code default 0 = free immediately),
+`CPD_MLX_MODEL` (swap the detector, e.g. `mlx-community/Qwen2.5-14B-Instruct-4bit` for the 82.3% mode),
+`CPD_FEWSHOT` (0/1), `CPD_MLX_ADAPTER` (LoRA dir), `CPD_MIXTURE_FLOOR` (0.15; techniques above it join
+the `mixture`), `CPD_SELF_CONSISTENCY` (K-way prompt-ensemble vote, off/1 — a confirmed null),
+`CPD_REASONING` (1 = generative think-then-label path for reasoning models, off) + `CPD_REASON_MAX_TOKENS`.
 
 ## Deep-scan performance
 `/brainmap` is ~15s when RAM is healthy — most of it is the ~7GB TRIBE reload (freed after
