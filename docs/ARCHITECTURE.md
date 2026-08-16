@@ -146,6 +146,14 @@ on-device.
   69% → Qwen2.5-14B 79%** — so 62% was the 3B's ceiling, not the method's. The cost is latency
   (8B ~7.4s, 14B ~12.7s/scan vs 3B ~0.6s; 14B still fits RAM at ~8GB), so the fast 3B stays the
   interactive default and the big models are the opt-in **deep-analysis** tier. See `tests/RESULTS.md`.
+- **The 14B few-shot gets 82.3%** (few-shot helps the 14B where it was a tie on the 3B). Two levers
+  that were tried and FAILED (kept as first-class honest results): self-consistency voting is a
+  confound (+0 on cleaned data), and the LoRA fine-tune never beat few-shot (data-limited). A
+  reasoning model (DeepSeek-R1-Distill-14B) hit 76% on a balanced subset but ~35s/scan → disqualified.
+- **Multi-label `mixture` (2026-08-15).** Manipulation is often 2+ techniques at once, so the verdict
+  carries a `mixture` list (techniques above `CPD_MIXTURE_FLOOR`) beside the single `vector`, and the
+  bench reports **top-2**: 3B top-1 64% → **top-2 73%** — most "misses" are the co-present technique.
+  The honest metric past the single-label ceiling (the task caps mid-80s); 14B top-2 forecast ~90%+.
 
 ## Status
 
