@@ -176,6 +176,12 @@ shot list in the vault: `04 Skills/(C) Demo Filming Guide.md`. Overview docs: `d
   **~62% accuracy** (holdout: few-shot 62.7% / zero-shot 62.0% / LoRA 60.7%, tied), macro-F1 up to
   0.49 (LoRA), gate PR-AUC 0.93 / recall 0.78 (2026-08-07). `tests/gate_diag.py` localizes gate
   misses; `server/lora/` holds the fine-tune experiment (shipped OFF — near the model ceiling).
+- **Multi-label + streaming (2026-08-15).** `bench_full.py` now also prints **top-1/top-2/top-3**
+  (3B top-2 = **73%** vs top-1 64% — the honest headline past the single-label ceiling). `tests/bench_stream.py`
+  streams each prediction to disk + running accuracy, so a battery-killed 14B run still yields a real
+  partial (score with `--score`). `tests/data/external_test_clean.jsonl` (290) is the deduped set
+  (`clean_external_test.py` + `CLEANING_LOG.md`); `build_propaganda_train_set.py` builds the disjoint
+  `external_propaganda_train` that feeds the starved vectors into the rebalanced LoRA split (884/98).
 - **FRESH web sets (downloaded, verified, never fabricated).** `external_mathur.jsonl` (Mathur dark
   patterns, independent of our tuning) — model TRANSFERS at 65% ⇒ NOT over-fit on covered vectors.
   `external_propaganda.jsonl` (PTC fear/outrage/tribal/authority/critical-thinking) — model is
