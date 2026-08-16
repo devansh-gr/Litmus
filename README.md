@@ -171,6 +171,7 @@ docs/                                # architecture, field manual, benchmarking
 ```
 
 ## Further reading
+- **[docs/RETROSPECTIVE.md](docs/RETROSPECTIVE.md)** — the close-out: the arc, what moved accuracy (62% → 82.3% → ~90% top-2), what failed, and why.
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — the whole system on one page.
 - **[docs/BENCHMARKING.md](docs/BENCHMARKING.md)** — how to properly benchmark this, and why.
 - Interactive **[docs/architecture.html](docs/architecture.html)** and
