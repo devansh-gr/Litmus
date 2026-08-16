@@ -43,6 +43,13 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
   and `bench_full.py` reports **top-1/top-2/top-3**: 3B top-1 **64%** → **top-2 73%** (+9) — most
   single-label "misses" are just the co-present technique. The 14B few-shot top-2 is forecast **~90%+**
   (unmeasured). Top-2 is the honest metric past the single-label ceiling (the task itself caps mid-80s).
+  **Reasoning model — tried + disqualified (2026-08-15):** a generative "think-then-label" path
+  (`CPD_REASONING=1`, `_reason_label`) for reasoning models; DeepSeek-R1-Distill-Qwen-14B = 76.2% on a
+  balanced-42 subset (not better than few-shot) at **~35s/scan (50x)** → works, not better, can't ship.
+  Kept off by default. **LoRA data expansion (2026-08-15):** rebalanced the split 503→**884/98** (added a
+  disjoint propaganda-train set for the starved vectors + `PER_CLASS_CAP=90`); the 14B retrain on it is
+  pending a charge, forecast a wash on external_test (only 6 of 14 classes present) but a real win on the
+  propaganda vectors it feeds — bench that on `external_propaganda`, not `external_test`.
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
