@@ -3,6 +3,26 @@
 Run `python tests/run_eval.py` (quick) or `python tests/bench_full.py --data <set>` (rigorous).
 Battery-limited? `tests/bench_stream.py` streams each prediction to disk (resilient to kills).
 
+## 🏁 Project wrap-up — where accuracy landed (2026-08-15)
+
+| what | accuracy |
+|---|---|
+| shipped 3B (instant ⌘B, default) | ~62% single-label |
+| + gate class-fix + data cleaning (3B) | **66.9%** |
+| **best on-device (14B + few-shot)** | **82.3%** single-label |
+| **honest multi-label metric (top-2)** | 3B **73%**, 14B forecast **~90%+** |
+| binary "is this manipulation?" (gate) | PR-AUC **0.93** |
+
+Every lever, honestly (the wins AND the failures — the failures are the point):
+- ✅ **Model size is the driver:** 3B 62 → 8B 69 → 14B 79 → 14B+few-shot **82.3**. Few-shot helps the 14B where it was a tie on the 3B.
+- ✅ **Gate class-fix** (authority+dopamine) 62.3→64; **data cleaning** (10 non-instances) 64→66.9.
+- ⛔ **Self-consistency voting** = a confound (+2.7 on noisy data, **+0 on cleaned** data). Off by default.
+- ⛔ **LoRA fine-tune** never beat few-shot (data-limited). The one open experiment: retrain on the rebalanced **884/98** split and bench on `external_propaganda`.
+- ⛔ **Reasoning model** (R1-Distill-14B) 76% on a balanced subset but **~35s/scan** → disqualified on latency.
+- ➡️ **The real path past the single-label ceiling is MULTI-LABEL (top-2)** — manipulation is usually 2+ techniques at once, so "did we name it" (top-2) is the honest question, and it reads ~73% on the 3B / ~90%+ forecast on the 14B.
+
+Detail for each is in the dated sections below (newest first).
+
 ## Reasoning model — DeepSeek-R1-Distill-14B: works, not better, and 50x slower (2026-08-12)
 
 Added a generative "think-then-label" path (`CPD_REASONING=1`, new `_reason_label` in server.py) for a
