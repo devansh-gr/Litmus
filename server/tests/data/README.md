@@ -24,6 +24,17 @@ author wrote the examples AND tuned the model to them (circular).
 
 Report the **external** number as the real one; use the dev sets only for iteration.
 
+### New sets (2026-08-12 → 15)
+- `external_test_clean.jsonl` (290) — `external_test` with 10 non-instances removed (technique
+  *definitions*, quiz-question stems, cross-fallacy mislabels from the noisy LOGIC source). Built by
+  `clean_external_test.py`; every removal is logged in `CLEANING_LOG.md`; the original is kept for provenance.
+- `external_propaganda_train.jsonl` (592) — TRAINING data for the starved propaganda vectors (fear /
+  outrage / tribal / authority / crit-think / hype), from the **disjoint train split** of the same PTC
+  corpus that `external_propaganda.jsonl` (test) comes from — leakage-free vs that bench, and it never
+  touches `external_test`. Built by `build_propaganda_train_set.py`; feeds the rebalanced LoRA split (884/98).
+- **Metric note:** `bench_full.py` now also reports **top-1/top-2/top-3**. Because manipulation is often
+  2+ techniques at once, top-2 ("did we name it") is the honest headline: 3B top-1 64% → **top-2 73%**.
+
 ### FRESH over-fitting probe (2026-08-07) — Mathur "Dark Patterns at Scale"
 - `external_mathur.jsonl` (320) — built by `build_mathur_set.py` from an **independent** public
   corpus (github.com/aruneshmathur/dark-patterns, Apache-licensed): 80 each of Scarcity→**fomo**,
