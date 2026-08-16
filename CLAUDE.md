@@ -37,6 +37,12 @@ Meta's TRIBE v2 fMRI model. Everything runs on-device: no cloud, no API keys, no
   method's. NOT shipped as default: latency scales with the win (8B ~7.4s, 14B ~12.7s/scan vs 3B ~0.6s;
   14B still fits RAM fine at ~8GB), so the fast 3B stays the interactive default and the big models are
   the opt-in **deep-analysis** tier. Raw: `lora/results/bench_8b.txt`, `bench_14b.txt`.
+  **Multi-label `mixture` (2026-08-15):** manipulation is often 2+ techniques at once ("act now, only 2
+  left, everyone's buying" = urgency + scarcity + social-proof), so the verdict now carries a `mixture`
+  list (every technique above `CPD_MIXTURE_FLOOR`, default 0.15, winner first) beside the single `vector`,
+  and `bench_full.py` reports **top-1/top-2/top-3**: 3B top-1 **64%** → **top-2 73%** (+9) — most
+  single-label "misses" are just the co-present technique. The 14B few-shot top-2 is forecast **~90%+**
+  (unmeasured). Top-2 is the honest metric past the single-label ceiling (the task itself caps mid-80s).
 - **Interpretation = TRIBE v2** (self-hosted, cortex-only fMRI predictor). Renders a cortical
   map. It is NOT a detector.
 - Decoupled behind a Swift `Classifier` protocol → local FastAPI server (`server/server.py`):
@@ -139,7 +145,7 @@ reclaim swap" error; measure warm-vs-cold only after a reboot.
 `apply_patches.py`, `vendor/tribev2`.
 `server/experiments/` the A1–A7 + text-only validation scripts (README table = results).
 `scripts/` `make_signing_identity.sh` · `sign_app.sh` · `build.sh`.
-Full narrative + literature checks: Obsidian vault `03 Projects/Cortical_Persuasion_Decoder/`.
+Full narrative + literature checks: Obsidian vault `03 Projects/Litmus/`.
 Repo: github.com/devansh-gr/Litmus (private; renamed from Media_Emotion_Detector, old URL redirects).
 
 ## Demo (how to film it)
