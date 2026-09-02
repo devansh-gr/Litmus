@@ -17,4 +17,4 @@ phase, kept for provenance/reproducibility. Not part of the running product.
 | `verify_text_only_baseline.py` | After SHIPPING text-only (`CPD_BRAINMAP_MODE=text` + text-only baseline), does the *real* pipeline still separate emotional vs neutral in the served ROIs? | Yes — held-out d=+0.77 (large), carried by the Language/inferior-frontal system (Δ+0.85). Text-only is now the default path. |
 
 Full narrative + literature verification live in the Obsidian vault
-(`Cortical_Persuasion_Decoder/01 In Progress/`).
+(`Litmus/01 In Progress/`).
