@@ -1,4 +1,4 @@
-"""Builds litmus_note.docx in IEEE conference layout (letter, Times 10pt, two columns,
+"""Builds litmus_paper.docx in IEEE conference layout (letter, Times 10pt, two columns,
 full-width title + Fig. 1). Equations are native Word OMML. Run: python make_docx.py"""
 import re
 from docx import Document
@@ -260,5 +260,5 @@ for i, ref in enumerate(refs, 1):
     p.paragraph_format.left_indent = Inches(0.28); p.paragraph_format.first_line_indent = Inches(-0.28)
     rich(p, f"[{i}]\t{ref}", size=8)
 
-doc.save("litmus_note.docx")
+doc.save("litmus_paper.docx")
 print("saved")
