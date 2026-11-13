@@ -33,7 +33,7 @@ Each attention layer caches one key and one value per token:
 \begin{equation}
 M_{\mathrm{tok}}=2\,L\,H_{kv}\,d_h\,b .
 \end{equation}
-All three models use grouped-query attention \cite{gqa} with $H_{kv}{=}8$, $d_h{=}128$, giving 112, 128 and 192\,KiB per token (3B, 8B, 14B, fp16). The 1446-token few-shot prompt occupies 271\,MiB on the 14B, against 1.32\,GiB under full multi-head attention with $H_{kv}{=}40$ (Fig.~\ref{fig:main}b). Beside 7.7\,GB of weights the cache is minor, so RAM did not limit the 14B on a 24\,GB machine.
+All three models use grouped-query attention \cite{gqa} with $H_{kv}{=}8$, $d_h{=}128$, giving 112, 128 and 192\,KiB per token (3B, 8B, 14B, fp16). The 1446-token few-shot prompt occupies 271\,MiB on the 14B, against 1.32\,GiB under full multi-head attention with $H_{kv}{=}40$ (Fig.~\ref{fig:main}b). Beside 8.31\,GB of weights the cache is minor, so RAM did not limit the 14B on a 24\,GB machine.
 
 \section{Prefix KV Reuse}
 All labels share a $P$-token prefix. The deployed scorer prefills it once, appends each label to the cache, reads its log-probabilities, then trims the cache back to length $P$. Verdicts are unchanged. Relative to $K$ independent passes, forwarded tokens fall by
@@ -47,7 +47,7 @@ Prefill is parallel and compute-bound. Decode emits one token per step and strea
 \begin{equation}
 t_{\mathrm{dec}}(n)\ \ge\ nW/B .
 \end{equation}
-With $W{=}7.7$\,GB and $B{=}273$\,GB/s, the 14B needs at least 28\,ms per token. Log-prob scoring decodes zero tokens. DeepSeek-R1-Distill-14B \cite{r1} must decode a chain of thought first: it averaged 35\,s per scan, which bounds its mean chain at about 1240 tokens (Fig.~\ref{fig:main}d), and reached only 76.2\% on a balanced subset.
+With $W{=}8.31$\,GB and $B{=}273$\,GB/s, the 14B needs at least 30.4\,ms per token. Log-prob scoring decodes zero tokens. DeepSeek-R1-Distill-14B \cite{r1} must decode a chain of thought first: it averaged 35\,s per scan, which bounds its mean chain at about 1150 tokens (Fig.~\ref{fig:main}d), and reached only 76.2\% on a balanced subset.
 
 \begin{table}[!b]
 \centering\footnotesize
