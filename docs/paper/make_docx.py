@@ -127,7 +127,7 @@ def table(num, title, rows, widths, bold_row=None, note=None):
 
 # ---------- title block (one column) ----------
 p = para(C, False, after=8)
-p.add_run("Ninety-Nine Percent Redundant: Prefix Caching and the Cost of Short Forward Passes "
+p.add_run("Cross-Request Prefix Caching and the Cost of Short Forward Passes "
           "in On-Device LLM Classification").font.size = Pt(20)
 p = para(C, False); p.add_run("Devansh Gaur").font.size = Pt(11)
 p = para(C, False, after=8); p.add_run("University of Waterloo, Waterloo, ON, Canada").italic = True
