@@ -64,63 +64,53 @@ def decode(ax, fs=5):
     ax.legend(fontsize=fs, loc="upper left", bbox_to_anchor=(0, 0.7), handlelength=1.5)
 
 
-NAVY, ORNG, GRY = "#1f4e79", "#c55a11", "0.55"
+def hero(ax):
+    """Fig. 1(a): every configuration on one frontier; each paper section is an arrow."""
+    ax.axvspan(0.2, 1.0, color="0.93", lw=0)
+    ax.text(0.45, 90.5, "interactive\n(< 1 s)", ha="center", va="top", fontsize=5.8, color="0.35")
+    pts = {"3B": (188, 300, 0.6), "8B": (207, 300, 7.4), "14B": (238, 300, 12.7), "14B few-shot": (247, 300, 10.0)}
+    xy = {}
+    for name, (k, n, t) in pts.items():
+        p, lo, hi = wilson(k, n); xy[name] = (t, p)
+        ax.errorbar(t, p, yerr=[[lo], [hi]], xerr=[[3], [3]] if "few" in name else None, fmt="s" if "few" in name else "o",
+                    ms=3.6, color="k", capsize=1.4, elinewidth=0.5, zorder=3)
+    p, lo, hi = wilson(32, 42)
+    ax.errorbar(35, p, yerr=[[lo], [hi]], fmt="^", ms=3.8, color="k", mfc="w", capsize=1.4, elinewidth=0.5, zorder=3)
+    ax.plot(4.014, 62.7, "o", ms=3.6, color="k", mfc="w", zorder=3)
+    # Pareto frontier
+    fx = [0.6, 7.4, 7.4, 10.0, 10.0, 150]; fy = [62.7, 62.7, 69.0, 69.0, 82.3, 82.3]
+    ax.plot(fx, fy, color="0.6", lw=0.7, ls=(0, (4, 2)), zorder=1)
+    ax.text(60, 83.3, "Pareto frontier", fontsize=5.6, color="0.4", ha="center")
+    arrow = dict(arrowstyle="-|>", lw=0.7, color="k", shrinkA=4, shrinkB=4)
+    ax.annotate("", (0.6, 62.7), (4.014, 62.7), arrowprops=arrow)
+    ax.text(1.55, 60.2, "prefix KV reuse\n9.0× faster, same output (V)", ha="center", va="top", fontsize=5.6)
+    ax.annotate("", xy["8B"], xy["3B"], arrowprops={**arrow, "connectionstyle": "arc3,rad=-0.15"})
+    ax.annotate("", xy["14B"], xy["8B"], arrowprops={**arrow, "connectionstyle": "arc3,rad=-0.25"})
+    ax.text(2.3, 70.5, "model scale\n+16.6 pts (VII)", ha="center", fontsize=5.6)
+    ax.annotate("", xy["14B few-shot"], xy["14B"], arrowprops=arrow)
+    ax.text(14.5, 85.6, "few-shot +3.0 pts", fontsize=5.6, va="center")
+    ax.text(42, 72.3, "reasoning model\ndecode-bound (VI),\nslower and less accurate", fontsize=5.6, va="top")
+    for name, off in {"3B": (-16, 5), "8B": (5, -7), "14B": (5, -9), "14B few-shot": (-48, 6)}.items():
+        ax.annotate(name, xy[name], textcoords="offset points", xytext=off, fontsize=6)
+    ax.annotate("R1-14B*", (35, 76.2), textcoords="offset points", xytext=(5, 3), fontsize=6)
+    ax.annotate("3B, no reuse", (4.014, 62.7), textcoords="offset points", xytext=(-12, -10), fontsize=6)
+    ax.set_xscale("log"); ax.set_xlim(0.2, 150); ax.set_ylim(54, 91)
+    ax.set_xlabel("Latency per classification (s), Apple M4 Pro"); ax.set_ylabel("Top-1 accuracy (%)")
+    for sp in ("top", "right"): ax.spines[sp].set_visible(False)
 
 
-def pipeline(fig):
-    """Fig. 1: real run of the deployed 3B on one input (tokens from its tokenizer, p from /classify)."""
-    gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 2.0, 1.1], wspace=0.5)
-    a, k, c = (fig.add_subplot(g) for g in gs)
-
-    # (a) gate
-    a.set_xlim(0, 10); a.set_ylim(0, 10); a.axis("off")
-    a.add_patch(FancyBboxPatch((0.3, 5.6), 9.2, 3.6, boxstyle="round,pad=0.2,rounding_size=0.4", fc="0.96", ec=GRY, lw=0.5))
-    a.text(4.9, 7.4, "\u201cOnly 2 left in stock! Thousands of\nshoppers already grabbed theirs,\norder now before the deal ends.\u201d",
-           ha="center", va="center", fontsize=5.6, style="italic")
-    a.annotate("", (4.9, 3.9), (4.9, 5.4), arrowprops=dict(arrowstyle="-|>", lw=0.6))
-    a.text(5.3, 4.6, "gate, K = 2", fontsize=5.6, va="center")
-    for y, lab, p_, col in [(2.6, "manipulation", 0.998, NAVY), (1.1, "none", 0.002, GRY)]:
-        a.barh(y, 6.0 * p_, left=3.3, height=0.9, color=col)
-        a.text(3.1, y, lab, ha="right", va="center", fontsize=5.6)
-        a.text(3.4 + 6.0 * p_, y, f"{p_:.3f}", va="center", fontsize=5.4)
-    a.set_title("(a) Gate", fontsize=7, pad=2)
-
-    # (b) KV cache strip + label branches
-    k.set_xlim(-2, 100); k.set_ylim(-0.8, 10.8); k.axis("off")
-    P = 1472; segs = [("system prompt + definitions", 1249, NAVY), ("exemplars", 202, "#5b8db8"), ("input", 21, "#a9c6e0")]
-    x0, sc = 0, 58 / P
-    for lab, n, col in segs:
-        k.add_patch(plt.Rectangle((x0, 7.6), n * sc, 1.6, fc=col, ec="w", lw=0.4))
-        x0 += n * sc
-    k.text(24.5, 8.4, "system prompt (1249)", ha="center", va="center", fontsize=5.4, color="w")
-    k.text(55, 9.9, "exemplars (202)", ha="right", fontsize=5.2)
-    k.annotate("input (21)", (57.7, 9.2), (60, 9.9), fontsize=5.2, arrowprops=dict(arrowstyle="-", lw=0.4))
-    k.annotate("", (0, 7.1), (58, 7.1), arrowprops=dict(arrowstyle="<->", lw=0.5, color=GRY))
-    k.text(29, 6.6, "shared prefix P = 1472 tokens, prefilled once", ha="center", va="top", fontsize=5.4, color="0.25")
-    rows = [("fomo", 2), ("false-urgency", 4), ("social-proof-conformity", 5), ("dopamine-bait", 5), ("11 further labels", None)]
-    for i, (lab, n) in enumerate(rows):
-        y = 4.9 - i * 1.25
-        k.plot([58, 64, 66], [8.4, y, y], color=GRY, lw=0.5)
-        if n:
-            for j in range(n):
-                k.add_patch(plt.Rectangle((66.5 + j * 2.1, y - 0.42), 1.8, 0.84, fc=ORNG, ec="none"))
-            k.text(66.5 + n * 2.1 + 0.8, y, lab, va="center", fontsize=5.3)
-        else:
-            k.text(66.5, y, "\u22ee  11 further labels", va="center", fontsize=5.3, color="0.3")
-    k.text(64, 7.0, "per label: append its tokens, read log p,\nthen trim the cache back to P", ha="left", va="center", fontsize=5.3, color=ORNG)
-    k.set_title("(b) Prefix KV reuse across K = 15 labels", fontsize=7, pad=2)
-
-    # (c) confidences
-    labs = ["fomo", "false-urgency", "social-proof", "dopamine-bait", "11 others"]
-    ps = [0.69, 0.207, 0.087, 0.010, 0.005]
-    ys = np.arange(len(labs))[::-1]
-    c.barh(ys, ps, color=[NAVY if p_ >= 0.15 else "0.75" for p_ in ps], height=0.62)
-    for y, p_ in zip(ys, ps): c.text(p_ + 0.02, y, f"{p_:.3f}" if p_ < 0.1 else f"{p_:.2f}", va="center", fontsize=5.4)
-    c.axvline(0.15, color=ORNG, lw=0.7, ls="--"); c.text(0.16, 4.75, "mixture floor 0.15", fontsize=5.2, color=ORNG, va="bottom"); c.set_ylim(-0.6, 5.3)
-    c.set_yticks(ys); c.set_yticklabels(labs, fontsize=5.6); c.set_xlim(0, 0.9)
-    c.tick_params(axis="x", labelsize=5.5); c.set_xlabel("confidence $c_i$, Eq. (2)", fontsize=6)
-    for sp in ("top", "right"): c.spines[sp].set_visible(False)
-    c.set_title("(c) Output", fontsize=7, pad=2)
+def topk(ax):
+    """Fig. 1(b): 3B top-k accuracy (bench_3b_top2, N=300)."""
+    vals = [(192, "top-1"), (219, "top-2"), (222, "top-3")]
+    for i, (k, lab) in enumerate(vals):
+        p, lo, hi = wilson(k, 300)
+        ax.bar(i, p, width=0.55, color="0.25" if i == 0 else "0.65")
+        ax.errorbar(i, p, yerr=[[lo], [hi]], color="k", capsize=1.6, elinewidth=0.5)
+        ax.text(i, p + hi + 1, f"{p:.1f}", ha="center", fontsize=6)
+    ax.set_xticks(range(3)); ax.set_xticklabels([v[1] for v in vals], fontsize=6.5)
+    ax.set_ylim(50, 92); ax.set_ylabel("3B accuracy (%)"); ax.set_yticks(range(50, 81, 10))
+    ax.text(1, 91.5, "top-2 adds 9.0 pts:\nmost errors name a\nco-present technique", ha="center", va="top", fontsize=5.6)
+    for sp in ("top", "right"): ax.spines[sp].set_visible(False)
 
 
 if __name__ == "__main__":
@@ -135,7 +125,9 @@ if __name__ == "__main__":
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a); a.tick_params(labelsize=6.5)
         fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
-    fig = plt.figure(figsize=(7.0, 1.75)); pipeline(fig)
-    fig.subplots_adjust(left=0.01, right=0.99, top=0.88, bottom=0.2)
-    fig.savefig("fig_pipeline.png", dpi=600); plt.close(fig)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.0, 2.25), gridspec_kw={"width_ratios": [3.2, 1]}, constrained_layout=True)
+    hero(a1); topk(a2)
+    for a_, t in [(a1, "(a) Accuracy-latency frontier"), (a2, "(b) Single-label ceiling")]:
+        a_.set_title(t, fontsize=7); a_.tick_params(labelsize=6.5)
+    fig.savefig("fig_hero.png", dpi=600); plt.close(fig)
     print("ok")
