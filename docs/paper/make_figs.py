@@ -64,48 +64,73 @@ def decode(ax, fs=5):
     ax.legend(fontsize=fs, loc="upper left", bbox_to_anchor=(0, 0.7), handlelength=1.5)
 
 
-def hero(ax):
-    """Fig. 1(a): every configuration on one frontier; each paper section is an arrow."""
-    ax.axvspan(0.2, 1.0, color="0.93", lw=0)
-    ax.text(0.45, 90.5, "interactive\n(< 1 s)", ha="center", va="top", fontsize=5.8, color="0.35")
-    pts = {"3B": (188, 300, 0.6), "8B": (207, 300, 7.4), "14B": (238, 300, 12.7), "14B few-shot": (247, 300, 10.0)}
-    xy = {}
-    for name, (k, n, t) in pts.items():
-        p, lo, hi = wilson(k, n); xy[name] = (t, p)
-        ax.errorbar(t, p, yerr=[[lo], [hi]], xerr=[[3], [3]] if "few" in name else None, fmt="s" if "few" in name else "o",
-                    ms=3.6, color="k", capsize=1.4, elinewidth=0.5, zorder=3)
-    p, lo, hi = wilson(32, 42)
-    ax.errorbar(35, p, yerr=[[lo], [hi]], fmt="^", ms=3.8, color="k", mfc="w", capsize=1.4, elinewidth=0.5, zorder=3)
-    # Pareto frontier
-    fx = [0.6, 7.4, 7.4, 10.0, 10.0, 150]; fy = [62.7, 62.7, 69.0, 69.0, 82.3, 82.3]
-    ax.plot(fx, fy, color="0.6", lw=0.7, ls=(0, (4, 2)), zorder=1)
-    ax.text(60, 83.3, "Pareto frontier", fontsize=5.6, color="0.4", ha="center")
-    arrow = dict(arrowstyle="-|>", lw=0.7, color="k", shrinkA=4, shrinkB=4)
-    ax.annotate("", xy["8B"], xy["3B"], arrowprops={**arrow, "connectionstyle": "arc3,rad=-0.15"})
-    ax.annotate("", xy["14B"], xy["8B"], arrowprops={**arrow, "connectionstyle": "arc3,rad=-0.25"})
-    ax.text(2.3, 64.8, "model scale\n+16.6 pts (VII)", ha="center", fontsize=5.6)
-    ax.annotate("", xy["14B few-shot"], xy["14B"], arrowprops=arrow)
-    ax.text(14.5, 85.6, "few-shot +3.0 pts", fontsize=5.6, va="center")
-    ax.text(42, 72.3, "reasoning model\ndecode-bound (VI),\nslower and less accurate", fontsize=5.6, va="top")
-    for name, off in {"3B": (-16, 5), "8B": (5, -7), "14B": (5, -9), "14B few-shot": (-48, 6)}.items():
-        ax.annotate(name, xy[name], textcoords="offset points", xytext=off, fontsize=6)
-    ax.annotate("R1-14B*", (35, 76.2), textcoords="offset points", xytext=(5, 3), fontsize=6)
-    ax.set_xscale("log"); ax.set_xlim(0.2, 150); ax.set_ylim(54, 91)
-    ax.set_xlabel("Latency per classification (s), Apple M4 Pro"); ax.set_ylabel("Top-1 accuracy (%)")
+# server/bench/results/*_2026-11-14.jsonl (technique stage, medians over 10 inputs; naive over 3)
+LAD = {"3B": [24.05, 1.80, 0.245, 0.116], "14B": [122.8, 7.69, 0.981, 0.442]}
+PASS_M = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64]
+PASS = {"3B": [10.5, 11.4, 12.7, 15.2, 21.9, 27.1, 41.0, 41.7, 41.8, 41.5, 74.0, 73.6],
+        "14B": [38.6, 41.5, 45.7, 55.9, 84.7, 109.1, 153.3, 154.8, 155.5, 154.6, 287.2, 294.1]}
+
+
+def ladder(ax):
+    """Fig. 1(a): technique-stage latency as each redundancy is removed."""
+    steps = ["no reuse", "+ label prefix reuse", "+ cross-request prefix", "packed label pass"]
+    y = {"3B": 0.0, "14B": 1.0}
+    for m, vals in LAD.items():
+        for i, v in enumerate(vals):
+            yy = y[m] + (i - 1.5) * 0.2
+            pred = i == 3
+            ax.barh(yy, v, height=0.17, color="w" if pred else ["0.8", "0.55", "0.15"][i],
+                    edgecolor="k", lw=0.5, hatch="/////" if pred else None, zorder=2)
+            txt = f"{v:.2f} s" if v < 10 else f"{v:.0f} s"
+            ax.text(v * 1.12, yy, txt + (" (predicted)" if pred else ""), va="center", fontsize=5.8)
+        f = vals[0] / vals[2]
+        ax.text(0.052, y[m] - 0.44, f"{m}: {f:.0f}x faster with both caches", ha="left", va="center", fontsize=6.4, fontweight="bold")
+    ax.axvline(1.0, color="0.5", lw=0.6, ls=":", zorder=1)
+    ax.text(1.05, -0.66, "1 s", fontsize=5.8, color="0.35")
+    ax.set_xscale("log"); ax.set_xlim(0.05, 400); ax.set_ylim(-0.72, 1.4)
+    ax.set_yticks([y[m] + (i - 1.5) * 0.2 for m in LAD for i in range(4)])
+    ax.set_yticklabels(steps * 2, fontsize=5.8)
+    ax.invert_yaxis(); ax.tick_params(axis="y", length=0)
+    ax.set_xlabel("Technique-stage latency (s), 15 labels, Apple M4 Pro")
+    for sp in ("top", "right", "left"): ax.spines[sp].set_visible(False)
+
+
+def passcost(ax):
+    """Fig. 1(b): cost of one forward pass of m tokens over a cached 1.4k-token prefix."""
+    for (m, ts), mk in zip(PASS.items(), ["o", "s"]):
+        ax.step(PASS_M, ts, where="post", color="0.6", lw=0.6)
+        ax.plot(PASS_M, ts, mk, ms=3, color="k", mfc="w" if m == "3B" else "k", label=f"{m} measured")
+    for W, lab in [(W14, "14B"), (W3, "3B")]:
+        ax.axhline(1e3 * W / BW, color="k", lw=0.6, ls="--")
+        ax.text(1.05, 1e3 * W / BW * 0.86, f"{lab} bound $W/B$", fontsize=5.6, ha="left", va="top")
+    ax.axvspan(1, 6, color="0.92", lw=0, zorder=0)
+    ax.text(2.45, 420, "label\npasses", fontsize=5.6, ha="center", va="top", color="0.3")
+    ax.axvline(19, color="0.7", lw=0.6)
+    ax.text(18, 420, "input\nsuffix", fontsize=5.6, ha="right", va="top", color="0.3")
+    ax.set_xscale("log", base=2); ax.set_yscale("log")
+    ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
+    ax.set_ylim(4, 500); ax.set_xlim(0.85, 75)
+    ax.set_xlabel("New tokens in the pass, $m$"); ax.set_ylabel("Pass latency (ms)")
+    ax.legend(fontsize=5.8, loc="lower right")
     for sp in ("top", "right"): ax.spines[sp].set_visible(False)
 
 
-def topk(ax):
-    """Fig. 1(b): 3B top-k accuracy (bench_3b_top2, N=300)."""
-    vals = [(192, "top-1"), (219, "top-2"), (222, "top-3")]
-    for i, (k, lab) in enumerate(vals):
-        p, lo, hi = wilson(k, 300)
-        ax.bar(i, p, width=0.55, color="0.25" if i == 0 else "0.65")
-        ax.errorbar(i, p, yerr=[[lo], [hi]], color="k", capsize=1.6, elinewidth=0.5)
-        ax.text(i, p + hi + 1, f"{p:.1f}", ha="center", fontsize=6)
-    ax.set_xticks(range(3)); ax.set_xticklabels([v[1] for v in vals], fontsize=6.5)
-    ax.set_ylim(50, 92); ax.set_ylabel("3B accuracy (%)"); ax.set_yticks(range(50, 81, 10))
-    ax.text(1, 91.5, "top-2 adds 9.0 pts:\nmost errors name a\nco-present technique", ha="center", va="top", fontsize=5.6)
+def membudget(ax):
+    """Fig. 2: unified-memory budget. Weights, resident static caches, 15-row batched cache."""
+    kib = 1024 / 1e9  # KiB -> GB
+    rows = [("3B, GQA", W3 / 1e9, (1446 + 1290) * 112 * kib, 15 * 1446 * 112 * kib),
+            ("14B, GQA", W14 / 1e9, (1427 + 1281) * 192 * kib, 15 * 1427 * 192 * kib),
+            ("14B, MHA*", W14 / 1e9, (1427 + 1281) * 960 * kib, 15 * 1427 * 960 * kib)]
+    for i, (lab, w, st, bt) in enumerate(rows):
+        ax.barh(i, w, color="0.75", edgecolor="k", lw=0.4, label="4-bit weights" if i == 0 else None)
+        ax.barh(i, st, left=w, color="0.3", edgecolor="k", lw=0.4, label="static caches (both stages)" if i == 0 else None)
+        ax.barh(i, bt, left=w + st, color="w", edgecolor="k", lw=0.4, hatch="////",
+                label="15-row batched cache" if i == 0 else None)
+        ax.text(w + st + bt + 0.4, i, f"{w + st + bt:.1f} GB", va="center", fontsize=5.8)
+    ax.axvline(24, color="k", lw=0.7, ls="--"); ax.text(24.4, -0.5, "24 GB unified memory", fontsize=5.6, ha="left")
+    ax.set_yticks(range(3)); ax.set_yticklabels([r[0] for r in rows], fontsize=6.2)
+    ax.invert_yaxis(); ax.set_xlim(0, 39); ax.set_ylim(2.55, -0.8); ax.set_xlabel("Memory (GB)")
+    ax.legend(fontsize=5.4, loc="center right", bbox_to_anchor=(1.0, 0.56), handlelength=1.4)
     for sp in ("top", "right"): ax.spines[sp].set_visible(False)
 
 
@@ -121,7 +146,13 @@ if __name__ == "__main__":
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a); a.tick_params(labelsize=6.5)
         fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
-    fig, a1 = plt.subplots(figsize=(7.0, 1.95), constrained_layout=True)
-    hero(a1); a1.tick_params(labelsize=6.5)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.0, 1.85), constrained_layout=True, gridspec_kw={"width_ratios": [1.35, 1]})
+    ladder(a1); passcost(a2)
+    a1.set_title("(a) Removing redundant work", fontsize=7); a2.set_title("(b) Cost of one short forward pass", fontsize=7)
+    for a in (a1, a2): a.tick_params(labelsize=6.2)
     fig.savefig("fig_hero.png", dpi=600); plt.close(fig)
+    for name, f, size in [("mem", membudget, (3.4, 1.42))]:
+        fig, a = plt.subplots(figsize=size, constrained_layout=True)
+        f(a); a.tick_params(labelsize=6.2)
+        fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
     print("ok")
