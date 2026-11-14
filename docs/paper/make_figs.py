@@ -64,27 +64,63 @@ def decode(ax, fs=5):
     ax.legend(fontsize=fs, loc="upper left", bbox_to_anchor=(0, 0.7), handlelength=1.5)
 
 
-def pipeline(ax):
-    ax.set_xlim(0, 100); ax.set_ylim(3, 43.5); ax.axis("off")
-    def box(x, y, w, h, txt, fill="w"):
-        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.4,rounding_size=1.2",
-                                    fc=fill, ec="k", lw=0.6))
-        ax.text(x + w/2, y + h/2, txt, ha="center", va="center", fontsize=6.2)
-    def arr(x0, y0, x1, y1, t=None):
-        ax.annotate("", (x1, y1), (x0, y0), arrowprops=dict(arrowstyle="-|>", lw=0.6, color="k"))
-        if t: ax.text((x0+x1)/2 + (1.2 if x0 == x1 else 0), (y0+y1)/2 + (0 if x0 == x1 else 1.2), t, fontsize=5.5, ha="left" if x0 == x1 else "center", va="center" if x0 == x1 else "bottom")
-    box(1, 26, 15, 9, "Input text")
-    box(22, 26, 19, 9, "Gate, K=2\n{manipulation, none}")
-    box(47, 26, 19, 9, "Prefill prefix once\nP tokens → KV cache", fill="0.92")
-    box(72, 26, 26, 9, "Score label i: append ℓ$_i$\ntokens, read log p, trim to P", fill="0.92")
-    box(72, 5, 26, 9, "argmax + mixture\n(labels with p ≥ 0.15)")
-    box(22, 5, 19, 9, "Output: none")
-    arr(16.5, 30.5, 21.5, 30.5); arr(41.5, 30.5, 46.5, 30.5, "pass")
-    arr(66.5, 30.5, 71.5, 30.5); arr(85, 25.5, 85, 14.5, "i = 1..15")
-    arr(31.5, 25.5, 31.5, 14.5, "none")
-    ax.annotate("", (75, 35.6), (95, 35.6), arrowprops=dict(arrowstyle="-|>", lw=0.5, color="0.4",
-                connectionstyle="arc3,rad=0.35"))
-    ax.text(85, 41.8, "loop over K labels, cache reused", fontsize=5.3, ha="center", color="0.3")
+NAVY, ORNG, GRY = "#1f4e79", "#c55a11", "0.55"
+
+
+def pipeline(fig):
+    """Fig. 1: real run of the deployed 3B on one input (tokens from its tokenizer, p from /classify)."""
+    gs = fig.add_gridspec(1, 3, width_ratios=[1.0, 2.0, 1.1], wspace=0.5)
+    a, k, c = (fig.add_subplot(g) for g in gs)
+
+    # (a) gate
+    a.set_xlim(0, 10); a.set_ylim(0, 10); a.axis("off")
+    a.add_patch(FancyBboxPatch((0.3, 5.6), 9.2, 3.6, boxstyle="round,pad=0.2,rounding_size=0.4", fc="0.96", ec=GRY, lw=0.5))
+    a.text(4.9, 7.4, "\u201cOnly 2 left in stock! Thousands of\nshoppers already grabbed theirs,\norder now before the deal ends.\u201d",
+           ha="center", va="center", fontsize=5.6, style="italic")
+    a.annotate("", (4.9, 3.9), (4.9, 5.4), arrowprops=dict(arrowstyle="-|>", lw=0.6))
+    a.text(5.3, 4.6, "gate, K = 2", fontsize=5.6, va="center")
+    for y, lab, p_, col in [(2.6, "manipulation", 0.998, NAVY), (1.1, "none", 0.002, GRY)]:
+        a.barh(y, 6.0 * p_, left=3.3, height=0.9, color=col)
+        a.text(3.1, y, lab, ha="right", va="center", fontsize=5.6)
+        a.text(3.4 + 6.0 * p_, y, f"{p_:.3f}", va="center", fontsize=5.4)
+    a.set_title("(a) Gate", fontsize=7, pad=2)
+
+    # (b) KV cache strip + label branches
+    k.set_xlim(-2, 100); k.set_ylim(-0.8, 10.8); k.axis("off")
+    P = 1472; segs = [("system prompt + definitions", 1249, NAVY), ("exemplars", 202, "#5b8db8"), ("input", 21, "#a9c6e0")]
+    x0, sc = 0, 58 / P
+    for lab, n, col in segs:
+        k.add_patch(plt.Rectangle((x0, 7.6), n * sc, 1.6, fc=col, ec="w", lw=0.4))
+        x0 += n * sc
+    k.text(24.5, 8.4, "system prompt (1249)", ha="center", va="center", fontsize=5.4, color="w")
+    k.text(55, 9.9, "exemplars (202)", ha="right", fontsize=5.2)
+    k.annotate("input (21)", (57.7, 9.2), (60, 9.9), fontsize=5.2, arrowprops=dict(arrowstyle="-", lw=0.4))
+    k.annotate("", (0, 7.1), (58, 7.1), arrowprops=dict(arrowstyle="<->", lw=0.5, color=GRY))
+    k.text(29, 6.6, "shared prefix P = 1472 tokens, prefilled once", ha="center", va="top", fontsize=5.4, color="0.25")
+    rows = [("fomo", 2), ("false-urgency", 4), ("social-proof-conformity", 5), ("dopamine-bait", 5), ("11 further labels", None)]
+    for i, (lab, n) in enumerate(rows):
+        y = 4.9 - i * 1.25
+        k.plot([58, 64, 66], [8.4, y, y], color=GRY, lw=0.5)
+        if n:
+            for j in range(n):
+                k.add_patch(plt.Rectangle((66.5 + j * 2.1, y - 0.42), 1.8, 0.84, fc=ORNG, ec="none"))
+            k.text(66.5 + n * 2.1 + 0.8, y, lab, va="center", fontsize=5.3)
+        else:
+            k.text(66.5, y, "\u22ee  11 further labels", va="center", fontsize=5.3, color="0.3")
+    k.text(64, 7.0, "per label: append its tokens, read log p,\nthen trim the cache back to P", ha="left", va="center", fontsize=5.3, color=ORNG)
+    k.set_title("(b) Prefix KV reuse across K = 15 labels", fontsize=7, pad=2)
+
+    # (c) confidences
+    labs = ["fomo", "false-urgency", "social-proof", "dopamine-bait", "11 others"]
+    ps = [0.69, 0.207, 0.087, 0.010, 0.005]
+    ys = np.arange(len(labs))[::-1]
+    c.barh(ys, ps, color=[NAVY if p_ >= 0.15 else "0.75" for p_ in ps], height=0.62)
+    for y, p_ in zip(ys, ps): c.text(p_ + 0.02, y, f"{p_:.3f}" if p_ < 0.1 else f"{p_:.2f}", va="center", fontsize=5.4)
+    c.axvline(0.15, color=ORNG, lw=0.7, ls="--"); c.text(0.16, 4.75, "mixture floor 0.15", fontsize=5.2, color=ORNG, va="bottom"); c.set_ylim(-0.6, 5.3)
+    c.set_yticks(ys); c.set_yticklabels(labs, fontsize=5.6); c.set_xlim(0, 0.9)
+    c.tick_params(axis="x", labelsize=5.5); c.set_xlabel("confidence $c_i$, Eq. (2)", fontsize=6)
+    for sp in ("top", "right"): c.spines[sp].set_visible(False)
+    c.set_title("(c) Output", fontsize=7, pad=2)
 
 
 if __name__ == "__main__":
@@ -95,9 +131,11 @@ if __name__ == "__main__":
     fig.savefig("fig_main.pdf"); plt.close(fig)
 
     for name, f, size in [("acc", acc, (3.4, 1.75)), ("kv", kv, (3.4, 1.75)), ("reuse", reuse, (3.4, 1.65)),
-                          ("decode", decode, (3.4, 1.75)), ("pipeline", pipeline, (7.0, 1.55))]:
+                          ("decode", decode, (3.4, 1.75))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
-        f(a)
-        if name != "pipeline": a.tick_params(labelsize=6.5)
+        f(a); a.tick_params(labelsize=6.5)
         fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
+    fig = plt.figure(figsize=(7.0, 1.75)); pipeline(fig)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.88, bottom=0.2)
+    fig.savefig("fig_pipeline.png", dpi=600); plt.close(fig)
     print("ok")
