@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "STIXGeneral"],
                      "mathtext.fontset": "stix", "font.size": 8, "axes.spines.top": False,
                      "axes.spines.right": False, "axes.linewidth": 0.8, "legend.frameon": False})
-rows = [json.loads(l) for l in open(Path(__file__).parents[2] / "server/bench/results/packed_sweep_2026-11-15.jsonl")]
+rows = [json.loads(l) for l in open(Path(__file__).parents[2] / "server/bench/results/packed_sweep_50_2026-11-15.jsonl")]
 fig, ax = plt.subplots(figsize=(3.4, 1.6))
 for tag, mk, fc in (("3B", "o", "white"), ("14B", "s", "black")):
     r = [x for x in rows if (("3B" in x["model"]) if tag == "3B" else ("14B" in x["model"]))]

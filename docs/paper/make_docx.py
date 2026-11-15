@@ -245,10 +245,10 @@ body("The staircase prices the label passes badly: 14 passes, each paying nearly
      "Tokens at the same depth share a rotary position, which we apply per depth group. Fig. 1(b) prices "
      "this pass at $t$(48), predicting 0.116 s (3B) and 0.442 s (14B) for the stage. Measured medians over "
      "300 inputs were 0.127 and 0.512 s.")
-body("With synthetic label sets of 8 to 96 tokens (5-token labels, 5 inputs), packed time was flat from 16 to 32 and from 48 to 64 "
-     "tokens, and the gain over sequential scoring grew from 1.0× at 8 tokens to 3.4× (3B) and 2.9× (14B) at 96. "
-     "Packed and sequential scores differed by at most 0.047 nats; a causal mask across labels or "
-     "consecutive positions changed them by 1.2 to 10 nats.")
+body("With synthetic label sets of 8 to 96 tokens (5-token labels, 50 benchmark inputs), packed time was "
+     "flat from 16 to 32 and from 48 to 64 tokens, and the median gain over sequential scoring grew from "
+     "1.0× at 8 tokens to 3.5× (3B) and 2.8× (14B) at 96. Packed and sequential scores differed by at most "
+     "0.067 nats; a causal mask across labels or consecutive positions changed them by 0.6 to 13 nats.")
 
 heading("VI", "Memory")
 body("Each token's cache entry occupies")
@@ -271,7 +271,7 @@ body("A packed 14B classification costs as much as decoding about 18 tokens; a d
 
 heading("VIII", "Limitations and Conclusion")
 body("One packed pass halved the cached latency. Results come from one machine, slow baselines cover "
-     "fewer inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v2).")
+     "fewer inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v3).")
 
 # ---------- references ----------
 REFS = {

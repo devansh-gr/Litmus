@@ -15,10 +15,12 @@ from bench.prefix_cache_bench import score_from
 from bench.packed import install, packed_scores
 
 ap = argparse.ArgumentParser(); ap.add_argument("--model", required=True); ap.add_argument("--inputs", type=int, default=5)
+ap.add_argument("--data", default=None, help="jsonl of {text}; default: bench/latency_bench.py SAMPLES")
 a = ap.parse_args()
 model, tok = load(a.model); install(model)
+texts = [json.loads(l)["text"] for l in open(a.data)] if a.data else SAMPLES
 enc = lambda t, sp=True: tok.encode(t, add_special_tokens=sp)
-prompts = [enc(s._chat_prompt(tok, t, s.SYSTEM, s.TECHNIQUE_FEWSHOT)) for t in SAMPLES[:a.inputs]]
+prompts = [enc(s._chat_prompt(tok, t, s.SYSTEM, s.TECHNIQUE_FEWSHOT)) for t in texts[:a.inputs]]
 static_len = min(next(i for i, (x, y) in enumerate(zip(prompts[0], p)) if x != y) for p in prompts[1:])
 cache = make_prompt_cache(model); mx.eval(model(mx.array([prompts[0][:static_len]]), cache=cache))
 vocab = sorted({t for v in s.VECTORS for t in enc(v, False)} | {t for p in prompts for t in p[static_len:]})

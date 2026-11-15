@@ -3,7 +3,7 @@
 Every number in the paper comes from a script in `server/bench/` and a raw result file in
 `server/bench/results/`. Nothing below is hand-entered.
 
-Fixed version for the paper: git tag `paper-v2`. Data split: `server/tests/data/external_test.jsonl`
+Fixed version for the paper: git tag `paper-v3`. Data split: `server/tests/data/external_test.jsonl`
 (300) = `external_dev.jsonl` (150, used to tune prompts and thresholds) + `external_holdout.jsonl`
 (150, never used for tuning; all accuracy in the paper is holdout-only). Classes: 5 of the 14
 techniques plus `none`.
@@ -43,24 +43,26 @@ Run from `server/`:
 | Packed-token sweep and broken controls | `.venv/bin/python bench/packed_sweep.py --model <ckpt>` | `packed_sweep_2026-11-15.jsonl` |
 
 Benchmark inputs: `server/tests/data/external_test.jsonl` (300 public examples); the 150 that
-also appear in `external_holdout.jsonl` played no part in tuning. The sweep uses the first 5 inputs of `bench/latency_bench.py`
-and synthetic label sets of K labels x 5 tokens drawn with seed 0 from the label and input
-vocabulary, giving 8 to 96 packed tokens.
+also appear in `external_holdout.jsonl` played no part in tuning. The sweep uses the first 50 inputs of `external_test.jsonl` (`--inputs 50 --data
+tests/data/external_test.jsonl`) and synthetic label sets of K labels x 5 tokens drawn with seed 0
+from the label and input vocabulary, giving 8 to 96 packed tokens. Output:
+`packed_sweep_50_2026-11-15.jsonl` (an earlier 5-input run is `packed_sweep_2026-11-15.jsonl`).
 
 ## Sweep result (`fig_sweep.png`)
-Speedup of packed over sequential scoring, range over 5 inputs:
+Speedup of packed over sequential scoring per input, median (5th to 95th percentile), 50 inputs:
 
 | Packed tokens | 3B | 14B |
 |---|---|---|
-| 8 | 1.05 to 1.45 | 0.99 to 1.07 |
-| 16 | 1.41 to 1.43 | 1.40 to 1.48 |
-| 32 | 2.80 to 2.85 | 2.74 to 2.97 |
-| 48 | 2.48 to 2.53 | 2.21 to 2.22 |
-| 64 | 3.09 to 3.18 | 2.86 to 2.89 |
-| 96 | 3.43 to 3.54 | 2.92 to 2.95 |
+| 8 | 1.06 (1.04 to 1.10) | 1.00 (0.97 to 1.03) |
+| 16 | 1.43 (1.37 to 1.47) | 1.44 (1.39 to 1.45) |
+| 32 | 2.80 (2.64 to 2.97) | 2.82 (2.68 to 3.03) |
+| 48 | 2.40 (2.26 to 2.55) | 2.27 (2.05 to 2.36) |
+| 64 | 3.06 (2.90 to 3.19) | 2.98 (2.79 to 3.12) |
+| 96 | 3.46 (3.26 to 3.52) | 2.81 (2.46 to 3.07) |
 
-Max packed vs sequential score difference: 0.025 nats (3B), 0.047 (14B). Broken controls:
-1.2 to 10 nats. Top label agreed on all 60 comparisons.
+Max packed vs sequential score difference: 0.027 nats (3B), 0.067 (14B). Broken controls: 0.64 to
+12.9 nats. Top label agreed on 597 of 600 comparisons; the 3 disagreements are synthetic random-token
+labels, where near-ties are common. On the real label set, packing changed 0 of 300 decisions.
 
 ## Decision changes, by cause (300 inputs)
 - Deployed vs cached prefix: 3 of 300 on the 3B (two gate probabilities within 0.003 of the
