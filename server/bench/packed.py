@@ -34,8 +34,9 @@ def _lse(x):
     return x - mx.logsumexp(x, axis=-1, keepdims=True)
 
 
-def packed_scores(model, cache, last_logits, labels):
-    """Score all labels from the cache state in one pass; cache is trimmed back afterwards."""
+def packed_scores(model, cache, last_logits, labels, control=None):
+    """Score all labels from the cache state in one pass; cache is trimmed back afterwards.
+    control="causal" (labels see each other) or "rope" (consecutive positions) breaks it on purpose."""
     global _PLAN
     base = _lse(last_logits)
     order, plan, depth = [], [], 0                     # order[k] = (label i, depth j)
@@ -49,11 +50,13 @@ def packed_scores(model, cache, last_logits, labels):
     n, off = len(order), cache[0].offset
     idx = {o: k for k, o in enumerate(order)}
     tree = [[order[q][0] == order[k][0] and order[k][1] <= order[q][1] for k in range(n)] for q in range(n)]
+    if control == "causal":
+        tree = [[k <= q for k in range(n)] for q in range(n)]
     mask = mx.concatenate([mx.ones((n, off), dtype=mx.bool_), mx.array(tree)], axis=1)
     saved = [c.make_mask for c in cache]
     for c in cache:
         c.make_mask = lambda *a, **k: mask
-    _PLAN = plan
+    _PLAN = None if control == "rope" else plan
     try:
         lg = _lse(model(mx.array([[labels[i][j] for i, j in order]]), cache=cache)[0])
     finally:

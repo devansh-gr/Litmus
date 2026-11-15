@@ -169,18 +169,16 @@ body("An instruction-tuned language model can classify text without generating a
 body("Everything before the passage is the same for every request, and everything before a label is the "
      "same for every label, yet a direct implementation recomputes both. The deployed 14B model needed "
      "15 s per classification, which is why it was never made the default despite being far more accurate "
-     "than the 3B. We ask where that time goes and how much of it is necessary.")
-body("We measure the effect of caching the input-independent prefix across requests, on top of reuse "
-     "across labels. We show that the short passes left afterwards have a step-shaped cost and trace it to "
-     "the 4-bit matrix-multiplication kernel. We then use that cost structure to design a packed label pass, "
-     "implement it, and test it against its prediction.")
+     "than the 3B.")
+body("We cache the input-independent prefix across requests, trace the step-shaped cost of the short "
+     "passes that remain to the 4-bit matrix-multiplication kernel, and design a packed label pass around it.")
 
 heading("II", "Related Work")
 body("Reusing attention state is established practice in LLM serving. PagedAttention [@vllm] shares KV "
      "blocks between sequences, SGLang [@sglang] keeps prefixes in a radix tree, Prompt Cache [@promptcache] "
      "precomputes the attention state of reusable prompt modules, and Hydragen [@hydragen] batches "
-     "attention over a shared prefix. These systems target throughput across many users; here one user waits "
-     "for one decision, and the shared prefix is known in advance. Tree-shaped attention masks verify many candidate continuations at once in speculative decoding "
+     "attention over a shared prefix. These systems target multi-user throughput; "
+     "here one user waits for one decision. Tree-shaped attention masks verify many candidate continuations at once in speculative decoding "
      "[@specinfer]; we apply the same idea to a closed label set. The small-$M$ cost of MLX 4-bit matrix "
      "multiplication was reported for speculative decoding [@mlxissue]; we exploit it for scoring.")
 
@@ -218,7 +216,7 @@ table("I", "End-to-End Latency (s) on 300 Inputs",
        ("Both, p50", "3.53", "0.306", "0.170", "15.33", "1.140", "0.683"),
        ("Both, p95", "5.80", "0.382", "0.241", "17.94", "1.506", "0.995")],
       [0.86, 0.46, 0.41, 0.41, 0.54, 0.41, 0.41], bold_row=3,
-      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. 14B base: 30 inputs.")
+      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. 14B base: 30 inputs. Both: gate and technique stage on every input.")
 body("Caching is not bit-exact, since half-precision sums are reordered. Over all "
      "300 inputs on the 3B, three end-to-end decisions (1.0%) changed: two inputs whose gate probability lay "
      "within 0.003 of the threshold, and one exact tie between two techniques. The largest score difference "
@@ -236,20 +234,23 @@ body("Eq. (3) gives 30.4 ms for the 14B and 6.6 ms for the 3B. Single-token pass
      "stays flat to 32 tokens and doubles by 48. Summing the measured cost of each pass in the stage predicts "
      "239 ms (3B) and 878 ms (14B), against 260 and 966 ms measured.", indent=False)
 body("To locate the cause, we timed a single matrix multiplication shaped like one 14B MLP weight "
-     "(13824×5120) as the number of activation rows $M$ grows (Fig. 2). With 4-bit weights, time is flat for "
-     "$M$ ≤ 3, rises roughly linearly to $M$=10, stays flat through $M$=32, and steps up exactly at $M$=33 "
-     "and $M$=65. A dense fp16 weight shows none of this structure below 64 rows. The step positions match "
+     "(13824×5120) as the number of activation rows $M$ grows (Fig. 2). With 4-bit weights, time rises roughly "
+     "linearly to $M$=10, then steps up exactly at $M$=33 and $M$=65. A dense fp16 weight shows none of this structure below 64 rows. The step positions match "
      "the 32-row tile of MLX's quantized matrix-matrix kernel, and the rising segment is consistent with a "
      "per-row matrix-vector kernel at small $M$.")
 figure("fig_qmm.png", 3.0, "Fig. 2. Time of one 13824×5120 matrix multiplication (a 14B MLP weight) "
-       "against the number of activation rows $M$ (MLX 0.32.0, median of 15).")
+       "against the number of activation rows $M$ (MLX 0.32.0, median of 15). A dependent chain of up and down "
+       "projections, synchronized once per 40 operations, agrees within 7%.")
 body("The staircase prices the label passes badly: 14 passes, each paying nearly a full weight read, "
-     "where a single pass of 47 rows spans two tiles. A padded batch of labels saved little (0 to 15%), "
-     "since its 90 rows each attend over a private copy of the prefix. We therefore place all 47 label tokens in one sequence, ordered by depth, "
+     "where a single pass of 47 rows spans two tiles. We therefore place all 47 label tokens in one sequence, ordered by depth, "
      "under a tree-shaped mask that lets each token see the prompt and the earlier tokens of its own label. "
      "Tokens at the same depth share a rotary position, which we apply per depth group. Fig. 1(b) prices "
      "this pass at $t$(48), predicting 0.116 s (3B) and 0.442 s (14B) for the stage. Measured medians over "
      "300 inputs were 0.127 and 0.512 s.")
+body("With synthetic label sets of 8 to 96 tokens, packed time was flat from 16 to 32 and from 48 to 64 "
+     "tokens, and the gain over sequential scoring grew from 1.0× at 8 tokens to 3.4× (3B) and 2.9× (14B) at 96. "
+     "Packed and sequential scores differed by at most 0.047 nats; a causal mask across labels or "
+     "consecutive positions changed them by 1.2 to 10 nats.")
 
 heading("VI", "Memory")
 body("Each token's cache entry occupies")
@@ -257,8 +258,7 @@ equation(4)
 body("bytes, for $L$ layers, $H_{kv}$ key-value heads of dimension $d_{h}$ and $b$ bytes per element. Both "
      "models use grouped-query attention [@gqa] with $H_{kv}$=8, so the static caches for both stages occupy "
      "0.31 GB (3B) and 0.53 GB (14B), and the packed pass adds only its 47 tokens. Under multi-head attention "
-     "($H_{kv}$=40) the 14B caches would occupy 2.7 GB, and the 15-copy batched layout would need 21 GB, "
-     "more than the machine holds alongside the weights.", indent=False)
+     "($H_{kv}$=40) the 14B caches would occupy 2.7 GB.", indent=False)
 
 heading("VII", "Consequences")
 body("Caching does not remove the trade-off between model sizes: fully optimized, the 3B answers in "
@@ -273,8 +273,8 @@ body("A packed 14B classification costs as much as decoding about 18 tokens; a d
 
 heading("VIII", "Limitations and Conclusion")
 body("Results come from one machine, slow baselines cover fewer inputs, and accuracy covers five of "
-     "14 techniques. With redundant prefill removed, latency is set by the number of passes and their 32-row "
-     "tiles; one packed pass halved it.")
+     "14 techniques. After caching, latency is set by passes and 32-row tiles; "
+     "one packed pass halved it.")
 
 # ---------- references ----------
 REFS = {
