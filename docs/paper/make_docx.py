@@ -133,7 +133,7 @@ p = para(C, False); p.add_run("Devansh Gaur").font.size = Pt(11)
 p = para(C, False, after=8); p.add_run("University of Waterloo, Waterloo, ON, Canada").italic = True
 figure("fig_hero.png", 6.6,
        "Fig. 1. (a) Median latency of the 15-label technique stage as each source of repeated computation is "
-       "removed (300 inputs; 14B label reuse on 30; no reuse on 10 for the 3B and 3 for the 14B). (b) Latency "
+       "removed (300 inputs; no reuse on 10 for the 3B and 3 for the 14B). (b) Latency "
        "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9). Dashed lines: the "
        "bandwidth bound of Eq. (3). The cost of short passes rises in steps rather than following that bound.")
 
@@ -149,8 +149,8 @@ a = p.add_run("Abstract: "); a.bold = a.italic = True; a.font.size = Pt(9)
 rich(p, "A local language model used as a closed-set classifier spends most of its time repeating work. "
         "About 99% of every prompt is identical across inputs, and 15 labels are each scored against it. We remove this redundancy in three steps: reusing the prefix across labels, caching it "
         "across requests, and scoring all labels in a single tree-masked pass. Each step is measured on up to "
-        "300 inputs with 3B and 14B models on an Apple M4 Pro. Warm median end-to-end latency falls from 3.53 s to "
-        "0.17 s (3B) and from 15.2 s to 0.68 s (14B); three of 300 decisions change, two at gate probabilities within 0.003 of the threshold and one at an exact tie. The third step "
+        "300 inputs with 3B and 14B models on an Apple M4 Pro. Warm median full-path latency falls from 3.53 s to "
+        "0.17 s (3B) and from 15.2 s to 0.68 s (14B); no 14B decision changes and three of 300 3B decisions do, two at gate probabilities within 0.003 of the threshold and one at an exact tie. The third step "
         "follows from a measurement. After caching, the remaining work is a series of one- to six-token passes "
         "whose step-shaped cost is consistent with the 32-row tiling of MLX's 4-bit matrix "
         "multiplication. Packing the labels into one pass exploits that structure and halves the remaining latency.",
@@ -184,9 +184,8 @@ body("Reusing attention state is established practice in LLM serving. PagedAtten
      "multiplication was reported in that setting [@mlxissue]. We apply both observations to a closed label set.")
 
 heading("III", "Classification by Label Scoring")
-body("Given the passage *Only 2 left, order now*, the classifier asks how likely the model finds the "
-     "continuation *fomo*, then *false-urgency*, and so on through every label, and picks the most likely. "
-     "Formally, for input $x$ and each label $y \\in \\mathcal{Y}$ it computes the length-normalized "
+body("For a passage such as *Only 2 left, order now*, the model scores candidate labels such as *fomo* "
+     "and *false-urgency* as possible continuations and selects the most likely. Formally, for input $x$ and each label $y \\in \\mathcal{Y}$ it computes the length-normalized "
      "log-likelihood")
 equation(1)
 body("and returns the arg max, with a tempered softmax ($τ$=0.25) for confidence. A gate first scores "
@@ -212,16 +211,16 @@ body("*Across requests.* Label reuse still prefills the full prompt for every re
      "on the 3B, 13.8 s on the 14B) and keep its cache resident; with grouped-query attention [@gqa] the caches for both stages occupy only 0.31 GB (3B) and 0.53 GB (14B). Each request forwards only its suffix (the passage and "
      "closing template) and trims back afterwards (Table I). The gate, whose labels are "
      "single tokens, reduces to one pass of about 19 tokens.")
-table("I", "End-to-End Latency (s) on 300 Inputs",
+table("I", "Full-Path Warm Latency (s), 300 Inputs",
       [("Stage", "3B base", "cache", "pack", "14B base", "cache", "pack"),
        ("Gate, p50", "1.56", "0.046", "0.044", "6.73", "0.172", "0.171"),
        ("Technique, p50", "1.95", "0.260", "0.127", "8.49", "0.966", "0.512"),
        ("Both, p50", "3.53", "0.306", "0.170", "15.21", "1.140", "0.683"),
        ("Both, p95", "5.80", "0.382", "0.241", "17.53", "1.506", "0.995")],
       [0.86, 0.46, 0.41, 0.41, 0.54, 0.41, 0.41], bold_row=3,
-      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. Both: gate and technique stage on every input.")
+      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. Full path: gate and technique stage on every input; in use, gate-rejected passages skip the technique stage.")
 body("Caching reorders half-precision sums, so it is not bit-exact. Over "
-     "300 inputs on the 3B, three end-to-end decisions (1.0%) changed, all through caching and none through packing: two inputs whose gate probability lay "
+     "300 inputs on the 3B, three final decisions (1.0%) changed, all through caching and none through packing: two inputs whose gate probability lay "
      "within 0.003 of the threshold, and one exact tie between two techniques. The largest score difference "
      "was 0.031 nats. On the 14B, no decision "
      "changed in 300. Median paired speedups over the base were 20.4× (3B) and 22.0× (14B).")
@@ -267,8 +266,9 @@ body("Caching does not remove the trade-off between model sizes: fully optimized
      "discordant inputs ($p$ < 10⁻⁶, exact McNemar test [@mcnemar]).")
 
 heading("VII", "Limitations and Conclusion")
-body("One packed pass halved the cached latency. Results come from one machine, no-reuse baselines "
-     "cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v4).")
+body("Once redundant prefix work is removed, the cost of short forward passes, not prompt length, sets "
+     "latency, and packing the labels into one tree-masked pass halved what remained. Results come from one "
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v5).")
 
 # ---------- references ----------
 REFS = {
