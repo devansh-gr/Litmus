@@ -3,7 +3,7 @@
 Every number in the paper comes from a script in `server/bench/` and a raw result file in
 `server/bench/results/`. Nothing below is hand-entered.
 
-Fixed version for the paper: git tag `paper-v3`. Data split: `server/tests/data/external_test.jsonl`
+Fixed version for the paper: git tag `paper-v4`. Data split: `server/tests/data/external_test.jsonl`
 (300) = `external_dev.jsonl` (150, used to tune prompts and thresholds) + `external_holdout.jsonl`
 (150, never used for tuning; all accuracy in the paper is holdout-only). Classes: 5 of the 14
 techniques plus `none`.
@@ -35,7 +35,7 @@ Run from `server/`:
 
 | Paper item | Command | Raw output |
 |---|---|---|
-| Table I, agreement, accuracy | `.venv/bin/python bench/full_bench.py --model <ckpt> --out <file>` (14B: `--deployed-limit 30 --naive 3`) | `full_3b_2026-11-14.jsonl`, `full_14b_2026-11-14.jsonl` |
+| Table I, agreement, accuracy | `.venv/bin/python bench/full_bench.py --model <ckpt> --out <file>` (14B: deployed run in two parts, `--deployed-limit 30`, then `--deployed-start 30 --strategies deployed`; `--naive 3`) | `full_3b_2026-11-14.jsonl`, `full_14b_2026-11-14.jsonl` |
 | Analysis (percentiles, flips, Wilson, McNemar) | `.venv/bin/python bench/analyze_full.py <3b file> <14b file>` | stdout |
 | Eq. (2) check | `.venv/bin/python bench/prefix_cache_bench.py --model <ckpt>` | `prefix_cache_blocked_2026-11-14.jsonl` |
 | Fig. 1(b) pass cost | `.venv/bin/python bench/pass_cost_bench.py --model <ckpt>` | `pass_cost_2026-11-14.jsonl` |
@@ -66,10 +66,10 @@ labels, where near-ties are common. On the real label set, packing changed 0 of 
 
 ## Decision changes, by cause (300 inputs)
 - Deployed vs cached prefix: 3 of 300 on the 3B (two gate probabilities within 0.003 of the
-  threshold, one exact technique tie); 0 of 30 on the 14B.
+  threshold, one exact technique tie); 0 of 300 on the 14B (largest technique-score difference 0.17 nats). Median paired speedup of packed over deployed on the 14B: 22.0x (5th to 95th percentile 15.4 to 26.0).
 - Cached vs packed: 0 of 300 on both models.
 
 ## Limits
-One machine and one runtime (MLX). The 14B deployed baseline covers 30 inputs, no-reuse baselines
+One machine and one runtime (MLX). The deployed baselines cover all 300 inputs on both models; no-reuse baselines
 10 (3B) and 3 (14B). The kernel attribution rests on the op-level timing and is consistent
 with the 32-row tile of MLX's quantized matmul; no kernel-dispatch trace was taken.

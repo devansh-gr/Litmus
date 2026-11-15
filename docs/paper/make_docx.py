@@ -150,7 +150,7 @@ rich(p, "A local language model used as a closed-set classifier spends most of i
         "About 99% of every prompt is identical across inputs, and 15 labels are each scored against it. We remove this redundancy in three steps: reusing the prefix across labels, caching it "
         "across requests, and scoring all labels in a single tree-masked pass. Each step is measured on up to "
         "300 inputs with 3B and 14B models on an Apple M4 Pro. Warm median end-to-end latency falls from 3.53 s to "
-        "0.17 s (3B) and from 15.3 s to 0.68 s (14B); three of 300 decisions change, two at gate probabilities within 0.003 of the threshold and one at an exact tie. The third step "
+        "0.17 s (3B) and from 15.2 s to 0.68 s (14B); three of 300 decisions change, two at gate probabilities within 0.003 of the threshold and one at an exact tie. The third step "
         "follows from a measurement. After caching, the remaining work is a series of one- to six-token passes "
         "whose step-shaped cost is consistent with the 32-row tiling of MLX's 4-bit matrix "
         "multiplication. Packing the labels into one pass exploits that structure and halves the remaining latency.",
@@ -170,7 +170,7 @@ body("Removing that repetition exposed a second, less obvious cost. Each label i
      "pass over 8 tokens cost 2.8 times a pass over one, while a 32-token pass cost no more than a 12-token "
      "one. This step-shaped cost is consistent with the tiling of the 4-bit matrix-multiplication kernel, and "
      "it makes many short passes far more expensive than one longer pass. We exploit it by scoring all labels "
-     "in one tree-masked pass. Warm median latency fell from 15.3 s to 0.68 s for the 14B model and from "
+     "in one tree-masked pass. Warm median latency fell from 15.2 s to 0.68 s for the 14B model and from "
      "3.53 s to 0.17 s for the 3B, which made the far more accurate 14B usable interactively.")
 
 heading("II", "Related Work")
@@ -214,17 +214,17 @@ body("*Across requests.* Label reuse still prefills the full prompt for every re
      "single tokens, reduces to one pass of about 19 tokens.")
 table("I", "End-to-End Latency (s) on 300 Inputs",
       [("Stage", "3B base", "cache", "pack", "14B base", "cache", "pack"),
-       ("Gate, p50", "1.56", "0.046", "0.044", "6.87", "0.172", "0.171"),
-       ("Technique, p50", "1.95", "0.260", "0.127", "8.42", "0.966", "0.512"),
-       ("Both, p50", "3.53", "0.306", "0.170", "15.33", "1.140", "0.683"),
-       ("Both, p95", "5.80", "0.382", "0.241", "17.94", "1.506", "0.995")],
+       ("Gate, p50", "1.56", "0.046", "0.044", "6.73", "0.172", "0.171"),
+       ("Technique, p50", "1.95", "0.260", "0.127", "8.49", "0.966", "0.512"),
+       ("Both, p50", "3.53", "0.306", "0.170", "15.21", "1.140", "0.683"),
+       ("Both, p95", "5.80", "0.382", "0.241", "17.53", "1.506", "0.995")],
       [0.86, 0.46, 0.41, 0.41, 0.54, 0.41, 0.41], bold_row=3,
-      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. 14B base: 30 inputs. Both: gate and technique stage on every input.")
+      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. Both: gate and technique stage on every input.")
 body("Caching reorders half-precision sums, so it is not bit-exact. Over "
      "300 inputs on the 3B, three end-to-end decisions (1.0%) changed, all through caching and none through packing: two inputs whose gate probability lay "
      "within 0.003 of the threshold, and one exact tie between two techniques. The largest score difference "
-     "was 0.031 nats. On the 30 14B inputs with a deployed "
-     "reference, no decision changed. Median paired speedups over the base were 20.4× (3B) and 22.2× (14B).")
+     "was 0.031 nats. On the 14B, no decision "
+     "changed in 300. Median paired speedups over the base were 20.4× (3B) and 22.0× (14B).")
 
 heading("V", "The Cost of a Short Pass")
 body("Once the prefix is cached, the technique stage consists of one 19-token suffix pass followed by 14 "
@@ -267,8 +267,8 @@ body("Caching does not remove the trade-off between model sizes: fully optimized
      "discordant inputs ($p$ < 10⁻⁶, exact McNemar test [@mcnemar]).")
 
 heading("VII", "Limitations and Conclusion")
-body("One packed pass halved the cached latency. Results come from one machine, slow baselines cover "
-     "fewer inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v3).")
+body("One packed pass halved the cached latency. Results come from one machine, no-reuse baselines "
+     "cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v4).")
 
 # ---------- references ----------
 REFS = {
