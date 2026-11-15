@@ -175,11 +175,10 @@ body("Removing that repetition exposed a second, less obvious cost. Each label i
 
 heading("II", "Related Work")
 body("Reusing attention state is established practice in LLM serving. PagedAttention [@vllm] and SGLang "
-     "[@sglang] share cached prefixes across requests, Prompt Cache [@promptcache] precomputes reusable "
-     "prompt modules, and Hydragen [@hydragen] batches attention over a shared prefix. These systems maximize "
-     "throughput for many concurrent users and find shared prefixes at run time. Here one user waits for one "
-     "decision, the prefix is fixed in advance, and the labels are short enough that the cost of each pass, "
-     "rather than prefix reuse, becomes the bottleneck. Tree-shaped attention masks verify many candidate "
+     "[@sglang] share cached prefixes across requests, and Hydragen [@hydragen] batches attention over a "
+     "shared prefix. Prompt Cache [@promptcache], like our cross-request cache, precomputes prompt modules "
+     "fixed in advance to cut time to first token. We differ in what "
+     "remains after reuse: one request scoring short fixed labels on Apple silicon, where per-pass cost dominates. Tree-shaped attention masks verify many candidate "
      "continuations at once in speculative decoding [@specinfer], and the small-$M$ cost of MLX 4-bit matrix "
      "multiplication was reported in that setting [@mlxissue]. We apply both observations to a closed label set.")
 
@@ -247,8 +246,8 @@ figure("fig_qmm.png", 3.0, "Fig. 2. Time of one 13824×5120 matrix multiplicatio
        "projections, synchronized once per 40 operations, agrees within 7%.")
 body("The staircase prices the label passes badly: 14 passes, each paying nearly a full weight read, "
      "where a single pass of 47 rows spans two tiles. We therefore place all 47 label tokens in one sequence, ordered by depth, "
-     "under a tree-shaped mask that lets each token see the prompt and the earlier tokens of its own label. "
-     "Tokens at the same depth share a rotary position, which we apply per depth group. Fig. 1(b) prices "
+     "under a tree-shaped mask that lets each token see the prompt and the earlier tokens of its own label but no other label's; a causal mask would let labels see each other. "
+     "Tokens at the same depth share a rotary position. Fig. 1(b) prices "
      "this pass at $t$(48), predicting 0.116 s (3B) and 0.442 s (14B) for the stage. Measured medians over "
      "300 inputs were 0.127 and 0.512 s.")
 body("With synthetic label sets of 8 to 96 tokens (5-token labels, 50 benchmark inputs), packed time was "
@@ -266,9 +265,9 @@ body("Caching does not remove the trade-off between model sizes: fully optimized
      "discordant inputs ($p$ < 10⁻⁶, exact McNemar test [@mcnemar]).")
 
 heading("VII", "Limitations and Conclusion")
-body("Once redundant prefix work is removed, the cost of short forward passes, not prompt length, sets "
-     "latency, and packing the labels into one tree-masked pass halved what remained. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v5).")
+body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
+     "passes sets latency, and packing the labels into one tree-masked pass halved what remained. Results come from one "
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v6).")
 
 # ---------- references ----------
 REFS = {
