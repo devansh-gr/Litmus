@@ -24,6 +24,7 @@ ap.add_argument("--naive", type=int, default=10)
 ap.add_argument("--out", required=True)
 ap.add_argument("--strategies", default="deployed,static,packed")
 ap.add_argument("--deployed-limit", type=int, default=None, help="run the slow deployed path on the first N inputs only")
+ap.add_argument("--deployed-start", type=int, default=0, help="skip deployed inputs already measured")
 a = ap.parse_args()
 DATA = Path(__file__).resolve().parents[1] / "tests/data"
 rows = [json.loads(l) for l in open(DATA / "external_test.jsonl")]
@@ -52,7 +53,9 @@ STRATS = {"deployed": lambda k, i: deployed(model, prompts[k][i], ST[k][0]),
 for name in a.strategies.split(","):
     fn = STRATS[name]
     fn("gate", 0); fn("tech", 0)                                   # block warm-up, discarded
-    for i, r in enumerate(rows[:a.deployed_limit] if name == "deployed" else rows):
+    idx = range(a.deployed_start, a.deployed_limit or len(rows)) if name == "deployed" else range(len(rows))
+    for i in idx:
+        r = rows[i]
         rec = {"strategy": name, "i": i, "label": r["label"], "holdout": r["text"] in hold}
         for k in ("gate", "tech"):
             t0 = time.perf_counter(); sc = fn(k, i); rec[k + "_s"] = time.perf_counter() - t0

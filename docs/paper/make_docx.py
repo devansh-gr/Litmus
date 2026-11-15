@@ -150,7 +150,7 @@ rich(p, "A local language model used as a closed-set classifier spends most of i
         "About 99% of every prompt is identical across inputs, and 15 labels are each scored against it. We remove this redundancy in three steps: reusing the prefix across labels, caching it "
         "across requests, and scoring all labels in a single tree-masked pass. Each step is measured on up to "
         "300 inputs with 3B and 14B models on an Apple M4 Pro. Warm median end-to-end latency falls from 3.53 s to "
-        "0.17 s (3B) and from 15.3 s to 0.68 s (14B); 1% of decisions change, all within 0.003 of a decision boundary. The third step "
+        "0.17 s (3B) and from 15.3 s to 0.68 s (14B); three of 300 decisions change, two at gate probabilities within 0.003 of the threshold and one at an exact tie. The third step "
         "follows from a measurement. After caching, the remaining work is a series of one- to six-token passes "
         "whose step-shaped cost is consistent with the 32-row tiling of MLX's 4-bit matrix "
         "multiplication. Packing the labels into one pass exploits that structure and halves the remaining latency.",
@@ -161,27 +161,32 @@ r9 = p.add_run("Large language models, KV cache, prefix caching, quantization, o
 r9.bold = True; r9.font.size = Pt(9)
 
 heading("I", "Introduction")
-body("An instruction-tuned language model can classify text without generating any. The prompt holds "
-     "the task definition, worked examples and the input, and the classifier asks how probable each "
-     "candidate label is as the continuation [@zhao]. Our system uses it on a laptop to name the "
-     "persuasion technique in a passage, which fills about 19 of a 1446-token prompt.")
-body("Everything before the passage is the same for every request, and everything before a label is the "
-     "same for every label, yet a direct implementation recomputes both. The deployed 14B needed "
-     "15 s per classification, so the less accurate 3B remained the default.")
-body("We cache the input-independent prefix across requests, relate the step-shaped cost of the short "
-     "passes that remain to the 4-bit matrix-multiplication kernel, and design a packed label pass around it.")
+body("A 14-billion-parameter language model running on a laptop took 15 s to classify a passage of about "
+     "19 tokens. It generated no text. It only chose among 15 fixed labels, by asking how probable each label "
+     "is as the continuation of a prompt holding the task definition, worked examples and the passage [@zhao]. "
+     "That prompt is 1446 tokens long, and all of it except the passage is identical for every request. Most "
+     "of the 15 s was spent recomputing it.")
+body("Removing that repetition exposed a second, less obvious cost. Each label is only a few tokens, yet a "
+     "pass over 8 tokens cost 2.8 times a pass over one, while a 32-token pass cost no more than a 12-token "
+     "one. This step-shaped cost is consistent with the tiling of the 4-bit matrix-multiplication kernel, and "
+     "it makes many short passes far more expensive than one longer pass. We exploit it by scoring all labels "
+     "in one tree-masked pass. Warm median latency fell from 15.3 s to 0.68 s for the 14B model and from "
+     "3.53 s to 0.17 s for the 3B, which made the far more accurate 14B usable interactively.")
 
 heading("II", "Related Work")
-body("Reusing attention state is established practice in LLM serving. PagedAttention [@vllm] shares KV "
-     "blocks between sequences, SGLang [@sglang] keeps prefixes in a radix tree, Prompt Cache [@promptcache] "
-     "precomputes the attention state of reusable prompt modules, and Hydragen [@hydragen] batches "
-     "attention over a shared prefix. These systems target multi-user throughput; "
-     "here one user waits for one decision. Tree-shaped attention masks verify many candidate continuations at once in speculative decoding "
-     "[@specinfer]; we apply the same idea to a closed label set. The small-$M$ cost of MLX 4-bit matrix "
-     "multiplication was reported for speculative decoding [@mlxissue]; we exploit it for scoring.")
+body("Reusing attention state is established practice in LLM serving. PagedAttention [@vllm] and SGLang "
+     "[@sglang] share cached prefixes across requests, Prompt Cache [@promptcache] precomputes reusable "
+     "prompt modules, and Hydragen [@hydragen] batches attention over a shared prefix. These systems maximize "
+     "throughput for many concurrent users and find shared prefixes at run time. Here one user waits for one "
+     "decision, the prefix is fixed in advance, and the labels are short enough that the cost of each pass, "
+     "rather than prefix reuse, becomes the bottleneck. Tree-shaped attention masks verify many candidate "
+     "continuations at once in speculative decoding [@specinfer], and the small-$M$ cost of MLX 4-bit matrix "
+     "multiplication was reported in that setting [@mlxissue]. We apply both observations to a closed label set.")
 
 heading("III", "Classification by Label Scoring")
-body("For input $x$ and each label $y \\in \\mathcal{Y}$, the classifier computes the length-normalized "
+body("Given the passage *Only 2 left, order now*, the classifier asks how likely the model finds the "
+     "continuation *fomo*, then *false-urgency*, and so on through every label, and picks the most likely. "
+     "Formally, for input $x$ and each label $y \\in \\mathcal{Y}$ it computes the length-normalized "
      "log-likelihood")
 equation(1)
 body("and returns the arg max, with a tempered softmax ($τ$=0.25) for confidence. A gate first scores "
@@ -193,7 +198,8 @@ body("and returns the arg max, with a tempered softmax ($τ$=0.25) for confidenc
      "key-value heads of dimension 128.", indent=False)
 
 heading("IV", "Removing Redundant Work")
-body("*Across labels.* Under a causal mask, the keys and values of the $P$ prompt tokens do not depend on "
+body("*Across labels.* Scoring 15 labels independently runs the 1446-token prompt through the model "
+     "15 times. Under a causal mask, the keys and values of the $P$ prompt tokens do not depend on "
      "anything that follows them. The deployed scorer prefills the prompt once, appends each label, reads "
      "its log-probabilities and trims the cache back to length $P$. The final label token is never an input, "
      "so $K$ independent passes forward $K(P+\\bar\\ell-1)$ tokens, and reuse reduces this by")
@@ -203,10 +209,9 @@ body("where $\\bar\\ell$ is the mean label length. For $P$=1446 and $K$=15, Eq. 
      "which Eq. (2) omits.", indent=False)
 body("*Across requests.* Label reuse still prefills the full prompt for every request, and 98.7% of that "
      "prompt (98.5% for the gate) never changes. We prefill the shared part once at startup (2.7 s "
-     "on the 3B, 13.8 s on the 14B) and keep its cache resident. Each request forwards only its suffix (the passage and "
-     "closing template) and trims back afterwards. The gate, whose labels are "
-     "single tokens, reduces to one pass of about 19 tokens. Table I gives the latency, including the packed "
-     "pass of Section V.")
+     "on the 3B, 13.8 s on the 14B) and keep its cache resident; with grouped-query attention [@gqa] the caches for both stages occupy only 0.31 GB (3B) and 0.53 GB (14B). Each request forwards only its suffix (the passage and "
+     "closing template) and trims back afterwards (Table I). The gate, whose labels are "
+     "single tokens, reduces to one pass of about 19 tokens.")
 table("I", "End-to-End Latency (s) on 300 Inputs",
       [("Stage", "3B base", "cache", "pack", "14B base", "cache", "pack"),
        ("Gate, p50", "1.56", "0.046", "0.044", "6.87", "0.172", "0.171"),
@@ -228,10 +233,12 @@ body("Once the prefix is cached, the technique stage consists of one 19-token su
 equation(3)
 body("Eq. (3) gives 30.4 ms for the 14B and 6.6 ms for the 3B. Single-token passes measured 38.6 and 10.5 ms, "
      "or 79% and 63% of peak bandwidth. Beyond one token the bound stops describing the data (Fig. 1b). "
-     "Cost rises steeply up to 12 tokens, so that an 8-token pass costs 2.8 times a 1-token pass. It then "
-     "stays flat to 32 tokens and doubles by 48. Summing the measured cost of each pass in the stage predicts "
+     "Cost rises steeply to 12 tokens, stays flat to 32 and "
+     "doubles by 48. Summing the measured cost of each pass in the stage predicts "
      "239 ms (3B) and 878 ms (14B), against 260 and 966 ms measured.", indent=False)
-body("To locate the cause, we timed a single matrix multiplication shaped like one 14B MLP weight "
+body("The plateau is the useful part. If a 32-token pass costs the same as a 12-token one, up to 20 "
+     "extra tokens ride along almost free, and 14 separate label passes waste that capacity. To locate the "
+     "cause, we timed a single matrix multiplication shaped like one 14B MLP weight "
      "(13824×5120) as the number of activation rows $M$ grows (Fig. 2). With 4-bit weights, time rises roughly "
      "linearly to $M$=10, then steps up exactly at $M$=33 and $M$=65. A dense fp16 weight shows none of this structure below 64 rows. The step positions match "
      "the 32-row tile of MLX's quantized matrix-matrix kernel, and the rising segment is consistent with a "
@@ -250,15 +257,7 @@ body("With synthetic label sets of 8 to 96 tokens (5-token labels, 50 benchmark 
      "1.0× at 8 tokens to 3.5× (3B) and 2.8× (14B) at 96. Packed and sequential scores differed by at most "
      "0.067 nats; a causal mask across labels or consecutive positions changed them by 0.6 to 13 nats.")
 
-heading("VI", "Memory")
-body("Each token's cache entry occupies")
-equation(4)
-body("bytes, for $L$ layers, $H_{kv}$ key-value heads of dimension $d_{h}$ and $b$ bytes per element. Both "
-     "models use grouped-query attention [@gqa] with $H_{kv}$=8, so the static caches for both stages occupy "
-     "0.31 GB (3B) and 0.53 GB (14B), and the packed pass adds only its 47 tokens. Under multi-head attention "
-     "($H_{kv}$=40) the 14B caches would occupy 2.7 GB.", indent=False)
-
-heading("VII", "Consequences")
+heading("VI", "Consequences")
 body("Caching does not remove the trade-off between model sizes: fully optimized, the 3B answers in "
      "0.17 s and the 14B in 0.68 s (resident warm cache; p99 1.30 s). It moves the 14B inside an interactive budget, which matters because "
      "the accuracy gap is large. The 300 benchmark examples come "
@@ -266,10 +265,8 @@ body("Caching does not remove the trade-off between model sizes: fully optimized
      "part in tuning, the pipeline reached 86.0% top-1 accuracy with the 14B (95% CI 79.5 to 90.7 [@wilson]) "
      "and 66.0% (58.1 to 73.1) with the 3B; the 14B won 34 of 38 "
      "discordant inputs ($p$ < 10⁻⁶, exact McNemar test [@mcnemar]).")
-body("A packed 14B classification costs as much as decoding about 18 tokens; a distilled "
-     "reasoning model [@r1] averaged 35 s and was not more accurate.")
 
-heading("VIII", "Limitations and Conclusion")
+heading("VII", "Limitations and Conclusion")
 body("One packed pass halved the cached latency. Results come from one machine, slow baselines cover "
      "fewer inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v3).")
 
@@ -293,7 +290,6 @@ REFS = {
     "mcnemar": "Q. McNemar, “Note on the sampling error of the difference between correlated proportions or percentages,” *Psychometrika*, vol. 12, no. 2, pp. 153‑157, 1947.",
     "wilson": "E. B. Wilson, “Probable inference, the law of succession, and statistical inference,” *J. Amer. Statist. Assoc.*, vol. 22, no. 158, pp. 209‑212, 1927.",
     "mlxissue": "A. V. Propriis, “quantized_matmul does not amortize the weight read for small M, while the bf16 path does,” ml-explore/mlx GitHub issue #4265, Aug. 2026.",
-    "r1": "DeepSeek-AI, “DeepSeek-R1: Incentivizing reasoning capability in LLMs via reinforcement learning,” arXiv:2501.12948, 2025.",
 }
 assert set(CITED) == set(REFS), set(REFS) ^ set(CITED)
 p = para(C, False, after=3, before=6); p.paragraph_format.keep_with_next = True
