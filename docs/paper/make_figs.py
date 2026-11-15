@@ -6,15 +6,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 
-# house style from figures4papers (scientific-figure-making skill): sans fonts, top/right spines off,
-# frameless legends, semantic palette; sizes scaled down because figures are drawn at print size
-plt.rcParams.update({"font.family": ["Arial", "Helvetica", "DejaVu Sans", "sans-serif"], "font.size": 7.5,
-                     "mathtext.fontset": "custom", "mathtext.rm": "Arial", "mathtext.it": "Arial:italic",
-                     "axes.spines.top": False, "axes.spines.right": False, "axes.linewidth": 1.0,
-                     "lines.linewidth": 1.3, "xtick.major.width": 1.0, "ytick.major.width": 1.0,
-                     "legend.frameon": False, "svg.fonttype": "none"})
-PAL = {"blue_main": "#0F4D92", "blue_secondary": "#3775BA", "green_1": "#DDF3DE", "green_3": "#8BCF8B",
-       "red_2": "#E9A6A1", "red_strong": "#B64342", "neutral": "#CFCECE", "gray": "#767676", "teal": "#42949E"}
+# figures4papers layout rules (spines off, frameless legends, edged bars), drawn in grayscale and in the
+# paper's Times font so figure text matches the body
+plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "STIXGeneral"],
+                     "mathtext.fontset": "stix", "font.size": 8,
+                     "axes.spines.top": False, "axes.spines.right": False, "axes.linewidth": 0.8,
+                     "lines.linewidth": 1.0, "xtick.major.width": 0.8, "ytick.major.width": 0.8,
+                     "xtick.major.size": 3, "ytick.major.size": 3, "legend.frameon": False})
 
 W14, W3, BW = 8.31e9, 1.81e9, 273e9        # 4-bit weight bytes, M4 Pro bandwidth (B/s)
 
@@ -80,47 +78,41 @@ PASS = {"3B": [10.5, 11.4, 12.7, 15.2, 21.9, 27.1, 41.0, 41.7, 41.8, 41.5, 74.0,
 
 def ladder(ax):
     """Fig. 1(a): technique-stage latency as each redundancy is removed."""
-    steps = ["no reuse", "+ label prefix reuse", "+ cross-request prefix", "packed label pass"]
-    y = {"3B": 0.0, "14B": 1.0}
+    steps = ["no reuse", "label reuse", "+ request cache", "+ packed labels"]
+    shade = ["0.9", "0.68", "0.42", "0.1"]
+    y0 = {"3B": 0.0, "14B": 1.45}
     for m, vals in LAD.items():
         for i, v in enumerate(vals):
-            yy = y[m] + (i - 1.5) * 0.2
-            pred = False
-            ax.barh(yy, v, height=0.17, color=[PAL["neutral"], PAL["red_2"], PAL["green_3"], PAL["blue_main"]][i],
-                    edgecolor="black", lw=0.8, zorder=2)
-            txt = f"{v:.2f} s" if v < 10 else f"{v:.0f} s"
-            ax.text(v * 1.12, yy, txt, va="center", fontsize=6.5, zorder=3,
-                    bbox=dict(fc="white", ec="none", pad=0.4),
-                    fontweight="bold" if i == 3 else "normal", color=PAL["blue_main"] if i == 3 else "black")
-        f = vals[0] / vals[3]
-        ax.text(0.052, y[m] - 0.44, f"{m}: {f:.0f}x less time than no reuse", ha="left", va="center", fontsize=7, fontweight="bold")
-    ax.axvline(1.0, color=PAL["gray"], lw=0.8, ls=":", zorder=1)
-    ax.set_xscale("log"); ax.set_xlim(0.05, 400); ax.set_ylim(-0.72, 1.4)
-    ax.set_yticks([y[m] + (i - 1.5) * 0.2 for m in LAD for i in range(4)])
-    ax.set_yticklabels(steps * 2, fontsize=6.5)
-    ax.invert_yaxis(); ax.tick_params(axis="y", length=0)
-    ax.set_xlabel("Technique-stage latency (s), 15 labels, Apple M4 Pro")
-    for sp in ("top", "right", "left"): ax.spines[sp].set_visible(False)
+            yy = y0[m] + i * 0.24
+            ax.barh(yy, v, height=0.19, color=shade[i], edgecolor="black", lw=0.6)
+            ax.text(v * 1.15, yy, f"{v:.2f}" if v < 10 else f"{v:.0f}", va="center", fontsize=7.5)
+        ax.text(0.042, y0[m] - 0.27, m, fontsize=8.5, fontweight="bold", va="center")
+    ax.set_yticks([y0[m] + i * 0.24 for m in LAD for i in range(4)])
+    ax.set_yticklabels(steps * 2, fontsize=7.5)
+    ax.set_xscale("log"); ax.set_xlim(0.04, 600); ax.set_ylim(2.3, -0.45)
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    ax.set_xlabel("Latency (s)")
 
 
 def passcost(ax):
-    """Fig. 1(b): cost of one forward pass of m tokens over a cached 1.4k-token prefix."""
-    for (m, ts), mk, col in zip(PASS.items(), ["o", "s"], [PAL["teal"], PAL["blue_main"]]):
-        ax.step(PASS_M, ts, where="post", color=col, lw=1.1, alpha=0.6)
-        ax.plot(PASS_M, ts, mk, ms=3.6, color=col, mec="black", mew=0.5, label=f"{m} measured")
+    """Fig. 1(b): latency of one forward pass of m tokens over the cached prefix."""
+    for (m, ts), mk, fc in zip(PASS.items(), ["o", "s"], ["white", "black"]):
+        ax.step(PASS_M, ts, where="post", color="0.55", lw=0.7)
+        ax.plot(PASS_M, ts, mk, ms=3.6, color="black", mfc=fc, mew=0.7, label=m)
     for W, lab in [(W14, "14B"), (W3, "3B")]:
-        ax.axhline(1e3 * W / BW, color=PAL["gray"], lw=0.9, ls="--")
-        ax.text(1.05, 1e3 * W / BW * 0.86, f"{lab} bound $W/B$", fontsize=6.3, ha="left", va="top", color=PAL["gray"])
-    ax.axvspan(1, 6, color=PAL["green_1"], lw=0, zorder=0)
-    ax.text(2.45, 420, "label\npasses", fontsize=6.3, ha="center", va="top", color="#272727")
-    ax.axvline(19, color=PAL["gray"], lw=0.8, ls=":")
-    ax.text(18, 420, "input\nsuffix", fontsize=6.3, ha="right", va="top", color="#272727")
+        ax.axhline(1e3 * W / BW, color="0.45", lw=0.7, ls="--")
+        ax.text(80, 1e3 * W / BW, f"{lab} $W/B$", fontsize=7, va="center", ha="left")
+    ax.axvspan(1, 6, color="0.92", lw=0, zorder=0)
+    ax.text(2.45, 380, "labels", fontsize=7.5, ha="center", va="center")
+    ax.axvline(19, color="0.45", lw=0.7, ls=":")
+    ax.text(19, 380, " suffix", fontsize=7.5, ha="left", va="center")
     ax.set_xscale("log", base=2); ax.set_yscale("log")
     ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
-    ax.set_ylim(4, 500); ax.set_xlim(0.85, 75)
-    ax.set_xlabel("New tokens in the pass, $m$"); ax.set_ylabel("Pass latency (ms)")
-    ax.legend(fontsize=6.5, loc="lower right", bbox_to_anchor=(1, 0.12))
-    for sp in ("top", "right"): ax.spines[sp].set_visible(False)
+    ax.set_ylim(4, 600); ax.set_xlim(0.85, 75)
+    ax.set_xlabel("Tokens per pass, $m$"); ax.set_ylabel("Latency (ms)")
+    for m, ts in PASS.items():
+        ax.text(72, ts[-1], m, fontsize=7.5, va="center", ha="left", fontweight="bold")
 
 
 def membudget(ax):
@@ -143,20 +135,20 @@ def membudget(ax):
 
 
 def qmm(ax):
-    """Fig. 2: one 13824x5120 matmul (a 14B MLP weight) vs rows M; server/bench/results/qmm_2026-11-14.json."""
+    """Fig. 2: one 13824x5120 matmul vs rows M; server/bench/results/qmm_2026-11-14.json."""
     import json
     r = json.load(open("../../server/bench/results/qmm_2026-11-14.json"))
-    for key, lab, mk, col in [("q4_us", "4-bit quantized", "s", PAL["blue_main"]), ("fp16_us", "fp16 dense", "o", PAL["red_strong"])]:
+    for key, lab, mk, fc in [("q4_us", "4-bit", "s", "black"), ("fp16_us", "fp16", "o", "white")]:
         M = [int(m) for m in r[key]]; t = [v / 1000 for v in r[key].values()]
-        ax.step(M, t, where="post", color=col, lw=1.1, alpha=0.6)
-        ax.plot(M, t, mk, ms=3.0, color=col, mec="black", mew=0.4, label=lab)
-    for x in (32.5, 64.5):
-        ax.axvline(x, color=PAL["gray"], lw=0.7, ls=":")
-    ax.text(31, 2.55, "$M$=33", fontsize=6.3, ha="right", color=PAL["gray"]); ax.text(63, 2.55, "$M$=65", fontsize=6.3, ha="right", color=PAL["gray"])
+        ax.step(M, t, where="post", color="0.55", lw=0.7)
+        ax.plot(M, t, mk, ms=3.2, color="black", mfc=fc, mew=0.7, label=lab)
+    for x in (33, 65):
+        ax.axvline(x - 0.5, color="0.45", lw=0.6, ls=":")
+        ax.text(x * 1.04, 0.12, str(x), fontsize=7, ha="left")
     ax.set_xscale("log", base=2); ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
-    ax.set_xlim(0.85, 110); ax.set_ylim(0, 2.8)
-    ax.set_xlabel("Rows in the activation matrix, $M$"); ax.set_ylabel("Matmul time (ms)")
-    ax.legend(fontsize=6.5, loc="upper left")
+    ax.set_xlim(0.85, 110); ax.set_ylim(0, 2.9)
+    ax.set_xlabel("Rows, $M$"); ax.set_ylabel("Time (ms)")
+    ax.legend(fontsize=7.5, loc="upper left", handletextpad=0.3)
 
 
 if __name__ == "__main__":
@@ -173,11 +165,11 @@ if __name__ == "__main__":
         fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.0, 1.85), constrained_layout=True, gridspec_kw={"width_ratios": [1.35, 1]})
     ladder(a1); passcost(a2)
-    a1.set_title("(a) Removing redundant work", fontsize=8, fontweight="bold"); a2.set_title("(b) Cost of one short forward pass", fontsize=8, fontweight="bold")
-    for a in (a1, a2): a.tick_params(labelsize=6.8)
+    a1.set_title("(a)", fontsize=8.5, loc="left"); a2.set_title("(b)", fontsize=8.5, loc="left")
+    for a in (a1, a2): a.tick_params(labelsize=7.5)
     fig.savefig("fig_hero.png", dpi=600); plt.close(fig)
     for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.4, 1.3))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
-        f(a); a.tick_params(labelsize=6.2)
+        f(a); a.tick_params(labelsize=7.5)
         fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
     print("ok")
