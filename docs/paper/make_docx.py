@@ -152,7 +152,7 @@ rich(p, "A local language model used as a closed-set classifier spends most of i
         "300 inputs with 3B and 14B models on an Apple M4 Pro. Median end-to-end latency falls from 3.53 s to "
         "0.17 s (3B) and from 15.3 s to 0.68 s (14B); 1% of decisions change, all within 0.003 of a decision boundary. The third step "
         "follows from a measurement. After caching, the remaining work is a series of one- to six-token passes "
-        "whose cost is set by the 32-row tiling of 4-bit matrix multiplication rather than by memory "
+        "whose cost follows the 32-row tiling of 4-bit matrix multiplication rather than by memory "
         "bandwidth. Packing the labels into one pass exploits that structure and halves the remaining latency.",
      size=9, bold=True)
 p = para(indent=False, after=4)
@@ -163,14 +163,12 @@ r9.bold = True; r9.font.size = Pt(9)
 heading("I", "Introduction")
 body("An instruction-tuned language model can classify text without generating any. The prompt holds "
      "the task definition, worked examples and the input, and the classifier asks how probable each "
-     "candidate label is as the continuation [@zhao]. Our system uses it to name the persuasion "
-     "technique in a passage, entirely on a laptop. Its prompt is 1446 tokens "
-     "long. The passage being classified typically occupies about 19 of them.")
+     "candidate label is as the continuation [@zhao]. Our system uses it on a laptop to name the "
+     "persuasion technique in a passage, which fills about 19 of a 1446-token prompt.")
 body("Everything before the passage is the same for every request, and everything before a label is the "
-     "same for every label, yet a direct implementation recomputes both. The deployed 14B model needed "
-     "15 s per classification, which is why it was never made the default despite being far more accurate "
-     "than the 3B.")
-body("We cache the input-independent prefix across requests, trace the step-shaped cost of the short "
+     "same for every label, yet a direct implementation recomputes both. The deployed 14B needed "
+     "15 s per classification, so the less accurate 3B remained the default.")
+body("We cache the input-independent prefix across requests, relate the step-shaped cost of the short "
      "passes that remain to the 4-bit matrix-multiplication kernel, and design a packed label pass around it.")
 
 heading("II", "Related Work")
@@ -217,10 +215,10 @@ table("I", "End-to-End Latency (s) on 300 Inputs",
        ("Both, p95", "5.80", "0.382", "0.241", "17.94", "1.506", "0.995")],
       [0.86, 0.46, 0.41, 0.41, 0.54, 0.41, 0.41], bold_row=3,
       note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. 14B base: 30 inputs. Both: gate and technique stage on every input.")
-body("Caching is not bit-exact, since half-precision sums are reordered. Over all "
-     "300 inputs on the 3B, three end-to-end decisions (1.0%) changed: two inputs whose gate probability lay "
+body("Caching reorders half-precision sums, so it is not bit-exact. Over "
+     "300 inputs on the 3B, three end-to-end decisions (1.0%) changed, all through caching and none through packing: two inputs whose gate probability lay "
      "within 0.003 of the threshold, and one exact tie between two techniques. The largest score difference "
-     "was 0.031 nats and the largest confidence change 2 points. On the 30 14B inputs with a deployed "
+     "was 0.031 nats. On the 30 14B inputs with a deployed "
      "reference, no decision changed. Median paired speedups over the base were 20.4× (3B) and 22.2× (14B).")
 
 heading("V", "The Cost of a Short Pass")
@@ -247,7 +245,7 @@ body("The staircase prices the label passes badly: 14 passes, each paying nearly
      "Tokens at the same depth share a rotary position, which we apply per depth group. Fig. 1(b) prices "
      "this pass at $t$(48), predicting 0.116 s (3B) and 0.442 s (14B) for the stage. Measured medians over "
      "300 inputs were 0.127 and 0.512 s.")
-body("With synthetic label sets of 8 to 96 tokens, packed time was flat from 16 to 32 and from 48 to 64 "
+body("With synthetic label sets of 8 to 96 tokens (5-token labels, 5 inputs), packed time was flat from 16 to 32 and from 48 to 64 "
      "tokens, and the gain over sequential scoring grew from 1.0× at 8 tokens to 3.4× (3B) and 2.9× (14B) at 96. "
      "Packed and sequential scores differed by at most 0.047 nats; a causal mask across labels or "
      "consecutive positions changed them by 1.2 to 10 nats.")
@@ -262,19 +260,19 @@ body("bytes, for $L$ layers, $H_{kv}$ key-value heads of dimension $d_{h}$ and $
 
 heading("VII", "Consequences")
 body("Caching does not remove the trade-off between model sizes: fully optimized, the 3B answers in "
-     "0.17 s and the 14B in 0.68 s (warm cache; p99 1.30 s). It moves the 14B inside an interactive budget, which matters because "
+     "0.17 s and the 14B in 0.68 s (resident warm cache; p99 1.30 s). It moves the 14B inside an interactive budget, which matters because "
      "the accuracy gap is large. The 300 benchmark examples come "
      "from public dark-pattern [@darkpat], logical-fallacy [@logic] and clickbait [@clickbait] corpora. On the 150 examples that played no "
      "part in tuning, the pipeline reached 86.0% top-1 accuracy with the 14B (95% CI 79.5 to 90.7 [@wilson]) "
-     "and 66.0% (58.1 to 73.1) with the 3B. The 14B was right on 34 inputs where the 3B was wrong, and the "
-     "reverse held on 4 (exact McNemar test [@mcnemar], $p$ < 10⁻⁶).")
+     "and 66.0% (58.1 to 73.1) with the 3B; the 14B won 34 of 38 "
+     "discordant inputs ($p$ < 10⁻⁶, exact McNemar test [@mcnemar]).")
 body("A packed 14B classification costs as much as decoding about 18 tokens; a distilled "
      "reasoning model [@r1] averaged 35 s and was not more accurate.")
 
 heading("VIII", "Limitations and Conclusion")
 body("Results come from one machine, slow baselines cover fewer inputs, and accuracy covers five of "
      "14 techniques. After caching, latency is set by passes and 32-row tiles; "
-     "one packed pass halved it.")
+     "one packed pass halved it. Code and data: github.com/devansh-gr/Litmus.")
 
 # ---------- references ----------
 REFS = {
