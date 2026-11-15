@@ -44,7 +44,7 @@ def score_from(model, cache, last_logits, labels):
 def naive(model, prompt, labels):
     out = []
     for ids in labels:
-        lp = lse(model(mx.array([prompt + ids]))[0])
+        lp = lse(model(mx.array([prompt + ids[:-1]]))[0])   # last label token is never an input
         n = len(prompt)
         out.append(sum(lp[n + j - 1, t] for j, t in enumerate(ids)) / len(ids))
     out = mx.stack(out); mx.eval(out)

@@ -64,8 +64,9 @@ def decode(ax, fs=5):
     ax.legend(fontsize=fs, loc="upper left", bbox_to_anchor=(0, 0.7), handlelength=1.5)
 
 
-# server/bench/results/*_2026-11-14.jsonl (technique stage, medians over 10 inputs; naive over 3)
-LAD = {"3B": [24.05, 1.80, 0.245, 0.116], "14B": [122.8, 7.69, 0.981, 0.442]}
+# server/bench/results/full_*_2026-11-14.jsonl, technique-stage p50: 3B 300 inputs (no reuse: 10),
+# 14B 300 (deployed: 30; no reuse: 3, prefix_cache_2026-11-14.jsonl)
+LAD = {"3B": [27.0, 1.954, 0.260, 0.127], "14B": [122.8, 8.422, 0.966, 0.512]}
 PASS_M = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64]
 PASS = {"3B": [10.5, 11.4, 12.7, 15.2, 21.9, 27.1, 41.0, 41.7, 41.8, 41.5, 74.0, 73.6],
         "14B": [38.6, 41.5, 45.7, 55.9, 84.7, 109.1, 153.3, 154.8, 155.5, 154.6, 287.2, 294.1]}
@@ -78,13 +79,13 @@ def ladder(ax):
     for m, vals in LAD.items():
         for i, v in enumerate(vals):
             yy = y[m] + (i - 1.5) * 0.2
-            pred = i == 3
-            ax.barh(yy, v, height=0.17, color="w" if pred else ["0.8", "0.55", "0.15"][i],
+            pred = False
+            ax.barh(yy, v, height=0.17, color=["0.85", "0.6", "0.35", "0.05"][i],
                     edgecolor="k", lw=0.5, hatch="/////" if pred else None, zorder=2)
             txt = f"{v:.2f} s" if v < 10 else f"{v:.0f} s"
             ax.text(v * 1.12, yy, txt + (" (predicted)" if pred else ""), va="center", fontsize=5.8)
-        f = vals[0] / vals[2]
-        ax.text(0.052, y[m] - 0.44, f"{m}: {f:.0f}x faster with both caches", ha="left", va="center", fontsize=6.4, fontweight="bold")
+        f = vals[0] / vals[3]
+        ax.text(0.052, y[m] - 0.44, f"{m}: {f:.0f}x less time than no reuse", ha="left", va="center", fontsize=6.4, fontweight="bold")
     ax.axvline(1.0, color="0.5", lw=0.6, ls=":", zorder=1)
     ax.text(1.05, -0.66, "1 s", fontsize=5.8, color="0.35")
     ax.set_xscale("log"); ax.set_xlim(0.05, 400); ax.set_ylim(-0.72, 1.4)
@@ -111,7 +112,7 @@ def passcost(ax):
     ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
     ax.set_ylim(4, 500); ax.set_xlim(0.85, 75)
     ax.set_xlabel("New tokens in the pass, $m$"); ax.set_ylabel("Pass latency (ms)")
-    ax.legend(fontsize=5.8, loc="lower right")
+    ax.legend(fontsize=5.8, loc="lower right", bbox_to_anchor=(1, 0.14))
     for sp in ("top", "right"): ax.spines[sp].set_visible(False)
 
 
@@ -134,6 +135,24 @@ def membudget(ax):
     for sp in ("top", "right"): ax.spines[sp].set_visible(False)
 
 
+def qmm(ax):
+    """Fig. 2: one 13824x5120 matmul (a 14B MLP weight) vs rows M; server/bench/results/qmm_2026-11-14.json."""
+    import json
+    r = json.load(open("../../server/bench/results/qmm_2026-11-14.json"))
+    for key, lab, mk in [("q4_us", "4-bit quantized", "s"), ("fp16_us", "fp16 dense", "o")]:
+        M = [int(m) for m in r[key]]; t = [v / 1000 for v in r[key].values()]
+        ax.step(M, t, where="post", color="0.6", lw=0.6)
+        ax.plot(M, t, mk, ms=2.6, color="k", mfc="k" if mk == "s" else "w", label=lab)
+    for x in (32.5, 64.5):
+        ax.axvline(x, color="0.75", lw=0.5, ls=":")
+    ax.text(31, 2.55, "M=33", fontsize=5.6, ha="right", color="0.35"); ax.text(63, 2.55, "M=65", fontsize=5.6, ha="right", color="0.35")
+    ax.set_xscale("log", base=2); ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
+    ax.set_xlim(0.85, 110); ax.set_ylim(0, 2.8)
+    ax.set_xlabel("Rows in the activation matrix, $M$"); ax.set_ylabel("Matmul time (ms)")
+    ax.legend(fontsize=5.8, loc="upper left")
+    for sp in ("top", "right"): ax.spines[sp].set_visible(False)
+
+
 if __name__ == "__main__":
     fig, ax = plt.subplots(1, 4, figsize=(7.16, 1.75), constrained_layout=True)
     for a, f, t in zip(ax, [acc, kv, reuse, decode],
@@ -151,7 +170,7 @@ if __name__ == "__main__":
     a1.set_title("(a) Removing redundant work", fontsize=7); a2.set_title("(b) Cost of one short forward pass", fontsize=7)
     for a in (a1, a2): a.tick_params(labelsize=6.2)
     fig.savefig("fig_hero.png", dpi=600); plt.close(fig)
-    for name, f, size in [("mem", membudget, (3.4, 1.42))]:
+    for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.4, 1.3))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a); a.tick_params(labelsize=6.2)
         fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
