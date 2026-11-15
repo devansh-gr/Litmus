@@ -150,7 +150,7 @@ rich(p, "A local language model used as a closed-set classifier spends most of i
         "About 99% of every prompt is identical across inputs, and 15 labels are each scored against it. We remove this redundancy in three steps: reusing the prefix across labels, caching it "
         "across requests, and scoring all labels in a single tree-masked pass. Each step is measured on up to "
         "300 inputs with 3B and 14B models on an Apple M4 Pro. Median end-to-end latency falls from 3.53 s to "
-        "0.17 s (3B) and from 15.3 s to 0.68 s (14B); 1% of decisions change, all at ties. The third step "
+        "0.17 s (3B) and from 15.3 s to 0.68 s (14B); 1% of decisions change, all within 0.003 of a decision boundary. The third step "
         "follows from a measurement. After caching, the remaining work is a series of one- to six-token passes "
         "whose cost is set by the 32-row tiling of 4-bit matrix multiplication rather than by memory "
         "bandwidth. Packing the labels into one pass exploits that structure and halves the remaining latency.",
@@ -181,7 +181,8 @@ body("Reusing attention state is established practice in LLM serving. PagedAtten
      "precomputes the attention state of reusable prompt modules, and Hydragen [@hydragen] batches "
      "attention over a shared prefix. These systems target throughput across many users; here one user waits "
      "for one decision, and the shared prefix is known in advance. Tree-shaped attention masks verify many candidate continuations at once in speculative decoding "
-     "[@specinfer]; we apply the same idea to a closed label set.")
+     "[@specinfer]; we apply the same idea to a closed label set. The small-$M$ cost of MLX 4-bit matrix "
+     "multiplication was reported for speculative decoding [@mlxissue]; we exploit it for scoring.")
 
 heading("III", "Classification by Label Scoring")
 body("For input $x$ and each label $y \\in \\mathcal{Y}$, the classifier computes the length-normalized "
@@ -222,7 +223,7 @@ body("Caching is not bit-exact, since half-precision sums are reordered. Over al
      "300 inputs on the 3B, three end-to-end decisions (1.0%) changed: two inputs whose gate probability lay "
      "within 0.003 of the threshold, and one exact tie between two techniques. The largest score difference "
      "was 0.031 nats and the largest confidence change 2 points. On the 30 14B inputs with a deployed "
-     "reference, no decision changed.")
+     "reference, no decision changed. Median paired speedups over the base were 20.4× (3B) and 22.2× (14B).")
 
 heading("V", "The Cost of a Short Pass")
 body("Once the prefix is cached, the technique stage consists of one 19-token suffix pass followed by 14 "
@@ -233,17 +234,17 @@ body("Eq. (3) gives 30.4 ms for the 14B and 6.6 ms for the 3B. Single-token pass
      "or 79% and 63% of peak bandwidth. Beyond one token the bound stops describing the data (Fig. 1b). "
      "Cost rises steeply up to 12 tokens, so that an 8-token pass costs 2.8 times a 1-token pass. It then "
      "stays flat to 32 tokens and doubles by 48. Summing the measured cost of each pass in the stage predicts "
-     "239 ms (3B) and 878 ms (14B), against 245 and 981 ms measured.", indent=False)
+     "239 ms (3B) and 878 ms (14B), against 260 and 966 ms measured.", indent=False)
 body("To locate the cause, we timed a single matrix multiplication shaped like one 14B MLP weight "
      "(13824×5120) as the number of activation rows $M$ grows (Fig. 2). With 4-bit weights, time is flat for "
      "$M$ ≤ 3, rises roughly linearly to $M$=10, stays flat through $M$=32, and steps up exactly at $M$=33 "
      "and $M$=65. A dense fp16 weight shows none of this structure below 64 rows. The step positions match "
      "the 32-row tile of MLX's quantized matrix-matrix kernel, and the rising segment is consistent with a "
-     "per-row matrix-vector kernel at small $M$. Above 32 rows the 4-bit kernel is no faster than fp16.")
+     "per-row matrix-vector kernel at small $M$.")
 figure("fig_qmm.png", 3.0, "Fig. 2. Time of one 13824×5120 matrix multiplication (a 14B MLP weight) "
        "against the number of activation rows $M$ (MLX 0.32.0, median of 15).")
 body("The staircase prices the label passes badly: 14 passes, each paying nearly a full weight read, "
-     "where a single pass of 47 rows would cost about one tile. A padded batch of labels saved little (0 to 15%), "
+     "where a single pass of 47 rows spans two tiles. A padded batch of labels saved little (0 to 15%), "
      "since its 90 rows each attend over a private copy of the prefix. We therefore place all 47 label tokens in one sequence, ordered by depth, "
      "under a tree-shaped mask that lets each token see the prompt and the earlier tokens of its own label. "
      "Tokens at the same depth share a rotary position, which we apply per depth group. Fig. 1(b) prices "
@@ -261,19 +262,19 @@ body("bytes, for $L$ layers, $H_{kv}$ key-value heads of dimension $d_{h}$ and $
 
 heading("VII", "Consequences")
 body("Caching does not remove the trade-off between model sizes: fully optimized, the 3B answers in "
-     "0.17 s and the 14B in 0.68 s. It moves the 14B inside an interactive budget, which matters because "
+     "0.17 s and the 14B in 0.68 s (warm cache; p99 1.30 s). It moves the 14B inside an interactive budget, which matters because "
      "the accuracy gap is large. The 300 benchmark examples come "
      "from public dark-pattern [@darkpat], logical-fallacy [@logic] and clickbait [@clickbait] corpora. On the 150 examples that played no "
      "part in tuning, the pipeline reached 86.0% top-1 accuracy with the 14B (95% CI 79.5 to 90.7 [@wilson]) "
      "and 66.0% (58.1 to 73.1) with the 3B. The 14B was right on 34 inputs where the 3B was wrong, and the "
      "reverse held on 4 (exact McNemar test [@mcnemar], $p$ < 10⁻⁶).")
-body("A packed 14B classification costs as much as generating about 18 tokens at the measured 37 ms per "
-     "token; a distilled reasoning model [@r1] averaged 35 s, roughly 950 tokens, and was not more accurate.")
+body("A packed 14B classification costs as much as decoding about 18 tokens; a distilled "
+     "reasoning model [@r1] averaged 35 s and was not more accurate.")
 
 heading("VIII", "Limitations and Conclusion")
-body("Results come from one machine, the slow baselines cover fewer inputs, and accuracy covers five of "
-     "14 techniques. Once redundant prefill is gone, latency depends on how many 32-row tiles the remaining tokens occupy, and "
-     "packing the labels into one tile halved it again.")
+body("Results come from one machine, slow baselines cover fewer inputs, and accuracy covers five of "
+     "14 techniques. With redundant prefill removed, latency is set by the number of passes and their 32-row "
+     "tiles; one packed pass halved it.")
 
 # ---------- references ----------
 REFS = {
@@ -294,6 +295,7 @@ REFS = {
     "clickbait": "A. Chakraborty, B. Paranjape, S. Kakarla, and N. Ganguly, “Stop clickbait: Detecting and preventing clickbaits in online news media,” in *Proc. ASONAM*, 2016.",
     "mcnemar": "Q. McNemar, “Note on the sampling error of the difference between correlated proportions or percentages,” *Psychometrika*, vol. 12, no. 2, pp. 153‑157, 1947.",
     "wilson": "E. B. Wilson, “Probable inference, the law of succession, and statistical inference,” *J. Amer. Statist. Assoc.*, vol. 22, no. 158, pp. 209‑212, 1927.",
+    "mlxissue": "A. V. Propriis, “quantized_matmul does not amortize the weight read for small M, while the bf16 path does,” ml-explore/mlx GitHub issue #4265, Aug. 2026.",
     "r1": "DeepSeek-AI, “DeepSeek-R1: Incentivizing reasoning capability in LLMs via reinforcement learning,” arXiv:2501.12948, 2025.",
 }
 assert set(CITED) == set(REFS), set(REFS) ^ set(CITED)
