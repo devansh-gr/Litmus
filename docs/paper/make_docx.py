@@ -149,11 +149,10 @@ a = p.add_run("Abstract: "); a.bold = a.italic = True; a.font.size = Pt(9)
 rich(p, "A local language model used as a closed-set classifier spends most of its time repeating work. "
         "About 99% of every prompt is identical across inputs, and 15 labels are each scored against it. We remove this redundancy in three steps: reusing the prefix across labels, caching it "
         "across requests, and scoring all labels in a single tree-masked pass. Each step is measured on up to "
-        "300 inputs with 3B and 14B models on an Apple M4 Pro. Warm median full-path latency falls from 3.53 s to "
-        "0.17 s (3B) and from 15.2 s to 0.68 s (14B); no 14B decision changes and three of 300 3B decisions do, two at gate probabilities within 0.003 of the threshold and one at an exact tie. The third step "
-        "follows from a measurement. After caching, the remaining work is a series of one- to six-token passes "
+        "300 inputs with 3B and 14B models on an Apple M4 Pro. Against label reuse alone, the last two steps cut warm median full-path latency from 3.53 s to "
+        "0.17 s (3B) and from 15.2 s to 0.68 s (14B); no 14B decision changes and three of 300 3B decisions do, two at gate probabilities within 0.003 of the threshold and one at an exact tie. After caching, the remaining work is a series of one- to six-token passes "
         "whose step-shaped cost is consistent with the 32-row tiling of MLX's 4-bit matrix "
-        "multiplication. Packing the labels into one pass exploits that structure and halves the remaining latency.",
+        "multiplication. Packing the labels into one pass exploits that structure and halves the remaining technique-stage latency.",
      size=9, bold=True)
 p = para(indent=False, after=4)
 a = p.add_run("Index Terms: "); a.bold = a.italic = True; a.font.size = Pt(9)
@@ -266,8 +265,8 @@ body("Caching does not remove the trade-off between model sizes: fully optimized
 
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
-     "passes sets latency, and packing the labels into one tree-masked pass halved what remained. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v6).")
+     "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v7).")
 
 # ---------- references ----------
 REFS = {
