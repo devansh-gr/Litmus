@@ -149,11 +149,11 @@ a = p.add_run("Abstract: "); a.bold = a.italic = True; a.font.size = Pt(9)
 rich(p, "A local language model used as a closed-set classifier spends most of its time repeating work. "
         "About 99% of every prompt is identical across inputs, and 15 labels are each scored against it. We remove this redundancy in three steps: reusing the prefix across labels, caching it "
         "across requests, and scoring all labels in a single tree-masked pass. Each step is measured on up to "
-        "300 inputs with 3B and 14B models on an Apple M4 Pro. Median end-to-end latency falls from 3.53 s to "
+        "300 inputs with 3B and 14B models on an Apple M4 Pro. Warm median end-to-end latency falls from 3.53 s to "
         "0.17 s (3B) and from 15.3 s to 0.68 s (14B); 1% of decisions change, all within 0.003 of a decision boundary. The third step "
         "follows from a measurement. After caching, the remaining work is a series of one- to six-token passes "
-        "whose cost follows the 32-row tiling of 4-bit matrix multiplication rather than by memory "
-        "bandwidth. Packing the labels into one pass exploits that structure and halves the remaining latency.",
+        "whose step-shaped cost is consistent with the 32-row tiling of MLX's 4-bit matrix "
+        "multiplication. Packing the labels into one pass exploits that structure and halves the remaining latency.",
      size=9, bold=True)
 p = para(indent=False, after=4)
 a = p.add_run("Index Terms: "); a.bold = a.italic = True; a.font.size = Pt(9)
@@ -200,7 +200,7 @@ body("*Across labels.* Under a causal mask, the keys and values of the $P$ promp
 equation(2)
 body("where $\\bar\\ell$ is the mean label length. For $P$=1446 and $K$=15, Eq. (2) predicts 14.6×. The "
      "measured ratios were 15.4× (3B, 10 inputs) and 15.8× (14B, 3 inputs). The excess is attention cost, "
-     "quadratic in $P$, which Eq. (2) does not count.", indent=False)
+     "which Eq. (2) omits.", indent=False)
 body("*Across requests.* Label reuse still prefills the full prompt for every request, and 98.7% of that "
      "prompt (98.5% for the gate) never changes. We prefill the shared part once at startup (2.7 s "
      "on the 3B, 13.8 s on the 14B) and keep its cache resident. Each request forwards only its suffix (the passage and "
@@ -270,9 +270,8 @@ body("A packed 14B classification costs as much as decoding about 18 tokens; a d
      "reasoning model [@r1] averaged 35 s and was not more accurate.")
 
 heading("VIII", "Limitations and Conclusion")
-body("Results come from one machine, slow baselines cover fewer inputs, and accuracy covers five of "
-     "14 techniques. After caching, latency is set by passes and 32-row tiles; "
-     "one packed pass halved it. Code and data: github.com/devansh-gr/Litmus.")
+body("One packed pass halved the cached latency. Results come from one machine, slow baselines cover "
+     "fewer inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v2).")
 
 # ---------- references ----------
 REFS = {

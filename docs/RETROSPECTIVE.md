@@ -46,7 +46,7 @@ model detects and the brain map only *illustrates* — never the other way aroun
 
 ## What's left (one experiment)
 Retrain the 14B LoRA on the rebalanced 884/98 split and bench it on `external_propaganda` (not
-`external_test`). Forecast: a wash on external_test (which only tests 6 of 14 classes) but a real win
+`external_test`). Forecast: a wash on external_test (which only tests 5 of 14 techniques plus `none`) but a real win
 on the starved propaganda vectors the new data feeds. Needs a charge; low priority.
 
 **Bottom line:** 62% shipped, 82.3% best on-device, ~90% top-2, every number reported including the

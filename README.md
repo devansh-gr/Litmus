@@ -60,9 +60,12 @@ blame-shifting/DARVO).
 Most detectors quote an accuracy number computed on data the authors wrote themselves.
 That number is almost always inflated. So we measured on **300 independently-labeled
 examples from public datasets** (dark-patterns + logical-fallacy + clickbait corpora)
-that we neither wrote nor tuned on:
+that we did not write. They are split in half: prompts and thresholds were tuned against the
+150-example dev half (`external_dev.jsonl`), and the other 150 (`external_holdout.jsonl`) were never
+used for tuning. The full-300 numbers below are therefore partly in-sample; the paper reports
+holdout-only accuracy (14B 86.0%, 3B 66.0%). The set covers 5 of the 14 techniques plus `none`.
 
-| | self-authored (tuned on) | **external (never seen)** |
+| | self-authored (tuned on) | **external (300; dev half tuned on)** |
 |---|---|---|
 | accuracy (shipped 3B, single-label) | ~80% | **~62%** (was 38% three sprints ago) |
 | accuracy (best on-device, 14B + few-shot) | — | **82.3%** |

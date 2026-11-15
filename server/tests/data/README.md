@@ -11,7 +11,7 @@ measures memorization, not generalization (Cawley & Talbot 2010). So the sets ha
 These are fine as smoke-tests and CI guards. They **overstate** real accuracy because the
 author wrote the examples AND tuned the model to them (circular).
 
-## TEST (external — independently labeled, never tuned on → the honest number)
+## TEST (external, independently labeled; dev half tuned on, holdout half never → report the holdout)
 - `external_test.jsonl` (300) — built by `build_external_set.py` from three public datasets;
   split 50/50 into `external_dev.jsonl` (tune thresholds/calibration) and
   `external_holdout.jsonl` (report):
