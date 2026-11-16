@@ -182,11 +182,10 @@ body("Reusing attention state is established practice in LLM serving. PagedAtten
      "multiplication was reported in that setting [@mlxissue]. We apply both observations to a closed label set.")
 
 heading("III", "Classification by Label Scoring")
-body("For a passage such as *Only 2 left, order now*, the model scores candidate labels such as *fomo* "
-     "and *false-urgency* as possible continuations and selects the label with the highest score, the length-normalized "
-     "log-likelihood. For input $x$ and each label $y \\in \\mathcal{Y}$ the score is")
+body("For a passage such as *Only 2 left, order now*, the classifier scores candidate labels such as *fomo* "
+     "and *false-urgency* by their length-normalized log-likelihood as continuations. For input $x$ and each label $y \\in \\mathcal{Y}$ the score is")
 equation(1)
-body("and returns the arg max, with a tempered softmax ($τ$=0.25) for confidence. A gate first scores "
+body("The classifier selects the highest-scoring label and converts scores to confidences with a tempered softmax ($τ$=0.25). A gate first scores "
      "*yes* and *no* for whether the text is manipulative and returns *none* when $p$(*no*) ≥ 0.65. Text "
      "that passes reaches the technique stage, which scores $K$=15 labels of 1 to 7 tokens (62 in total). "
      "Both stages run Llama-3.2-3B-Instruct [@llama] or Qwen2.5-14B-Instruct [@qwen] with 4-bit weights "
@@ -219,8 +218,8 @@ table("I", "Full-Path Warm Latency (s), 300 Inputs",
       note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. Full path: gate and technique stage on every input; in use, gate-rejected passages skip the technique stage.")
 body("Caching reorders half-precision sums, so it is not bit-exact. Over "
      "300 inputs on the 3B, three final decisions (1.0%) changed, all through caching and none through packing: two inputs whose gate probability lay "
-     "within 0.003 of the threshold, and one exact tie between two techniques. The largest score difference "
-     "was 0.031 nats. On the 14B, no decision "
+     "within 0.003 of the threshold, and one exact tie between two techniques. On the real labels, the largest score difference "
+     "between the base and the final path was 0.031 nats. On the 14B, no decision "
      "changed in 300. Median paired speedups over the base were 20.4× (3B) and 22.0× (14B).")
 
 heading("V", "The Cost of a Short Pass")
@@ -251,7 +250,7 @@ body("The staircase prices the label passes badly: 14 passes, each paying nearly
      "300 inputs were 0.127 and 0.512 s.")
 body("With synthetic label sets of 8 to 96 tokens (5-token labels, 50 benchmark inputs), packed time was "
      "flat from 16 to 32 and from 48 to 64 tokens, and the median gain over sequential scoring grew from "
-     "1.0× at 8 tokens to 3.5× (3B) and 2.8× (14B) at 96. Packed and sequential scores differed by at most "
+     "1.0× at 8 tokens to 3.5× (3B) and 2.8× (14B) at 96. On these synthetic labels, packed and sequential scores differed by at most "
      "0.067 nats; a causal mask across labels or consecutive positions changed them by 0.6 to 13 nats.")
 
 heading("VI", "Consequences")
@@ -266,7 +265,7 @@ body("Caching does not remove the trade-off between model sizes: fully optimized
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v8).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v9).")
 
 # ---------- references ----------
 REFS = {
