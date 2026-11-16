@@ -3,7 +3,7 @@
 Every number in the paper comes from a script in `server/bench/` and a raw result file in
 `server/bench/results/`. Nothing below is hand-entered.
 
-Fixed version for the paper: git tag `paper-v9`. Data split: `server/tests/data/external_test.jsonl`
+Fixed version for the paper: git tag `paper-v10`. Data split: `server/tests/data/external_test.jsonl`
 (300) = `external_dev.jsonl` (150, used to tune prompts and thresholds) + `external_holdout.jsonl`
 (150, never used for tuning; all accuracy in the paper is holdout-only). Classes: 5 of the 14
 techniques plus `none`.

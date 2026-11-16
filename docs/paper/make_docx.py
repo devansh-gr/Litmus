@@ -183,7 +183,7 @@ body("Reusing attention state is established practice in LLM serving. PagedAtten
 
 heading("III", "Classification by Label Scoring")
 body("For a passage such as *Only 2 left, order now*, the classifier scores candidate labels such as *fomo* "
-     "and *false-urgency* by their length-normalized log-likelihood as continuations. For input $x$ and each label $y \\in \\mathcal{Y}$ the score is")
+     "and *false-urgency* as continuations using length-normalized log-likelihood. For input $x$ and each label $y \\in \\mathcal{Y}$ the score is")
 equation(1)
 body("The classifier selects the highest-scoring label and converts scores to confidences with a tempered softmax ($τ$=0.25). A gate first scores "
      "*yes* and *no* for whether the text is manipulative and returns *none* when $p$(*no*) ≥ 0.65. Text "
@@ -265,7 +265,7 @@ body("Caching does not remove the trade-off between model sizes: fully optimized
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v9).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v10).")
 
 # ---------- references ----------
 REFS = {
