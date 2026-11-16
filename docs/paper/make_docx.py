@@ -133,7 +133,7 @@ p = para(C, False); p.add_run("Devansh Gaur").font.size = Pt(11)
 p = para(C, False, after=8); p.add_run("University of Waterloo, Waterloo, ON, Canada").italic = True
 figure("fig_hero.png", 6.6,
        "Fig. 1. (a) Median latency of the 15-label technique stage as each source of repeated computation is "
-       "removed (300 inputs; no reuse on 10 for the 3B and 3 for the 14B). (b) Latency "
+       "removed (300 inputs, no-reuse baseline on 10 for the 3B and 3 for the 14B). (b) Latency "
        "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9). Dashed lines: the "
        "bandwidth bound of Eq. (3). The cost of short passes rises in steps rather than following that bound.")
 
@@ -152,7 +152,7 @@ rich(p, "A local language model used as a closed-set classifier spends most of i
         "Second, its fixed part is cached across requests. Third, all labels are scored together in one "
         "tree-masked pass. On an Apple M4 Pro with 3B and 14B models and 300 inputs, the second and third steps "
         "reduce warm median latency of the full classifier, relative to the first step alone, from 3.53 s to "
-        "0.17 s (3B) and from 15.2 s to 0.68 s (14B). No 14B decision changes; three of 300 3B decisions do, "
+        "0.17 s (3B) and from 15.2 s to 0.68 s (14B). No 14B decision changes, while three of 300 3B decisions do, "
         "each at a near-tie. Packing helps because, after caching, the remaining work is a series of passes of "
         "one to six tokens whose cost rises in steps, consistent with the 32-row tiles of MLX's 4-bit matrix "
         "multiplication. One packed pass therefore halves the remaining technique-stage latency.",
@@ -193,7 +193,7 @@ body("The classifier selects the highest-scoring label and converts scores to co
      "that passes reaches the technique stage, which scores $K$=15 labels of 1 to 7 tokens (62 in total). "
      "Both stages run Llama-3.2-3B-Instruct [@llama] or Qwen2.5-14B-Instruct [@qwen] with 4-bit weights "
      "under MLX [@mlx] on an Apple M4 Pro with 24 GB of unified memory and 273 GB/s of memory bandwidth. "
-     "The 3B has 28 layers and $W$=1.81 GB of weights, the 14B 48 layers and 8.31 GB; both use 8 "
+     "The 3B has 28 layers and $W$=1.81 GB of weights, the 14B 48 layers and 8.31 GB. Both use 8 "
      "key-value heads of dimension 128.", indent=False)
 
 heading("IV", "Removing Redundant Work")
@@ -208,7 +208,7 @@ body("where $\\bar\\ell$ is the mean label length. For $P$=1446 and $K$=15, Eq. 
      "which Eq. (2) omits.", indent=False)
 body("*Across requests.* Label reuse still prefills the full prompt for every request, and 98.7% of that "
      "prompt (98.5% for the gate) never changes. We prefill the shared part once at startup (2.7 s "
-     "on the 3B, 13.8 s on the 14B) and keep its cache resident; with grouped-query attention [@gqa] the caches for both stages occupy only 0.31 GB (3B) and 0.53 GB (14B). Each request forwards only its suffix (the passage and "
+     "on the 3B, 13.8 s on the 14B) and keep its cache resident. With grouped-query attention [@gqa] the caches for both stages occupy only 0.31 GB (3B) and 0.53 GB (14B). Each request forwards only its suffix (the passage and "
      "closing template) and trims back afterwards (Table I). The gate, whose labels are "
      "single tokens, reduces to one pass of about 19 tokens.")
 table("I", "Full-Path Warm Latency (s), 300 Inputs",
@@ -218,7 +218,7 @@ table("I", "Full-Path Warm Latency (s), 300 Inputs",
        ("Both, p50", "3.53", "0.306", "0.170", "15.21", "1.140", "0.683"),
        ("Both, p95", "5.80", "0.382", "0.241", "17.53", "1.506", "0.995")],
       [0.86, 0.46, 0.41, 0.41, 0.54, 0.41, 0.41], bold_row=3,
-      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. Full path: gate and technique stage on every input; in use, gate-rejected passages skip the technique stage.")
+      note="Base: deployed (label reuse). Cache: + request prefix. Pack: + packed labels. Full path: gate and technique stage on every input. In use, gate-rejected passages skip the technique stage.")
 body("Caching reorders half-precision sums, so it is not bit-exact. Over "
      "300 inputs on the 3B, three final decisions (1.0%) changed, all through caching and none through packing: two inputs whose gate probability lay "
      "within 0.003 of the threshold, and one exact tie between two techniques. On the real labels, the largest score difference "
@@ -247,28 +247,28 @@ figure("fig_qmm.png", 3.0, "Fig. 2. Time of one 13824×5120 matrix multiplicatio
        "projections, synchronized once per 40 operations, agrees within 7%.")
 body("The staircase prices the label passes badly: 14 passes, each paying nearly a full weight read, "
      "where a single pass of 47 rows spans two tiles. We therefore place all 47 label tokens in one sequence, ordered by depth, "
-     "under a tree-shaped mask that lets each token see the prompt and the earlier tokens of its own label but no other label's; a causal mask would let labels see each other. "
+     "under a tree-shaped mask that lets each token see the prompt and the earlier tokens of its own label but no other label's. "
      "Tokens at the same depth share a rotary position. Fig. 1(b) prices "
      "this pass at $t$(48), predicting 0.116 s (3B) and 0.442 s (14B) for the stage. Measured medians over "
      "300 inputs were 0.127 and 0.512 s.")
 body("With synthetic label sets of 8 to 96 tokens (5-token labels, 50 benchmark inputs), packed time was "
      "flat from 16 to 32 and from 48 to 64 tokens, and the median gain over sequential scoring grew from "
      "1.0× at 8 tokens to 3.5× (3B) and 2.8× (14B) at 96. On these synthetic labels, packed and sequential scores differed by at most "
-     "0.067 nats; a causal mask across labels or consecutive positions changed them by 0.6 to 13 nats.")
+     "0.067 nats, whereas a causal mask across labels or consecutive positions changed them by 0.6 to 13 nats.")
 
 heading("VI", "Consequences")
-body("Caching does not remove the trade-off between model sizes: fully optimized, the 3B answers in "
-     "0.17 s and the 14B in 0.68 s (resident warm cache; p99 1.30 s). It moves the 14B inside an interactive budget, which matters because "
-     "the accuracy gap is large. The 300 benchmark examples come "
+body("Caching does not remove the trade-off between model sizes: the 3B answers in "
+     "0.17 s and the 14B in 0.68 s (resident warm cache, p99 1.30 s). It moves the 14B inside an interactive budget, which matters given "
+     "the accuracy gap. The 300 benchmark examples come "
      "from public dark-pattern [@darkpat], logical-fallacy [@logic] and clickbait [@clickbait] corpora. On the 150 examples that played no "
      "part in tuning, the pipeline reached 86.0% top-1 accuracy with the 14B (95% CI 79.5 to 90.7 [@wilson]) "
-     "and 66.0% (58.1 to 73.1) with the 3B; the 14B won 34 of 38 "
+     "and 66.0% (58.1 to 73.1) with the 3B, and the 14B won 34 of 38 "
      "discordant inputs ($p$ < 10⁻⁶, exact McNemar test [@mcnemar]).")
 
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v11).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v12).")
 
 # ---------- references ----------
 REFS = {
