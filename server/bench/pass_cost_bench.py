@@ -19,7 +19,7 @@ model, tok = load(a.model)
 P = [tok.encode(s._chat_prompt(tok, t, s.SYSTEM, s.TECHNIQUE_FEWSHOT)) for t in SAMPLES]
 L = min(next(i for i, (x, y) in enumerate(zip(P[0], p)) if x != y) for p in P[1:])
 cache = make_prompt_cache(model); mx.eval(model(mx.array([P[0][:L]]), cache=cache))
-res = {"model": a.model, "context": L, "ms": {}}
+res = {"model": a.model, "context": L, "ms": {}, "raw_ms": {}}
 for m in (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64):
     x = mx.array([P[1][L:L + 1] * m])
     ts = []
@@ -27,4 +27,5 @@ for m in (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64):
         t0 = time.perf_counter(); mx.eval(model(x, cache=cache)); ts.append(time.perf_counter() - t0)
         trim_prompt_cache(cache, m)
     res["ms"][m] = 1000 * statistics.median(ts[1:])
+    res["raw_ms"][m] = [1000 * t for t in ts[1:]]
 print(json.dumps(res))

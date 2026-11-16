@@ -76,43 +76,56 @@ PASS = {"3B": [10.5, 11.4, 12.7, 15.2, 21.9, 27.1, 41.0, 41.7, 41.8, 41.5, 74.0,
         "14B": [38.6, 41.5, 45.7, 55.9, 84.7, 109.1, 153.3, 154.8, 155.5, 154.6, 287.2, 294.1]}
 
 
+# p5 and p95 of technique-stage latency over 300 inputs (same files); no-reuse rows have 10 and 3 inputs, no whisker
+LAD_P = {"3B": [None, (1.746, 3.05), (0.248, 0.300), (0.121, 0.163)],
+         "14B": [None, (7.893, 9.874), (0.888, 1.205), (0.491, 0.674)]}
+
+
 def ladder(ax):
-    """Fig. 1(a): technique-stage latency as each redundancy is removed."""
+    """Fig. 1(a): technique-stage latency as each redundancy is removed (dot plot, p5 to p95 whiskers)."""
     steps = ["no reuse", "label reuse", "+ request cache", "+ packed labels"]
-    shade = ["0.9", "0.68", "0.42", "0.1"]
     y0 = {"3B": 0.0, "14B": 1.45}
+    for x in (0.1, 1, 10, 100):
+        ax.axvline(x, color="0.88", lw=0.5, zorder=0)
     for m, vals in LAD.items():
         for i, v in enumerate(vals):
             yy = y0[m] + i * 0.24
-            ax.barh(yy, v, height=0.19, color=shade[i], edgecolor="black", lw=0.6)
-            ax.text(v * 1.15, yy, f"{v:.2f}" if v < 10 else f"{v:.0f}", va="center", fontsize=7.5)
-        ax.text(0.042, y0[m] - 0.27, m, fontsize=8.5, fontweight="bold", va="center")
+            ax.plot([0.04, v], [yy, yy], color="0.8", lw=0.6, zorder=1)
+            if LAD_P[m][i]:
+                lo, hi = LAD_P[m][i]
+                ax.plot([lo, hi], [yy, yy], color="black", lw=1.0, zorder=2)
+            ax.plot(v, yy, "o", ms=4.2, color="black", zorder=3)
+            ax.text(max(v, (LAD_P[m][i] or (0, v))[1]) * 1.25, yy, f"{v:.2f}" if v < 10 else f"{v:.0f}",
+                    va="center", fontsize=8)
+        ax.text(0.042, y0[m] - 0.27, m, fontsize=9, fontweight="bold", va="center")
     ax.set_yticks([y0[m] + i * 0.24 for m in LAD for i in range(4)])
-    ax.set_yticklabels(steps * 2, fontsize=7.5)
+    ax.set_yticklabels(steps * 2, fontsize=8)
     ax.set_xscale("log"); ax.set_xlim(0.04, 600); ax.set_ylim(2.3, -0.45)
     ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
-    ax.set_xlabel("Latency (s)")
+    ax.set_xlabel("Technique-stage latency (s)")
 
 
 def passcost(ax):
     """Fig. 1(b): latency of one forward pass of m tokens over the cached prefix."""
+    for y in (10, 100):
+        ax.axhline(y, color="0.88", lw=0.5, zorder=0)
     for (m, ts), mk, fc in zip(PASS.items(), ["o", "s"], ["white", "black"]):
         ax.step(PASS_M, ts, where="post", color="0.55", lw=0.7)
-        ax.plot(PASS_M, ts, mk, ms=3.6, color="black", mfc=fc, mew=0.7, label=m)
+        ax.plot(PASS_M, ts, mk, ms=3.8, color="black", mfc=fc, mew=0.7, label=m)
     for W, lab in [(W14, "14B"), (W3, "3B")]:
         ax.axhline(1e3 * W / BW, color="0.45", lw=0.7, ls="--")
-        ax.text(80, 1e3 * W / BW, f"{lab} $W/B$", fontsize=7, va="center", ha="left")
+        ax.text(78, 1e3 * W / BW * 0.9, f"{lab} weight-read bound", fontsize=7, va="top", ha="right")
     ax.axvspan(1, 6, color="0.92", lw=0, zorder=0)
-    ax.text(2.45, 380, "labels", fontsize=7.5, ha="center", va="center")
+    ax.text(2.45, 420, "label passes\n(1 to 6 tokens)", fontsize=7, ha="center", va="center", linespacing=0.95)
     ax.axvline(19, color="0.45", lw=0.7, ls=":")
-    ax.text(19, 380, " suffix", fontsize=7.5, ha="left", va="center")
+    ax.text(19, 420, " input suffix\n (19 tokens)", fontsize=7, ha="left", va="center", linespacing=0.95)
     ax.set_xscale("log", base=2); ax.set_yscale("log")
     ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
-    ax.set_ylim(4, 600); ax.set_xlim(0.85, 75)
-    ax.set_xlabel("Tokens per pass, $m$"); ax.set_ylabel("Latency (ms)")
+    ax.set_ylim(4, 700); ax.set_xlim(0.85, 80)
+    ax.set_xlabel("Tokens per pass, $m$"); ax.set_ylabel("Latency per pass (ms)")
     for m, ts in PASS.items():
-        ax.text(72, ts[-1], m, fontsize=7.5, va="center", ha="left", fontweight="bold")
+        ax.text(70, ts[-1] * 0.62, m, fontsize=8, va="center", ha="center", fontweight="bold")
 
 
 def membudget(ax):

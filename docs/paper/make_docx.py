@@ -132,10 +132,10 @@ p.add_run("Cross-Request Prefix Caching and the Cost of Short Forward Passes "
 p = para(C, False); p.add_run("Devansh Gaur").font.size = Pt(11)
 p = para(C, False, after=8); p.add_run("University of Waterloo, Waterloo, ON, Canada").italic = True
 figure("fig_hero.png", 6.6,
-       "Fig. 1. (a) Median latency of the 15-label technique stage as each source of repeated computation is "
-       "removed (300 inputs, no-reuse baseline on 10 for the 3B and 3 for the 14B). (b) Latency "
-       "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9). Dashed lines: the "
-       "bandwidth bound of Eq. (3). The cost of short passes rises in steps rather than following that bound.")
+       "Fig. 1. (a) Latency of the 15-label technique stage as each source of repeated computation is "
+       "removed. Median over 300 inputs (no reuse: 10 and 3) with 5th to 95th percentile bars. (b) Latency "
+       "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9, run-to-run spread under 5%). Dashed lines: the "
+       "weight-read bound $W/B$ of Eq. (3). Cost rises in steps, not along that bound.")
 
 # ---------- two-column body ----------
 sec = doc.add_section(WD_SECTION.CONTINUOUS)
@@ -268,7 +268,7 @@ body("Caching does not remove the trade-off between model sizes: the 3B answers 
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v12).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v13).")
 
 # ---------- references ----------
 REFS = {
