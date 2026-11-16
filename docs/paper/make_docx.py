@@ -134,7 +134,7 @@ p = para(C, False, after=8); p.add_run("University of Waterloo, Waterloo, ON, Ca
 figure("fig_hero.png", 6.6,
        "Fig. 1. (a) Latency of the 15-label technique stage as each source of repeated computation is "
        "removed. Filled: median of 300 inputs with 5th to 95th percentile bars. Hollow: no-reuse median of n inputs, no bars. (b) Latency "
-       "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9, 5th to 95th percentiles within 5% of the median over 30 runs). Dashed lines: the "
+       "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9 runs. In a separate 30-run repeat, every 5th to 95th percentile lay within 5% of the median). Dashed lines: the "
        "weight-read bound $W/B$ of Eq. (3). Cost rises in steps, not along that bound.")
 
 # ---------- two-column body ----------
@@ -152,8 +152,8 @@ rich(p, "A local language model used as a closed-set classifier spends most of i
         "Second, its fixed part is cached across requests. Third, all labels are scored together in one "
         "tree-masked pass. On an Apple M4 Pro with 3B and 14B models and 300 inputs, the second and third steps "
         "reduce warm median latency of the full classifier, relative to the first step alone, from 3.53 s to "
-        "0.17 s (3B) and from 15.2 s to 0.68 s (14B). No 14B decision changes, while three of 300 3B decisions do, "
-        "each at a near-tie. Packing helps because, after caching, the remaining work is a series of passes of "
+        "0.17 s (3B) and from 15.2 s to 0.68 s (14B). No 14B decision changes. On the 3B, three of 300 change: two near the gate threshold "
+        "and one at a tie between two techniques. Packing helps because, after caching, the remaining work is a series of passes of "
         "one to six tokens whose cost rises in steps, consistent with the 32-row tiles of MLX's 4-bit matrix "
         "multiplication. One packed pass therefore halves the remaining technique-stage latency.",
      size=9, bold=True)
@@ -268,7 +268,7 @@ body("Caching does not remove the trade-off between model sizes: the 3B answers 
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v14).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v15).")
 
 # ---------- references ----------
 REFS = {
