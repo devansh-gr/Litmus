@@ -79,6 +79,9 @@ PASS = {"3B": [10.5, 11.4, 12.7, 15.2, 21.9, 27.1, 41.0, 41.7, 41.8, 41.5, 74.0,
 # p5 and p95 of technique-stage latency over 300 inputs (same files); no-reuse rows have 10 and 3 inputs, no whisker
 LAD_P = {"3B": [None, (1.746, 3.05), (0.248, 0.300), (0.121, 0.163)],
          "14B": [None, (7.893, 9.874), (0.888, 1.205), (0.491, 0.674)]}
+# individual no-reuse runs (3B, 10 inputs); the 14B file keeps only the median of its 3
+NAIVE_3B = [27.9, 27.1, 26.5, 28.1, 26.4, 26.1, 28.0, 26.5, 27.0, 29.2]
+NAIVE_N = {"3B": 10, "14B": 3}
 
 
 def ladder(ax):
@@ -94,8 +97,15 @@ def ladder(ax):
             if LAD_P[m][i]:
                 lo, hi = LAD_P[m][i]
                 ax.plot([lo, hi], [yy, yy], color="black", lw=1.0, zorder=2)
-            ax.plot(v, yy, "o", ms=4.2, color="black", zorder=3)
-            ax.text(max(v, (LAD_P[m][i] or (0, v))[1]) * 1.25, yy, f"{v:.2f}" if v < 10 else f"{v:.0f}",
+            if i == 0:
+                if m == "3B":
+                    ax.plot(NAIVE_3B, [yy] * len(NAIVE_3B), "|", ms=5, color="0.35", mew=0.6, zorder=2)
+                ax.plot(v, yy, "o", ms=4.2, color="black", mfc="white", mew=0.9, zorder=3)
+                lab = f"{v:.0f} (n={NAIVE_N[m]})"
+            else:
+                ax.plot(v, yy, "o", ms=4.2, color="black", zorder=3)
+                lab = f"{v:.2f}" if v < 10 else f"{v:.0f}"
+            ax.text(max(v, (LAD_P[m][i] or (0, v))[1], 29.2 if (i == 0 and m == "3B") else 0) * 1.25, yy, lab,
                     va="center", fontsize=8)
         ax.text(0.042, y0[m] - 0.27, m, fontsize=9, fontweight="bold", va="center")
     ax.set_yticks([y0[m] + i * 0.24 for m in LAD for i in range(4)])
