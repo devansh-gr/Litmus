@@ -3,7 +3,7 @@ model config.json files and safetensors sizes; derived curves are labelled as mo
 Writes fig_main.pdf (4-panel strip, LaTeX one-pager) and fig_*.png (column width, Word)."""
 import numpy as np, matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, matplotlib.ticker
 from matplotlib.patches import FancyBboxPatch
 
 # figures4papers layout rules (spines off, frameless legends, edged bars), drawn in grayscale and in the
@@ -84,58 +84,78 @@ NAIVE_3B = [27.9, 27.1, 26.5, 28.1, 26.4, 26.1, 28.0, 26.5, 27.0, 29.2]
 NAIVE_N = {"3B": 10, "14B": 3}
 
 
+C3, C14, INK, MUTED, GRID = "#2a78d6", "#d4582a", "#0b0b0b", "#52514e", "#e4e3df"   # validated pair (dataviz)
+COL = {"3B": C3, "14B": C14}
+MK = {"3B": "o", "14B": "s"}
+plain = matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}")
+
+
+def _clean(ax, grid_axis):
+    ax.grid(axis=grid_axis, color=GRID, lw=0.6, zorder=0); ax.set_axisbelow(True)
+    ax.tick_params(labelsize=8, colors=INK, length=2.5)
+    ax.minorticks_off()
+
+
 def ladder(ax):
     """Fig. 1(a): technique-stage latency as each redundancy is removed (dot plot, p5 to p95 whiskers)."""
-    steps = ["no reuse", "label reuse", "+ request cache", "+ packed labels"]
-    y0 = {"3B": 0.0, "14B": 1.45}
-    for x in (0.1, 1, 10, 100):
-        ax.axvline(x, color="0.88", lw=0.5, zorder=0)
-    for m, vals in LAD.items():
-        for i, v in enumerate(vals):
-            yy = y0[m] + i * 0.24
-            ax.plot([0.04, v], [yy, yy], color="0.8", lw=0.6, zorder=1)
+    steps = ["No reuse", "Label reuse", "+ Request cache", "+ Packed labels"]
+    ys, labels = [], []
+    for g, m in enumerate(LAD):
+        for i, v in enumerate(LAD[m]):
+            yy = g * 5 + i; ys.append(yy); labels.append(steps[i])
+            c = COL[m]
             if LAD_P[m][i]:
-                lo, hi = LAD_P[m][i]
-                ax.plot([lo, hi], [yy, yy], color="black", lw=1.0, zorder=2)
+                ax.plot(LAD_P[m][i], [yy, yy], color=c, lw=1.6, solid_capstyle="butt", zorder=2)
             if i == 0:
-                if m == "3B":
-                    ax.plot(NAIVE_3B, [yy] * len(NAIVE_3B), "|", ms=5, color="0.35", mew=0.6, zorder=2)
-                ax.plot(v, yy, "o", ms=4.2, color="black", mfc="white", mew=0.9, zorder=3)
-                lab = f"{v:.0f} (n={NAIVE_N[m]})"
+                ax.plot(v, yy, MK[m], ms=5.5, mfc="white", mec=c, mew=1.3, zorder=3)
+                lab = f"{v:.0f} s (n = {NAIVE_N[m]})"
             else:
-                ax.plot(v, yy, "o", ms=4.2, color="black", zorder=3)
-                lab = f"{v:.2f}" if v < 10 else f"{v:.0f}"
-            ax.text(max(v, (LAD_P[m][i] or (0, v))[1], 29.2 if (i == 0 and m == "3B") else 0) * 1.25, yy, lab,
-                    va="center", fontsize=8)
-        ax.text(0.042, y0[m] - 0.27, m, fontsize=9, fontweight="bold", va="center")
-    ax.set_yticks([y0[m] + i * 0.24 for m in LAD for i in range(4)])
-    ax.set_yticklabels(steps * 2, fontsize=8)
-    ax.set_xscale("log"); ax.set_xlim(0.04, 600); ax.set_ylim(2.3, -0.45)
-    ax.tick_params(axis="y", length=0)
+                ax.plot(v, yy, MK[m], ms=5.5, color=c, mec="white", mew=0.6, zorder=3)
+                lab = f"{v:.2f} s" if v < 10 else f"{v:.1f} s"
+            hi = max(v, (LAD_P[m][i] or (0, 0))[1])
+            ax.text(hi * 1.3, yy, lab, va="center", fontsize=8, color=INK)
+        ax.text(0.035, g * 5 - 1.05, f"{m} model", fontsize=8.5, fontweight="bold", color=COL[m],
+                va="center", transform=ax.get_yaxis_transform(), ha="left")
+    ax.set_yticks(ys); ax.set_yticklabels(labels, fontsize=8)
+    ax.set_xscale("log"); ax.set_xlim(0.06, 1500); ax.set_ylim(8.6, -1.7)
+    ax.xaxis.set_major_formatter(plain)
+    _clean(ax, "x"); ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
-    ax.set_xlabel("Technique-stage latency (s)")
+    ax.set_xlabel("Technique-stage latency (s, log scale)", fontsize=8.5)
+
+
+def _tiles(ax, edges, top):
+    for a, b in zip(edges[:-1], edges[1:]):
+        if (edges.index(a)) % 2 == 1:
+            ax.axvspan(a, b, color="#f3f2ee", lw=0, zorder=0)
+    for e in edges[1:-1]:
+        ax.axvline(e, color=MUTED, lw=0.6, ls=(0, (2, 2)), zorder=1)
 
 
 def passcost(ax):
-    """Fig. 1(b): latency of one forward pass of m tokens over the cached prefix."""
-    for y in (10, 100):
-        ax.axhline(y, color="0.88", lw=0.5, zorder=0)
-    for (m, ts), mk, fc in zip(PASS.items(), ["o", "s"], ["white", "black"]):
-        ax.step(PASS_M, ts, where="post", color="0.55", lw=0.7)
-        ax.plot(PASS_M, ts, mk, ms=3.8, color="black", mfc=fc, mew=0.7, label=m)
-    for W, lab in [(W14, "14B"), (W3, "3B")]:
-        ax.axhline(1e3 * W / BW, color="0.45", lw=0.7, ls="--")
-        ax.text(78, 1e3 * W / BW * 0.9, f"{lab} weight-read bound", fontsize=7, va="top", ha="right")
-    ax.axvspan(1, 6, color="0.92", lw=0, zorder=0)
-    ax.text(2.45, 420, "label passes\n(1 to 6 tokens)", fontsize=7, ha="center", va="center", linespacing=0.95)
-    ax.axvline(19, color="0.45", lw=0.7, ls=":")
-    ax.text(19, 420, " input suffix\n (19 tokens)", fontsize=7, ha="left", va="center", linespacing=0.95)
-    ax.set_xscale("log", base=2); ax.set_yscale("log")
-    ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
-    ax.set_ylim(4, 700); ax.set_xlim(0.85, 80)
-    ax.set_xlabel("Tokens per pass, $m$"); ax.set_ylabel("Latency per pass (ms)")
+    """Fig. 1(b): latency of one forward pass of m tokens over the cached prefix, linear m."""
+    _tiles(ax, [0, 32.5, 64.5, 68], 0)
+    ax.axvspan(0.5, 6.5, color=C3, alpha=0.07, lw=0, zorder=0)
     for m, ts in PASS.items():
-        ax.text(70, ts[-1] * 0.62, m, fontsize=8, va="center", ha="center", fontweight="bold")
+        ax.step(PASS_M, ts, where="post", color=COL[m], lw=1.0, alpha=0.55, zorder=2)
+        ax.plot(PASS_M, ts, MK[m], ms=4.2, color=COL[m], mec="white", mew=0.5, zorder=3, label=f"{m} model")
+        ax.text(66, ts[-1], m, color=COL[m], fontsize=8.5, fontweight="bold", va="center", ha="left")
+    for W, m in [(W14, "14B"), (W3, "3B")]:
+        y = 1e3 * W / BW
+        ax.axhline(y, color=COL[m], lw=0.8, ls=(0, (4, 2)), zorder=1)
+        ax.text(34, y * 0.88, f"{m} weight-read bound", fontsize=7.5, color=MUTED, va="top", ha="left")
+    ax.axvline(19, color=MUTED, lw=0.8, ls=":", zorder=1)
+    tx = ax.get_xaxis_transform()
+    for x, t in [(16.25, "32-row tile 1"), (48.5, "32-row tile 2")]:
+        ax.text(x, 1.02, t, transform=tx, fontsize=7.5, ha="center", va="bottom", color=MUTED)
+    ax.text(20.3, 80, "Request suffix\n(19 tokens)", fontsize=7.5, ha="left", va="center", color=MUTED, linespacing=1.0)
+    ax.text(0.9, 4.5, "Label passes", fontsize=7.5, ha="left", va="bottom", color=MUTED)
+    ax.set_yscale("log"); ax.set_ylim(3.6, 400); ax.set_xlim(0, 72)
+    ax.set_yticks([5, 10, 20, 50, 100, 200]); ax.yaxis.set_major_formatter(plain)
+    ax.set_xticks([1, 8, 16, 24, 32, 40, 48, 56, 64])
+    _clean(ax, "y")
+    ax.set_xlabel("New tokens per forward pass, $m$", fontsize=8.5)
+    ax.set_ylabel("Pass latency (ms)", fontsize=8.5)
 
 
 def membudget(ax):
@@ -158,20 +178,23 @@ def membudget(ax):
 
 
 def qmm(ax):
-    """Fig. 2: one 13824x5120 matmul vs rows M; server/bench/results/qmm_2026-11-14.json."""
+    """Fig. 2: one 13824x5120 matmul vs rows M; server/bench/results/qmm_2026-11-15.json."""
     import json
-    r = json.load(open("../../server/bench/results/qmm_2026-11-14.json"))
-    for key, lab, mk, fc in [("q4_us", "4-bit", "s", "black"), ("fp16_us", "fp16", "o", "white")]:
+    r = json.load(open("../../server/bench/results/qmm_2026-11-15.json"))
+    _tiles(ax, [0, 32.5, 64.5, 100], 0)
+    for key, lab, mk, c, filled in [("q4_us", "4-bit", "s", INK, True), ("fp16_us", "fp16", "o", MUTED, False)]:
         M = [int(m) for m in r[key]]; t = [v / 1000 for v in r[key].values()]
-        ax.step(M, t, where="post", color="0.55", lw=0.7)
-        ax.plot(M, t, mk, ms=3.2, color="black", mfc=fc, mew=0.7, label=lab)
-    for x in (33, 65):
-        ax.axvline(x - 0.5, color="0.45", lw=0.6, ls=":")
-        ax.text(x * 1.04, 0.12, str(x), fontsize=7, ha="left")
-    ax.set_xscale("log", base=2); ax.set_xticks([1, 2, 4, 8, 16, 32, 64]); ax.set_xticklabels(["1", "2", "4", "8", "16", "32", "64"])
-    ax.set_xlim(0.85, 110); ax.set_ylim(0, 2.9)
-    ax.set_xlabel("Rows, $M$"); ax.set_ylabel("Time (ms)")
-    ax.legend(fontsize=7.5, loc="upper left", handletextpad=0.3)
+        ax.step(M, t, where="post", color=c, lw=1.0, alpha=0.6, zorder=2)
+        ax.plot(M, t, mk, ms=3.8, color=c, mfc=c if filled else "white", mec=c, mew=0.8, zorder=3, label=lab)
+    Mc = [int(m) for m in r["q4_chain_us"]]; tc = [v / 1000 for v in r["q4_chain_us"].values()]
+    ax.plot(Mc, tc, "x", ms=3.6, color=INK, mew=0.7, zorder=3, label="4-bit chain")
+    for x, lab in [(21, "tile 1"), (48.5, "tile 2"), (80, "tile 3")]:
+        ax.text(x, 0.3, lab, fontsize=7.5, ha="center", va="center", color=MUTED)
+    ax.set_xlim(0, 100); ax.set_ylim(0, 3.0); ax.set_yticks([0, 1, 2, 3])
+    ax.set_xticks([1, 16, 32, 48, 64, 80, 96])
+    _clean(ax, "y")
+    ax.set_xlabel("Activation rows, $M$", fontsize=8.5); ax.set_ylabel("Latency (ms)", fontsize=8.5)
+    ax.legend(fontsize=7.5, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, handletextpad=0.2, columnspacing=0.9, borderaxespad=0.1)
 
 
 if __name__ == "__main__":
@@ -186,13 +209,16 @@ if __name__ == "__main__":
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a); a.tick_params(labelsize=6.5)
         fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.0, 1.85), constrained_layout=True, gridspec_kw={"width_ratios": [1.35, 1]})
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(6.6, 1.75), constrained_layout=True, gridspec_kw={"width_ratios": [1.1, 1]})
     ladder(a1); passcost(a2)
-    a1.set_title("(a)", fontsize=8.5, loc="left"); a2.set_title("(b)", fontsize=8.5, loc="left")
-    for a in (a1, a2): a.tick_params(labelsize=7.5)
-    fig.savefig("fig_hero.png", dpi=600); plt.close(fig)
-    for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.4, 1.3))]:
+    a1.set_title("(a)", fontsize=9, loc="left", x=-0.3, fontweight="bold"); a2.set_title("(b)", fontsize=9, loc="left", x=-0.14, fontweight="bold")
+    for ext in ("png", "pdf", "svg"):
+        fig.savefig(f"fig_hero.{ext}", dpi=600)
+    plt.close(fig)
+    for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.0, 1.15))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
-        f(a); a.tick_params(labelsize=7.5)
-        fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
+        f(a)
+        for ext in (("png", "pdf", "svg") if name == "qmm" else ("png",)):
+            fig.savefig(f"fig_{name}.{ext}", dpi=600)
+        plt.close(fig)
     print("ok")
