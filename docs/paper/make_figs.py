@@ -102,7 +102,7 @@ def ladder(ax):
     ys, labels = [], []
     for g, m in enumerate(LAD):
         for i, v in enumerate(LAD[m]):
-            yy = g * 5 + i; ys.append(yy); labels.append(steps[i])
+            yy = g * 5.8 + i; ys.append(yy); labels.append(steps[i])
             c = COL[m]
             if LAD_P[m][i]:
                 ax.plot(LAD_P[m][i], [yy, yy], color=c, lw=1.6, solid_capstyle="butt", zorder=2)
@@ -114,10 +114,10 @@ def ladder(ax):
                 lab = f"{v:.2f} s" if v < 10 else f"{v:.1f} s"
             hi = max(v, (LAD_P[m][i] or (0, 0))[1])
             ax.text(hi * 1.3, yy, lab, va="center", fontsize=8, color=INK)
-        ax.text(0.035, g * 5 - 1.05, f"{m} model", fontsize=8.5, fontweight="bold", color=COL[m],
+        ax.text(0.035, g * 5.8 - 1.15, f"{m} model", fontsize=8.5, fontweight="bold", color=COL[m],
                 va="center", transform=ax.get_yaxis_transform(), ha="left")
     ax.set_yticks(ys); ax.set_yticklabels(labels, fontsize=8)
-    ax.set_xscale("log"); ax.set_xlim(0.06, 1500); ax.set_ylim(8.6, -1.7)
+    ax.set_xscale("log"); ax.set_xlim(0.06, 1500); ax.set_ylim(9.4, -1.8)
     ax.xaxis.set_major_formatter(plain)
     _clean(ax, "x"); ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
@@ -135,9 +135,9 @@ def _tiles(ax, edges, top):
 def passcost(ax):
     """Fig. 1(b): latency of one forward pass of m tokens over the cached prefix, linear m."""
     _tiles(ax, [0, 32.5, 64.5, 68], 0)
-    ax.axvspan(0.5, 6.5, color=C3, alpha=0.07, lw=0, zorder=0)
+    ax.axvspan(0.5, 6.5, color="#e6eef8", lw=0, zorder=0)
     for m, ts in PASS.items():
-        ax.step(PASS_M, ts, where="post", color=COL[m], lw=1.0, alpha=0.55, zorder=2)
+        ax.plot(PASS_M, ts, color=COL[m], lw=0.8, alpha=0.45, zorder=2)
         ax.plot(PASS_M, ts, MK[m], ms=4.2, color=COL[m], mec="white", mew=0.5, zorder=3, label=f"{m} model")
         ax.text(66, ts[-1], m, color=COL[m], fontsize=8.5, fontweight="bold", va="center", ha="left")
     for W, m in [(W14, "14B"), (W3, "3B")]:
@@ -148,14 +148,14 @@ def passcost(ax):
     tx = ax.get_xaxis_transform()
     for x, t in [(16.25, "32-row tile 1"), (48.5, "32-row tile 2")]:
         ax.text(x, 1.02, t, transform=tx, fontsize=7.5, ha="center", va="bottom", color=MUTED)
-    ax.text(20.3, 80, "Request suffix\n(19 tokens)", fontsize=7.5, ha="left", va="center", color=MUTED, linespacing=1.0)
+    ax.text(20.3, 12, "Request suffix (19 tokens)", fontsize=7.5, ha="left", va="center", color=MUTED)
     ax.text(0.9, 4.5, "Label passes", fontsize=7.5, ha="left", va="bottom", color=MUTED)
     ax.set_yscale("log"); ax.set_ylim(3.6, 400); ax.set_xlim(0, 72)
     ax.set_yticks([5, 10, 20, 50, 100, 200]); ax.yaxis.set_major_formatter(plain)
     ax.set_xticks([1, 8, 16, 24, 32, 40, 48, 56, 64])
     _clean(ax, "y")
     ax.set_xlabel("New tokens per forward pass, $m$", fontsize=8.5)
-    ax.set_ylabel("Pass latency (ms)", fontsize=8.5)
+    ax.set_ylabel("Latency (ms, log)", fontsize=8.5)
 
 
 def membudget(ax):
@@ -184,7 +184,7 @@ def qmm(ax):
     _tiles(ax, [0, 32.5, 64.5, 100], 0)
     for key, lab, mk, c, filled in [("q4_us", "4-bit", "s", INK, True), ("fp16_us", "fp16", "o", MUTED, False)]:
         M = [int(m) for m in r[key]]; t = [v / 1000 for v in r[key].values()]
-        ax.step(M, t, where="post", color=c, lw=1.0, alpha=0.6, zorder=2)
+        ax.plot(M, t, color=c, lw=0.8, alpha=0.5, zorder=2)
         ax.plot(M, t, mk, ms=3.8, color=c, mfc=c if filled else "white", mec=c, mew=0.8, zorder=3, label=lab)
     Mc = [int(m) for m in r["q4_chain_us"]]; tc = [v / 1000 for v in r["q4_chain_us"].values()]
     ax.plot(Mc, tc, "x", ms=3.6, color=INK, mew=0.7, zorder=3, label="4-bit chain")
@@ -215,6 +215,9 @@ if __name__ == "__main__":
     for ext in ("png", "pdf", "svg"):
         fig.savefig(f"fig_hero.{ext}", dpi=600)
     plt.close(fig)
+    for name, f, size in [("x_reuse", ladder, (3.6, 2.5)), ("x_staircase", passcost, (3.6, 2.5))]:
+        fig, a = plt.subplots(figsize=size, constrained_layout=True)
+        f(a); fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
     for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.0, 1.15))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a)
