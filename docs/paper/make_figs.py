@@ -102,7 +102,7 @@ def ladder(ax):
     ys, labels = [], []
     for g, m in enumerate(LAD):
         for i, v in enumerate(LAD[m]):
-            yy = g * 5.8 + i; ys.append(yy); labels.append(steps[i])
+            yy = g * 6.4 + i; ys.append(yy); labels.append(steps[i])
             c = COL[m]
             if LAD_P[m][i]:
                 ax.plot(LAD_P[m][i], [yy, yy], color=c, lw=1.6, solid_capstyle="butt", zorder=2)
@@ -114,10 +114,10 @@ def ladder(ax):
                 lab = f"{v:.2f} s" if v < 10 else f"{v:.1f} s"
             hi = max(v, (LAD_P[m][i] or (0, 0))[1])
             ax.text(hi * 1.3, yy, lab, va="center", fontsize=8, color=INK)
-        ax.text(0.035, g * 5.8 - 1.15, f"{m} model", fontsize=8.5, fontweight="bold", color=COL[m],
+        ax.text(0.035, g * 6.4 - 1.2, f"{m} model", fontsize=8.5, fontweight="bold", color=COL[m],
                 va="center", transform=ax.get_yaxis_transform(), ha="left")
     ax.set_yticks(ys); ax.set_yticklabels(labels, fontsize=8)
-    ax.set_xscale("log"); ax.set_xlim(0.06, 1500); ax.set_ylim(9.4, -1.8)
+    ax.set_xscale("log"); ax.set_xlim(0.06, 1500); ax.set_ylim(10.0, -1.9)
     ax.xaxis.set_major_formatter(plain)
     _clean(ax, "x"); ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
@@ -146,11 +146,11 @@ def passcost(ax):
         ax.text(34, y * 0.88, f"{m} weight-read bound", fontsize=7.5, color=MUTED, va="top", ha="left")
     ax.axvline(19, color=MUTED, lw=0.8, ls=":", zorder=1)
     tx = ax.get_xaxis_transform()
-    for x, t in [(16.25, "32-row tile 1"), (48.5, "32-row tile 2")]:
-        ax.text(x, 1.02, t, transform=tx, fontsize=7.5, ha="center", va="bottom", color=MUTED)
-    ax.text(20.3, 12, "Request suffix (19 tokens)", fontsize=7.5, ha="left", va="center", color=MUTED)
+    for x in (32.5, 64.5):
+        ax.text(x, 1.02, f"{int(x - 0.5)} rows", transform=tx, fontsize=7.5, ha="center", va="bottom", color=MUTED)
+    ax.text(20.0, 420, "Request suffix\n(19 tokens)", fontsize=7.5, ha="left", va="center", color=MUTED, linespacing=1.0)
     ax.text(0.9, 4.5, "Label passes", fontsize=7.5, ha="left", va="bottom", color=MUTED)
-    ax.set_yscale("log"); ax.set_ylim(3.6, 400); ax.set_xlim(0, 72)
+    ax.set_yscale("log"); ax.set_ylim(3.6, 700); ax.set_xlim(0, 72)
     ax.set_yticks([5, 10, 20, 50, 100, 200]); ax.yaxis.set_major_formatter(plain)
     ax.set_xticks([1, 8, 16, 24, 32, 40, 48, 56, 64])
     _clean(ax, "y")

@@ -134,7 +134,7 @@ p = para(C, False, after=8); p.add_run("University of Waterloo, Waterloo, ON, Ca
 figure("fig_hero.png", 6.6,
        "Fig. 1. (a) Latency of the 15-label technique stage as each source of repeated computation is "
        "removed. Filled: median of 300 inputs with 5th to 95th percentile bars. Hollow: no-reuse median, n = 10 (3B) and 3 (14B). (b) Latency "
-       "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9 runs, 5th to 95th percentiles within 5% in a 30-run repeat). Horizontal dashes: bound $W/B$ of Eq. (3). Vertical dashes: tile edges. "
+       "of one forward pass of $m$ new tokens over a cached 1.4k-token prefix (median of 9 runs, 5th to 95th percentiles within 5% in a 30-run repeat). Horizontal dashes: bound $W/B$ of Eq. (3). Vertical dashes: kernel tile edges. "
        "Cost rises in steps, not along that bound.")
 
 # ---------- two-column body ----------
@@ -268,7 +268,7 @@ body("Caching does not remove the trade-off between model sizes: the 3B answers 
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v18).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data: github.com/devansh-gr/Litmus (tag paper-v19).")
 
 # ---------- references ----------
 REFS = {
