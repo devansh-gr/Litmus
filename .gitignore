@@ -28,3 +28,6 @@ server/tests/data/last_eval.json
 server/tests/**/__pycache__/
 server/tests/data/*dump*.json
 server/tests/data/*_ctx.json
+
+# Office lock files
+~$*

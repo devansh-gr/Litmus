@@ -1,0 +1,12 @@
+# Exact versions used for every result in bench/results/ (Python 3.11.15, macOS 26, Apple M4 Pro).
+# bench imports server.py for the prompts and labels, which needs numpy, torch, fastapi, pydantic, pandas
+# at import time. TRIBE v2 (server/vendor/) is NOT needed for the benchmarks.
+mlx==0.32.0
+mlx-lm==0.31.3
+numpy==2.2.6
+torch==2.6.0
+transformers==5.13.1
+fastapi==0.139.0
+pydantic==2.13.4
+pandas==3.0.3
+matplotlib==3.11.0
