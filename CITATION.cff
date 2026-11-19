@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this code or data, please cite it as below."
+title: "Cross-Request Prefix Caching and the Cost of Short Forward Passes in On-Device LLM Classification"
+authors:
+  - family-names: Gaur
+    given-names: Devansh
+    affiliation: "University of Waterloo"
+repository-code: "https://github.com/devansh-gr/Litmus"
+version: paper-v19
+type: software
+keywords:
+  - large language models
+  - KV cache
+  - prefix caching
+  - quantization
+  - on-device inference

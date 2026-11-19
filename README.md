@@ -1,194 +1,140 @@
 # Litmus
 
-**A cognitive-manipulation x-ray for your Mac.** Highlight any text — a headline, a
-DM, an ad, an AI answer — press **⌘B**, and a local AI names the persuasion technique
-being used on you, with an honest confidence. On demand, it shows *where in your
-cortex* the words land.
+Code and data for the paper **"Cross-Request Prefix Caching and the Cost of Short Forward Passes in
+On-Device LLM Classification"** (Devansh Gaur, University of Waterloo). Paper sources, figures and the
+reproduction guide are in [`docs/paper/`](docs/paper/). The version used for the paper is tag
+`paper-v19`.
 
-Everything runs **on-device**. No cloud, no API keys, no telemetry — the text you
-analyze never leaves the machine.
+The repository also contains Litmus, the macOS application the classifier was built for (see
+[The application](#the-application)).
 
-> `⌘B` on *"Act now or lose everything forever."* → **False urgency · 87%**
-> `⌘B` on *"Hello! How can I help you today?"* → **No manipulation ✓**
+## Research question
 
-**Honest numbers:** ~62% naming the exact technique on the shipped 3B, **82.3%** on an opt-in 14B, and
-**~73% top-2** on the 3B (manipulation is usually two techniques at once, so "did we name it" is the
-fair question). Chance on a 14-class problem is ~7–15%. Every number, including the ones that didn't
-improve, is in [docs/RETROSPECTIVE.md](docs/RETROSPECTIVE.md).
+A local LLM used as a closed-set classifier scores each candidate label by its length-normalized
+log-likelihood as a continuation of the prompt. In this workload the prompt is about 1.4k tokens and
+about 99% of it is identical across requests, and each request scores 2 gate labels and 15 technique
+labels of 1 to 7 tokens. The paper asks where latency goes once repeated prefix work is removed, and
+how much of the rest can be recovered on Apple silicon.
 
----
+## Findings
 
-## The one idea
+Apple M4 Pro (24 GB), MLX 0.32.0, 4-bit checkpoints, 300 benchmark inputs per model, warm caches.
+Full path = gate stage plus technique stage on every input.
 
-Two models, each doing only what it's genuinely good at:
-
-| | **Detection** | **Interpretation** |
+| | Llama-3.2-3B | Qwen2.5-14B |
 |---|---|---|
-| model | local Llama-3.2-3B (4-bit MLX, ~2 GB) | Meta's **TRIBE v2** fMRI model |
-| job | *names* the technique + confidence | shows *where in cortex* it lands |
-| speed | ~0.6 s | ~15 s (opt-in) |
-| role | the verdict | a visceral picture — **never** the detector |
+| Base: prompt prefilled once per request, shared by all labels (median) | 3.53 s | 15.21 s |
+| + static prefix cached across requests | 0.306 s | 1.140 s |
+| + all technique labels in one tree-masked pass | 0.170 s | 0.683 s |
+| Median paired speedup, base to final | 20.4x | 22.0x |
+| Technique stage: cached, then packed (median) | 0.260 s to 0.127 s | 0.966 s to 0.512 s |
+| Decisions changed, base to final (of 300) | 3 (2 at the gate threshold, 1 exact tie) | 0 |
 
-Why the split? Because the project's own experiments proved the brain map is a
-*worse* detector than the text it's built from (100% vs 75% — information theory
-guarantees it). So detection is the language model's job; the brain map exists to make
-manipulation *felt*, not to raise accuracy. It's also **cortex-only**, so we say
-"engages your value / language cortex," never "fires your fear center."
+- **The baseline already reuses the prompt across labels.** The speedups above do not include the
+  much larger gain over scoring each label from scratch. That no-reuse baseline was measured on only
+  10 inputs (3B, 27.0 s technique stage) and 3 inputs (14B, 122.8 s, from an earlier harness on
+  hand-written inputs, see [provenance](docs/paper/REPRODUCE.md#provenance-notes)).
+- **After caching, the remaining cost is a series of short passes** (one 19-token suffix pass and
+  14 label passes of 1 to 6 tokens). Their cost rises in steps with the number of new tokens rather
+  than following the weight-read bound. An isolated 13824 x 5120 4-bit matmul steps at M = 33 and
+  M = 65, consistent with the 32-row tile of MLX's quantized matmul kernel. No kernel-dispatch trace
+  was taken.
+- **Packing the 47 forwarded label tokens into one pass** under a tree-shaped mask (each token sees
+  the prompt and earlier tokens of its own label, tokens at the same depth share a RoPE position)
+  roughly halves the cached technique stage.
+- Accuracy is not the contribution. On the 150 holdout inputs the pipeline reached 86.0% top-1 with
+  the 14B and 66.0% with the 3B (exact McNemar p < 1e-6), on 5 of the 14 technique classes plus `none`.
 
-### Detection is two-stage
+## Established techniques and what is specific here
 
-A single 14-way classifier forced *every* input toward its nearest label — so a
-friendly greeting came back "Hype 84%." The fix is a **gate**:
+Established and cited in the paper: label scoring by log-likelihood, sharing a prompt's KV cache
+across continuations, cross-request prefix caching (Prompt Cache, SGLang, PagedAttention), tree
+attention masks for scoring many continuations at once (SpecInfer), and the small-M cost of MLX 4-bit
+matmul (ml-explore/mlx issue #4265). What this repository adds is the measurement: the per-pass
+cost curve after caching on one Apple silicon machine, its kernel-level explanation, an MLX
+implementation of the packed label pass with depth-grouped RoPE (`server/bench/packed.py`), and
+end-to-end latency and decision agreement on 300 inputs for two model sizes.
+
+## Reproducing
+
+```sh
+cd server
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python -r bench/requirements.txt
+.venv/bin/python bench/check_claims.py      # recompute every number in the paper from bench/results/
+```
+
+`check_claims.py` needs no model and runs in seconds. It prints PASS or FAIL for each number as
+printed in the paper. At `paper-v19` it reports 67 PASS and 3 FAIL. The 3 failures are small
+overstatements in two figure captions, listed in
+[REPRODUCE.md](docs/paper/REPRODUCE.md#checking-the-numbers).
+
+Rerunning the measurements needs an Apple silicon Mac with at least 24 GB of memory for the 14B.
+Commands, run times, output formats and the origin of each result file are in
+[`docs/paper/REPRODUCE.md`](docs/paper/REPRODUCE.md). Figures are regenerated with
+`docs/paper/make_figs.py`.
+
+## Limitations
+
+- One machine (Apple M4 Pro) and one runtime (MLX). The tile explanation is specific to MLX's
+  quantized kernels and was inferred from op-level timing.
+- No-reuse baselines cover 10 inputs (3B) and 3 inputs (14B). The 14B point comes from a different
+  harness and input set than the 3B point.
+- The benchmark covers 5 of the 14 technique classes. Labels come from three public corpora mapped
+  onto this taxonomy, and the mapping is approximate (see `server/tests/data/README.md`).
+- Caching and packing reorder half-precision sums, so scores are not bit-exact. The largest score
+  difference between the base and final paths was 0.031 nats (3B) and 0.11 nats (14B).
+
+## Repository layout
 
 ```
-text ──▶ [ Stage 1: is this manipulation at all? ] ──no──▶ "No manipulation ✓"
-                         │ yes
-                         ▼
-              [ Stage 2: which of 14 techniques? ] ──▶ verdict + calibrated confidence
+docs/paper/            paper source (make_docx.py), figures (make_figs.py), REPRODUCE.md
+server/bench/          benchmark scripts, packed.py (tree-masked pass), check_claims.py
+server/bench/results/  raw benchmark output used by the paper
+server/server.py       prompts, labels and thresholds (imported by the benchmarks), and the app's server
+server/tests/data/     benchmark inputs: external_test.jsonl = external_dev.jsonl + external_holdout.jsonl
+server/tests/          application test suite and earlier accuracy benchmarks
+server/experiments/    earlier experiments behind the application's design
+Sources/, scripts/     macOS application
 ```
 
-The gate draws the line by *intent* — "the sale ends Friday" is ordinary; "hurry,
-don't miss out!" is manipulation. The 14 techniques span two families: **broadcast
-persuasion** (fear, urgency, hype, FOMO, authority, social proof, …) and
-**interpersonal manipulation** (guilt-tripping, gaslighting, love-bombing,
-blame-shifting/DARVO).
+## The application
 
----
+Litmus is a macOS menu-bar tool: select text, press Cmd-B, and a local model names the persuasion
+technique with a confidence. An optional view renders a predicted cortical response with Meta's
+TRIBE v2. Everything runs locally. The paper's benchmarks do not need the application or TRIBE v2.
 
-## Does it actually work? (honest benchmarking)
+Accuracy figures from application development (different prompt versions, configurations and
+harness) are in [`docs/RETROSPECTIVE.md`](docs/RETROSPECTIVE.md) and
+[`server/tests/RESULTS.md`](server/tests/RESULTS.md). They are not the paper's numbers.
 
-Most detectors quote an accuracy number computed on data the authors wrote themselves.
-That number is almost always inflated. So we measured on **300 independently-labeled
-examples from public datasets** (dark-patterns + logical-fallacy + clickbait corpora)
-that we did not write. They are split in half: prompts and thresholds were tuned against the
-150-example dev half (`external_dev.jsonl`), and the other 150 (`external_holdout.jsonl`) were never
-used for tuning. The full-300 numbers below are therefore partly in-sample; the paper reports
-holdout-only accuracy (14B 86.0%, 3B 66.0%). The set covers 5 of the 14 techniques plus `none`.
-
-| | self-authored (tuned on) | **external (300; dev half tuned on)** |
-|---|---|---|
-| accuracy (shipped 3B, single-label) | ~80% | **~62%** (was 38% three sprints ago) |
-| accuracy (best on-device, 14B + few-shot) | — | **82.3%** |
-| top-2 accuracy (honest multi-label metric) | — | **73%** (3B) · ~90%+ forecast (14B) |
-| macro-F1 | — | **0.37–0.49** (config-dependent) |
-| gate PR-AUC (ranks manipulation vs benign) | — | **0.93** |
-| gate recall @ shipped threshold | — | **0.78** |
-| confidence calibration (ECE, lower=better) | — | **~0.19** uncalibrated (0.10 with calibration on) |
-
-The honest read: the detector **tells manipulation from benign well** (gate PR-AUC 0.93,
-recall 0.78 — up from 0.56 after we taught the gate e-commerce dark patterns it was reading
-as plain facts) **and now names the technique far better** (accuracy 44→61% after teaching
-stage-2 to route by the *primary lever* — supply=FOMO, clock=urgency, crowd=social-proof,
-reward/curiosity=dopamine, credential=authority). We then reported every lever, including the
-failures. On the 3B, few-shot and a LoRA fine-tune both tied at ~62% (its ceiling). The real
-driver was **model size**: a bigger on-device model climbs 3B 62% → 8B 69% → 14B 79%, and the
-**14B with few-shot reaches 82.3%** (the fast 3B stays the instant default; the 14B is an opt-in
-high-accuracy mode). Self-consistency voting *looked* like a win but was a confound (+0 once we
-cleaned the test data), and the fine-tune never beat plain prompting. And because manipulation is
-often two techniques at once, we also report a **top-2** number: ~73% on the 3B, ~90%+ forecast on
-the 14B — the honest question is "did we name the manipulation," not "which single label." The shown confidence is **assertive by product choice** —
-calibration is available (`CPD_CALIB_A/B`, ECE→0.10) but ships off so the % reads high. What's
-left is mostly gate misses and cross-taxonomy label noise. We show these numbers on purpose —
-the full methodology lives in `docs/BENCHMARKING.md` and `server/lora/README.md`.
-
-📊 Full methodology and roadmap: [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md) ·
-results: [`server/tests/RESULTS.md`](server/tests/RESULTS.md)
-
----
-
-## Quick start
-
-**1. Server** (holds the models; runs on `127.0.0.1:8765`):
+Setup, for macOS 14+ on Apple silicon with Xcode, Homebrew and `uv`:
 ```sh
 cd server
 uv venv --python 3.11 .venv
 uv pip install --python .venv/bin/python -e vendor/tribev2 fastapi uvicorn nilearn scipy mlx mlx-lm scikit-learn
-.venv/bin/python apply_patches.py        # CUDA-free (Apple Silicon) + offline-TTS patches
-.venv/bin/hf auth login                  # accept meta-llama/Llama-3.2-3B on HF first
-.venv/bin/python build_baseline.py       # writes baseline.npz for /brainmap (one-time)
-.venv/bin/python server.py               # or run 24/7 via scripts/launchd/ (see below)
+.venv/bin/python apply_patches.py        # Apple-silicon and offline-TTS patches to TRIBE v2
+.venv/bin/hf auth login                  # TRIBE v2 loads gated meta-llama weights; accept the license first
+.venv/bin/python build_baseline.py       # neutral baseline for the cortical view (one-time)
+.venv/bin/python server.py               # listens on 127.0.0.1:8765
+cd .. && brew install xcodegen && ./scripts/build.sh && open build/Debug/CorticalPersuasionDecoder.app
 ```
+`server/vendor/tribev2` is not tracked and must be cloned from Meta's TRIBE v2 repository. The
+launchd agent in `scripts/launchd/` contains absolute paths for the author's machine and must be
+edited before use. Architecture and configuration: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-**2. App:**
-```sh
-brew install xcodegen
-./scripts/build.sh                       # xcodegen + xcodebuild + stable re-sign
-open build/Debug/CorticalPersuasionDecoder.app
-```
-Grant **Accessibility** when prompted (so ⌘B can read your selection), then highlight
-text anywhere and press **⌘B**. For the brain map: **🧠 menu → Deep-scan cortex**.
+## Third-party components
 
-The server is meant to run **24/7** — install `scripts/launchd/ai.zeonsystems.cpd.server.plist`
-to `~/Library/LaunchAgents/` and it starts at login and restarts on crash.
+This repository does not redistribute model weights. Each component keeps its own license.
+- Models: Llama 3.2 (Llama 3.2 Community License) and Qwen2.5-14B-Instruct, used as the 4-bit
+  conversions published by `mlx-community` on Hugging Face.
+- Runtime: MLX and mlx-lm (ml-explore).
+- TRIBE v2 (Meta), used only by the application, is licensed CC BY-NC 4.0.
+- Benchmark text in `server/tests/data/external_*.jsonl` is drawn from the e-commerce dark-pattern
+  dataset of Yada et al. (2022), the LOGIC logical-fallacy dataset of Jin et al. (2022) and the
+  clickbait dataset of Chakraborty et al. (2016), relabeled onto this taxonomy by
+  `server/tests/build_external_set.py`. The original licenses of those datasets apply.
 
----
+## Citation
 
-## Configuration (env)
-
-| var | default | what |
-|---|---|---|
-| `CPD_GATE_NONE_THRESHOLD` | `0.65` | gate cutoff (swept on external-dev) — lower flags more |
-| `CPD_CALIB_A` / `CPD_CALIB_B` | `1.0` / `0.0` | Platt calibration of the shown %; **off by default** (assertive). Set `0.56` / `-1.10` for the honest (lower, calibrated) % |
-| `CPD_ABSTAIN_BELOW` | `0.45` | below this confidence, flag the technique as `uncertain` |
-| `CPD_FEWSHOT` | `1` | few-shot exemplars on the technique prompt (gate stays zero-shot) |
-| `CPD_MLX_ADAPTER` | *(empty)* | path to an optional LoRA adapter (`server/lora/`); empty = base model |
-| `CPD_CONTEXTUAL_CALIB` | `0` | Calibrate-Before-Use gate debias (evaluated → no gain; off) |
-| `CPD_LLM_BACKEND` | `mlx` | `mlx` (4-bit ~2 GB) or `transformers` (fp32 ~6.5 GB) |
-| `CPD_BRAINMAP_MODE` | `text` | text-only (default) or `audio` TRIBE path |
-| `CPD_TRIBE_WARM_SECS` | `0` | keep TRIBE warm N s between deep-scans (launchd sets `120`) |
-| `CPD_HOTKEY` | `B` | the trigger key |
-
----
-
-## Testing & benchmarking
-
-```sh
-cd server
-.venv/bin/python -m pytest tests/ -q                                    # ~65 behavior/contract tests
-.venv/bin/python tests/bench_full.py --data tests/data/external_test.jsonl  # honest metrics
-.venv/bin/python tests/gate_diag.py --data tests/data/external_dev.jsonl    # gate recall diag + sweep
-.venv/bin/python tests/interpersonal_report.py                         # interpersonal family
-```
-`bench_full.py` reports macro-F1 + Wilson/bootstrap CIs, per-class P/R, confusion, MCC,
-**gate PR-AUC**, and **confidence calibration (ECE + reliability)** — the metrics the
-methodology research says a subjective, imbalanced, two-stage, confidence-scored
-classifier actually needs. `gate_diag.py` localizes what the gate misses (it's how the
-dark-pattern recall gap was found and fixed). Regression suites `test_dark_patterns.py`
-and `test_interpersonal.py` lock in the recall/precision wins. Swift self-tests (OCR,
-secret-guard) live in `scripts/`.
-
----
-
-## Repo layout
-
-```
-Sources/CorticalPersuasionDecoder/   # the SwiftUI/AppKit menu-bar app
-  App/         menu bar, ⌘B handling, capture→classify→overlay wiring
-  Capture/     PasteboardCapture (⌘B → silent copy), Region + OCR
-  Classifier/  Classifier protocol · RemoteClassifier (HTTP) · MockClassifier
-  Overlay/     floating verdict card + mini brain
-  Taxonomy/    the 14 vectors (persuasion + interpersonal) + plain-English mechanisms
-  Support/     config, permissions, sensitive-text guard
-server/                              # the local inference server
-  server.py            FastAPI: /classify (two-stage gate + LLM) · /brainmap (TRIBE v2)
-  tribe_events.py      text-only vs audio event dispatch for TRIBE
-  build_baseline.py    builds the neutral z-score baseline
-  tests/               eval sets (dev + external) · bench_full.py · pytest suite
-  experiments/         A1–A7: the validation behind the two-model split
-docs/                                # architecture, field manual, benchmarking
-```
-
-## Further reading
-- **[docs/RETROSPECTIVE.md](docs/RETROSPECTIVE.md)** — the close-out: the arc, what moved accuracy (62% → 82.3% → ~90% top-2), what failed, and why.
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — the whole system on one page.
-- **[docs/BENCHMARKING.md](docs/BENCHMARKING.md)** — how to properly benchmark this, and why.
-- Interactive **[docs/architecture.html](docs/architecture.html)** and
-  **[docs/field-manual.html](docs/field-manual.html)** — the same, as self-contained pages (open locally).
-
-## Requirements
-macOS 14+, Apple Silicon (uses MPS), Xcode, Homebrew, `uv`, and a Hugging Face account
-with the Llama-3.2 license accepted.
-
----
-
-*Built to defend attention, not harvest it — which is why it runs entirely on your machine.*
+See [`CITATION.cff`](CITATION.cff).
