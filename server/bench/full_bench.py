@@ -50,7 +50,7 @@ out.write(json.dumps({"meta": True, "model": a.model, "load_s": t_load, "static_
 STRATS = {"deployed": lambda k, i: deployed(model, prompts[k][i], ST[k][0]),
           "static": lambda k, i: static_step(model, caches[k], static_len[k], prompts[k][i], ST[k][0]),
           "packed": lambda k, i: packed_step(model, caches[k], static_len[k], prompts[k][i], ST[k][0])}
-for name in a.strategies.split(","):
+for name in filter(None, a.strategies.split(",")):           # --strategies "" runs only the no-reuse path
     fn = STRATS[name]
     fn("gate", 0); fn("tech", 0)                                   # block warm-up, discarded
     idx = range(a.deployed_start, a.deployed_limit or len(rows)) if name == "deployed" else range(len(rows))
