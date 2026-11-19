@@ -69,11 +69,12 @@ def summarize(path):
                                          sum(d[i]["tech_s"] for i in by["naive"]), 2)
     return out
 
-res = [summarize(p) for p in sys.argv[1:]]
-for r in res:
-    print(json.dumps({k: v for k, v in r.items() if k != "preds_holdout"}, indent=1))
-if len(res) == 2:   # exact McNemar, 3B vs 14B on the holdout
-    a, b = res[0]["preds_holdout"], res[1]["preds_holdout"]
-    n01 = sum(a[i] and not b[i] for i in a); n10 = sum(b[i] and not a[i] for i in a); n = n01 + n10
-    p = min(1.0, 2 * sum(math.comb(n, k) for k in range(min(n01, n10) + 1)) / 2 ** n) if n else 1.0
-    print(json.dumps({"mcnemar_holdout": {"only_first_right": n01, "only_second_right": n10, "p_exact": p}}))
+if __name__ == "__main__":
+    res = [summarize(p) for p in sys.argv[1:]]
+    for r in res:
+        print(json.dumps({k: v for k, v in r.items() if k != "preds_holdout"}, indent=1))
+    if len(res) == 2:   # exact McNemar, 3B vs 14B on the holdout
+        a, b = res[0]["preds_holdout"], res[1]["preds_holdout"]
+        n01 = sum(a[i] and not b[i] for i in a); n10 = sum(b[i] and not a[i] for i in a); n = n01 + n10
+        p = min(1.0, 2 * sum(math.comb(n, k) for k in range(min(n01, n10) + 1)) / 2 ** n) if n else 1.0
+        print(json.dumps({"mcnemar_holdout": {"only_first_right": n01, "only_second_right": n10, "p_exact": p}}))
