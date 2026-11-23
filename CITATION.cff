@@ -6,7 +6,7 @@ authors:
     given-names: Devansh
     affiliation: "University of Waterloo"
 repository-code: "https://github.com/devansh-gr/Litmus"
-version: paper-v21
+version: paper-v22
 type: software
 keywords:
   - large language models

@@ -6,7 +6,7 @@ files and prints PASS or FAIL next to it (see [Checking the numbers](#checking-t
 figure script `make_figs.py` holds medians and percentiles copied from the same files as constants,
 and `check_claims.py` covers those values too.
 
-The fixed version for the paper is git tag `paper-v21`. The data split is `server/tests/data/external_test.jsonl`
+The fixed version for the paper is git tag `paper-v22`. The data split is `server/tests/data/external_test.jsonl`
 (300) = `external_dev.jsonl` (150, used to tune prompts and thresholds) + `external_holdout.jsonl`
 (150, never used for tuning, and all accuracy in the paper is holdout-only). The classes are 5 of
 the 14 techniques plus `none`.
@@ -86,7 +86,7 @@ depend on their values, but the exact tensors are not reproducible.
 cd server && .venv/bin/python bench/check_claims.py
 ```
 It runs in seconds and needs no model (the label-length check reads the cached 3B tokenizer and is
-skipped if that is unavailable offline). At `paper-v21`, 67 checks pass and 3 fail. The three
+skipped if that is unavailable offline). At `paper-v22`, 67 checks pass and 3 fail. The three
 failures are small overstatements in the paper text, not data errors.
 - Fig. 1(b) caption. In the 30-run repeat, the 5th to 95th percentiles lie within 6.5% of the
   median (3B, m = 1 and 2), not 5%. One 30-run median (14B, m = 48) differs from the 9-run median

@@ -146,16 +146,7 @@ if not cols: sec._sectPr.append(c)
 
 p = para(indent=False, after=4)
 a = p.add_run("Abstract: "); a.bold = a.italic = True; a.font.size = Pt(9)
-rich(p, "A local language model used as a closed-set classifier spends most of its time repeating work. "
-        "About 99% of each prompt is identical across inputs, and each of 15 labels is scored against it. "
-        "We remove this redundancy in three steps. First, the prompt is computed once and shared by all labels. "
-        "Second, its fixed part is cached across requests. Third, all labels are scored together in one "
-        "tree-masked pass. On an Apple M4 Pro with 3B and 14B models and 300 inputs, the second and third steps "
-        "reduce warm median latency of the full classifier, relative to the first step alone, from 3.53 s to "
-        "0.17 s (3B) and from 15.2 s to 0.68 s (14B). No 14B decision changed. The 3B changed three of 300. "
-        "Two were near the gate threshold and one was a tie between two techniques. After caching, the remaining work is a series of "
-        "passes of one to six tokens. Their cost rises in steps consistent with the 32-row tiles of MLX's 4-bit matrix "
-        "multiplication. Packing all labels into one pass therefore halves the remaining technique-stage latency.",
+rich(p, "A language model on a laptop can classify text by scoring each candidate label as a continuation of the prompt. Our classifier first decides whether a passage is persuasive and then names one of 15 persuasion techniques. About 99% of its prompt is identical for every passage, yet the baseline recomputes it per request. We cached that part once and scored all labels in one forward pass. On an Apple M4 Pro over 300 test passages, median latency fell from 3.53 s to 0.17 s with a 3-billion-parameter model and from 15.2 s to 0.68 s with a 14-billion-parameter model. The faster path chose the same label as the baseline on all 300 passages for the larger model and 297 for the smaller. Of the three differences, two lay within 0.003 of the persuasive-or-not cutoff and one was a tie between two techniques. Forward-pass cost rises in steps with token count, consistent with 32-row tiles in the 4-bit matrix multiplication of Apple's MLX library. Scoring all labels in one pass therefore halved the time to name the technique.",
      size=9, bold=True)
 p = para(indent=False, after=4)
 a = p.add_run("Index Terms: "); a.bold = a.italic = True; a.font.size = Pt(9)
@@ -268,7 +259,7 @@ body("Caching does not remove the trade-off between model sizes. The 3B answers 
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data are at github.com/devansh-gr/Litmus (tag paper-v21).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data are at github.com/devansh-gr/Litmus (tag paper-v22).")
 
 # ---------- references ----------
 REFS = {
