@@ -84,10 +84,25 @@ NAIVE_3B = [27.9, 27.1, 26.5, 28.1, 26.4, 26.1, 28.0, 26.5, 27.0, 29.2]
 NAIVE_N = {"3B": 10, "14B": 3}
 
 
-C3, C14, INK, MUTED, GRID = "#2a78d6", "#d4582a", "#0b0b0b", "#52514e", "#e4e3df"   # validated pair (dataviz)
+C3, C14, INK, MUTED, GRID = "#2a78d6", "#d4582a", "#0b0b0b", "#52514e", "#e4e3df"
+GRID_MINOR = "#f2f1ee"   # validated pair (dataviz)
 COL = {"3B": C3, "14B": C14}
 MK = {"3B": "o", "14B": "s"}
 plain = matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}")
+
+
+def _grid2(ax, xminor, ylog=False, yminor=None, xmajor=True):
+    """Major and minor grid on both axes (line plots). Minor lines are lighter and unlabelled."""
+    ax.minorticks_on()
+    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(xminor))
+    ax.yaxis.set_minor_locator(matplotlib.ticker.LogLocator(subs=range(2, 10)) if ylog
+                               else matplotlib.ticker.MultipleLocator(yminor))
+    ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+    ax.grid(which="major", axis="both" if xmajor else "y", color=GRID, lw=0.6, zorder=0)
+    ax.grid(which="minor", color=GRID_MINOR, lw=0.4, zorder=0)
+    ax.set_axisbelow(True)
+    ax.tick_params(labelsize=8, colors=INK, length=2.5)
+    ax.tick_params(which="minor", length=0)
 
 
 def _clean(ax, grid_axis):
@@ -143,17 +158,19 @@ def passcost(ax):
     for W, m in [(W14, "14B"), (W3, "3B")]:
         y = 1e3 * W / BW
         ax.axhline(y, color=COL[m], lw=0.8, ls=(0, (4, 2)), zorder=1)
-        ax.text(34, y * 0.88, f"{m} weight-read bound", fontsize=7.5, color=MUTED, va="top", ha="left")
+        ax.text(34, y * 0.88, f"{m} weight-read bound", fontsize=7.5, color=MUTED, va="top", ha="left",
+                bbox=dict(facecolor="white", edgecolor="none", pad=0.6))
     ax.axvline(19, color=MUTED, lw=0.8, ls=":", zorder=1)
     tx = ax.get_xaxis_transform()
     for x in (32.5, 64.5):
         ax.text(x, 1.02, f"{int(x - 0.5)} rows", transform=tx, fontsize=7.5, ha="center", va="bottom", color=MUTED)
-    ax.text(20.0, 420, "Request suffix\n(19 tokens)", fontsize=7.5, ha="left", va="center", color=MUTED, linespacing=1.0)
-    ax.text(0.9, 4.5, "Label passes", fontsize=7.5, ha="left", va="bottom", color=MUTED)
+    box = dict(facecolor="white", edgecolor="none", pad=0.6)
+    ax.text(20.0, 420, "Request suffix\n(19 tokens)", fontsize=7.5, ha="left", va="center", color=MUTED, linespacing=1.0, bbox=box)
+    ax.text(0.9, 420, "Label\npasses", fontsize=7.5, ha="left", va="center", color=MUTED, linespacing=1.0, bbox=box)
     ax.set_yscale("log"); ax.set_ylim(3.6, 700); ax.set_xlim(0, 72)
     ax.set_yticks([5, 10, 20, 50, 100, 200]); ax.yaxis.set_major_formatter(plain)
     ax.set_xticks([1, 8, 16, 24, 32, 40, 48, 56, 64])
-    _clean(ax, "y")
+    _grid2(ax, 4, ylog=True)
     ax.set_xlabel("New tokens per forward pass, $m$", fontsize=8.5)
     ax.set_ylabel("Latency (ms, log)", fontsize=8.5)
 
@@ -182,19 +199,22 @@ def qmm(ax):
     import json
     r = json.load(open("../../server/bench/results/qmm_2026-11-15.json"))
     _tiles(ax, [0, 32.5, 64.5, 100], 0)
-    for key, lab, mk, c, filled in [("q4_us", "4-bit", "s", INK, True), ("fp16_us", "fp16", "o", MUTED, False)]:
+    for key, lab, mk, c, filled in [("fp16_us", "fp16", "o", MUTED, False), ("q4_us", "4-bit", "s", INK, True)]:
         M = [int(m) for m in r[key]]; t = [v / 1000 for v in r[key].values()]
-        ax.plot(M, t, color=c, lw=0.8, alpha=0.5, zorder=2)
-        ax.plot(M, t, mk, ms=3.8, color=c, mfc=c if filled else "white", mec=c, mew=0.8, zorder=3, label=lab)
+        ax.plot(M, t, color=c, lw=0.9, alpha=0.8, zorder=2)
+        ax.plot(M, t, mk, ms=3.4, color=c, mfc=c if filled else "white", mec=c, mew=0.8, zorder=3, label=lab)
     Mc = [int(m) for m in r["q4_chain_us"]]; tc = [v / 1000 for v in r["q4_chain_us"].values()]
-    ax.plot(Mc, tc, "x", ms=3.6, color=INK, mew=0.7, zorder=3, label="4-bit chain")
-    for x, lab in [(21, "tile 1"), (48.5, "tile 2"), (80, "tile 3")]:
-        ax.text(x, 0.3, lab, fontsize=7.5, ha="center", va="center", color=MUTED)
-    ax.set_xlim(0, 100); ax.set_ylim(0, 3.0); ax.set_yticks([0, 1, 2, 3])
+    ax.plot(Mc, tc, "x", ms=4.2, color=C14, mew=1.0, zorder=4, label="4-bit, chained")
+    tx = ax.get_xaxis_transform()
+    for x in (32.5, 64.5):
+        ax.text(x, 1.02, f"{int(x - 0.5)} rows", transform=tx, fontsize=7.5, ha="center", va="bottom", color=MUTED)
+    ax.set_xlim(0, 100); ax.set_ylim(0, 3.0)
+    ax.set_yticks([0, 0.5, 1, 1.5, 2, 2.5, 3]); ax.yaxis.set_major_formatter(plain)
     ax.set_xticks([1, 16, 32, 48, 64, 80, 96])
-    _clean(ax, "y")
+    _grid2(ax, 4, yminor=0.1, xmajor=False)   # x major lines would double the tile-edge dashes
     ax.set_xlabel("Activation rows, $M$", fontsize=8.5); ax.set_ylabel("Latency (ms)", fontsize=8.5)
-    ax.legend(fontsize=7.5, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, handletextpad=0.2, columnspacing=0.9, borderaxespad=0.1)
+    ax.legend(fontsize=7.5, loc="lower right", bbox_to_anchor=(1.0, 0.0), ncol=1, handletextpad=0.3,
+              borderaxespad=0.3, labelspacing=0.3, facecolor="white", framealpha=1, frameon=True, edgecolor="none")
 
 
 if __name__ == "__main__":
@@ -218,7 +238,7 @@ if __name__ == "__main__":
     for name, f, size in [("x_reuse", ladder, (3.6, 2.5)), ("x_staircase", passcost, (3.6, 2.5))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a); fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
-    for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.0, 1.15))]:
+    for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.45, 1.2))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a)
         for ext in (("png", "pdf", "svg") if name == "qmm" else ("png",)):
