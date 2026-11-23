@@ -152,10 +152,10 @@ rich(p, "A local language model used as a closed-set classifier spends most of i
         "Second, its fixed part is cached across requests. Third, all labels are scored together in one "
         "tree-masked pass. On an Apple M4 Pro with 3B and 14B models and 300 inputs, the second and third steps "
         "reduce warm median latency of the full classifier, relative to the first step alone, from 3.53 s to "
-        "0.17 s (3B) and from 15.2 s to 0.68 s (14B). No 14B decision changes. On the 3B, three of 300 change, two near the gate threshold "
-        "and one at a tie between two techniques. Packing helps because, after caching, the remaining work is a series of passes of "
-        "one to six tokens whose cost rises in steps, consistent with the 32-row tiles of MLX's 4-bit matrix "
-        "multiplication. One packed pass therefore halves the remaining technique-stage latency.",
+        "0.17 s (3B) and from 15.2 s to 0.68 s (14B). No 14B decision changed. The 3B changed three of 300. "
+        "Two were near the gate threshold and one was a tie between two techniques. After caching, the remaining work is a series of "
+        "passes of one to six tokens. Their cost rises in steps consistent with the 32-row tiles of MLX's 4-bit matrix "
+        "multiplication. Packing all labels into one pass therefore halves the remaining technique-stage latency.",
      size=9, bold=True)
 p = para(indent=False, after=4)
 a = p.add_run("Index Terms: "); a.bold = a.italic = True; a.font.size = Pt(9)
@@ -268,7 +268,7 @@ body("Caching does not remove the trade-off between model sizes. The 3B answers 
 heading("VII", "Limitations and Conclusion")
 body("For this short-input workload, once redundant prefix work is removed, the cost of short forward "
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining technique-stage latency. Results come from one "
-     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data are at github.com/devansh-gr/Litmus (tag paper-v20).")
+     "machine, no-reuse baselines cover 10 and 3 inputs, and accuracy covers five of 14 techniques. Code and data are at github.com/devansh-gr/Litmus (tag paper-v21).")
 
 # ---------- references ----------
 REFS = {
