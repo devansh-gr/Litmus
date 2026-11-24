@@ -277,7 +277,7 @@ body("For this short-input workload, once redundant prefix work is removed, the 
      "passes sets latency, and packing the labels into one tree-masked pass halved the remaining "
      "technique-stage latency. Results come from one machine. The no-reuse baselines cover only 10 inputs "
      "(3B) and 3 inputs (14B), and accuracy covers five of the 14 techniques. Code and data are at "
-     "github.com/devansh-gr/Litmus (tag paper-v22).")
+     "github.com/devansh-gr/Litmus (tag paper-v23).")
 
 # ---------- references ----------
 REFS = {

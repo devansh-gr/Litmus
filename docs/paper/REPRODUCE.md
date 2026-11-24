@@ -6,7 +6,7 @@ files and prints PASS or FAIL next to it (see [Checking the numbers](#checking-t
 figure script `make_figs.py` holds medians and percentiles copied from the same files as constants,
 and `check_claims.py` covers those values too.
 
-The fixed version for the paper is git tag `paper-v22`. The data split is `server/tests/data/external_test.jsonl`
+The fixed version for the paper is git tag `paper-v23`. The data split is `server/tests/data/external_test.jsonl`
 (300) = `external_dev.jsonl` (150, used to tune prompts and thresholds) + `external_holdout.jsonl`
 (150, never used for tuning, and all accuracy in the paper is holdout-only). The classes are 5 of
 the 14 techniques plus `none`.
@@ -86,13 +86,14 @@ depend on their values, but the exact tensors are not reproducible.
 cd server && .venv/bin/python bench/check_claims.py
 ```
 It runs in seconds and needs no model (the label-length check reads the cached 3B tokenizer and is
-skipped if that is unavailable offline). At `paper-v22`, 67 checks pass and 3 fail. The three
-failures are small overstatements in the paper text, not data errors.
+skipped if that is unavailable offline). At `paper-v23` all 71 checks pass. Tags before `paper-v23` had 3
+failures, overstatements in two captions that `paper-v23` corrected.
 - Fig. 1(b) caption. In the 30-run repeat, the 5th to 95th percentiles lie within 6.5% of the
-  median (3B, m = 1 and 2), not 5%. One 30-run median (14B, m = 48) differs from the 9-run median
-  by 5.1%.
+  median (3B, m = 1 and 2), and one 30-run median (14B, m = 48) differs from the 9-run median by
+  5.1%. The caption said 5% and now says 7%.
 - Fig. 2 caption. The dependent chain agrees with independent calls within 3.5% from M = 12 up,
-  but differs by up to 11.6% at M = 2 to 10 (-11.6% at M = 6).
+  but differs by up to 11.6% at M = 2 to 10 (-11.6% at M = 6). The caption said 7% and now gives
+  both ranges.
 
 ## Provenance notes
 - **14B no-reuse baseline (Fig. 1(a) hollow square, Eq. (2) 15.8x).** It does not come from

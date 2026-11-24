@@ -3,7 +3,7 @@
 Code and data for the paper **"Cross-Request Prefix Caching and the Cost of Short Forward Passes in
 On-Device LLM Classification"** (Devansh Gaur, University of Waterloo). Paper sources, figures and the
 reproduction guide are in [`docs/paper/`](docs/paper/). The version used for the paper is tag
-`paper-v22`.
+`paper-v23`.
 
 The repository also contains Litmus, the macOS application the classifier was built for (see
 [The application](#the-application)).
@@ -65,9 +65,9 @@ uv pip install --python .venv/bin/python -r bench/requirements.txt
 ```
 
 `check_claims.py` needs no model and runs in seconds. It prints PASS or FAIL for each number as
-printed in the paper. At `paper-v22` it reports 67 PASS and 3 FAIL. The 3 failures are small
-overstatements in two figure captions, listed in
-[REPRODUCE.md](docs/paper/REPRODUCE.md#checking-the-numbers).
+printed in the paper. At `paper-v23` all 71 checks pass. Tags before `paper-v23` had 3
+failures, small overstatements in two figure captions that were since corrected (see
+[REPRODUCE.md](docs/paper/REPRODUCE.md#checking-the-numbers)).
 
 Rerunning the measurements needs an Apple silicon Mac with at least 24 GB of memory for the 14B.
 Commands, run times, output formats and the origin of each result file are in

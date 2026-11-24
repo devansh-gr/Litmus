@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recomputes every number stated in the paper (tag paper-v22) from the raw files in bench/results/
+"""Recomputes every number stated in the paper (tag paper-v23) from the raw files in bench/results/
 and prints PASS or FAIL against the value as printed. No model is run; label lengths come from the
 cached tokenizer if it is available offline (otherwise those two checks are skipped).
     .venv/bin/python bench/check_claims.py"""
