@@ -198,23 +198,24 @@ def qmm(ax):
     """Fig. 2: one 13824x5120 matmul vs rows M; server/bench/results/qmm_2026-11-15.json."""
     import json
     r = json.load(open("../../server/bench/results/qmm_2026-11-15.json"))
-    _tiles(ax, [0, 32.5, 64.5, 100], 0)
-    for key, lab, mk, c, filled in [("fp16_us", "fp16", "o", MUTED, False), ("q4_us", "4-bit", "s", INK, True)]:
-        M = [int(m) for m in r[key]]; t = [v / 1000 for v in r[key].values()]
-        ax.plot(M, t, color=c, lw=0.9, alpha=0.8, zorder=2)
-        ax.plot(M, t, mk, ms=3.4, color=c, mfc=c if filled else "white", mec=c, mew=0.8, zorder=3, label=lab)
-    Mc = [int(m) for m in r["q4_chain_us"]]; tc = [v / 1000 for v in r["q4_chain_us"].values()]
-    ax.plot(Mc, tc, "x", ms=4.2, color=C14, mew=1.0, zorder=4, label="4-bit, chained")
-    tx = ax.get_xaxis_transform()
     for x in (32.5, 64.5):
-        ax.text(x, 1.02, f"{int(x - 0.5)} rows", transform=tx, fontsize=7.5, ha="center", va="bottom", color=MUTED)
-    ax.set_xlim(0, 100); ax.set_ylim(0, 3.0)
+        ax.axvline(x, color=MUTED, lw=0.7, ls=(0, (2, 2)), zorder=1)
+    for key, mk, c, filled in [("fp16_us", "o", MUTED, False), ("q4_us", "s", INK, True)]:
+        M = [int(m) for m in r[key]]; t = [v / 1000 for v in r[key].values()]
+        ax.plot(M, t, color=c, lw=1.0, zorder=2)
+        ax.plot(M, t, mk, ms=3.6, color=c, mfc=c if filled else "white", mec=c, mew=0.9, zorder=3)
+    ax.text(20, 1.62, "16-bit weights", fontsize=8, color=MUTED, ha="center", va="bottom")
+    ax.text(20.5, 0.68, "4-bit weights", fontsize=8, color=INK, ha="center", va="top")
+    tx = ax.get_xaxis_transform()
+    for x, lab in ((32.5, "step at $M$ = 33"), (64.5, "step at $M$ = 65")):
+        ax.text(x + 1.5, 0.97, lab, transform=tx, fontsize=7.5, ha="left", va="top", color=MUTED,
+                bbox=dict(facecolor="white", edgecolor="none", pad=0.6))
+    ax.set_xlim(0, 100); ax.set_ylim(0, 3.2)
     ax.set_yticks([0, 0.5, 1, 1.5, 2, 2.5, 3]); ax.yaxis.set_major_formatter(plain)
     ax.set_xticks([1, 16, 32, 48, 64, 80, 96])
     _grid2(ax, 4, yminor=0.1, xmajor=False)   # x major lines would double the tile-edge dashes
-    ax.set_xlabel("Activation rows, $M$", fontsize=8.5); ax.set_ylabel("Latency (ms)", fontsize=8.5)
-    ax.legend(fontsize=7.5, loc="lower right", bbox_to_anchor=(1.0, 0.0), ncol=1, handletextpad=0.3,
-              borderaxespad=0.3, labelspacing=0.3, facecolor="white", framealpha=1, frameon=True, edgecolor="none")
+    ax.set_xlabel("Rows in the activation matrix, $M$ (one per token)", fontsize=8.5)
+    ax.set_ylabel("Time per multiplication (ms)", fontsize=8.5)
 
 
 if __name__ == "__main__":
@@ -238,7 +239,7 @@ if __name__ == "__main__":
     for name, f, size in [("x_reuse", ladder, (3.6, 2.5)), ("x_staircase", passcost, (3.6, 2.5))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a); fig.savefig(f"fig_{name}.png", dpi=600); plt.close(fig)
-    for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.45, 1.2))]:
+    for name, f, size in [("mem", membudget, (3.4, 1.42)), ("qmm", qmm, (3.45, 2.0))]:
         fig, a = plt.subplots(figsize=size, constrained_layout=True)
         f(a)
         for ext in (("png", "pdf", "svg") if name == "qmm" else ("png",)):
