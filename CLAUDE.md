@@ -163,7 +163,7 @@ reclaim swap" error; measure warm-vs-cold only after a reboot.
 `server/experiments/` the A1–A7 + text-only validation scripts (README table = results).
 `scripts/` `make_signing_identity.sh` · `sign_app.sh` · `build.sh`.
 Full narrative + literature checks: Obsidian vault `03 Projects/Litmus/`.
-Repo: github.com/devansh-gr/Litmus (private; renamed from Media_Emotion_Detector, old URL redirects).
+Repo: github.com/devansh-gr/Litmus (public since 2026-11-26; renamed from Media_Emotion_Detector, old URL redirects).
 
 ## Demo (how to film it)
 Lead with the magic: highlight manipulative text → ⌘B → verdict card. Then range (3 tactics),
