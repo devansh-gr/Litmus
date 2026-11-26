@@ -1,9 +1,15 @@
 # Litmus
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24557055.svg)](https://doi.org/10.5281/zenodo.24557055)
+
 Code and data for the paper **"Cross-Request Prefix Caching and the Cost of Short Forward Passes in
-On-Device LLM Classification"** (Devansh Gaur, University of Waterloo). Paper sources, figures and the
-reproduction guide are in [`docs/paper/`](docs/paper/). The version used for the paper is tag
-`paper-v23`.
+On-Device LLM Classification"** (Devansh Gaur, University of Waterloo).
+
+- Paper (PDF on Zenodo): https://zenodo.org/records/24557055
+- DOI: [10.5281/zenodo.24557055](https://doi.org/10.5281/zenodo.24557055)
+
+Paper sources, figures and the reproduction guide are in [`docs/paper/`](docs/paper/). The version
+used for the paper is tag `paper-v23`.
 
 The repository also contains Litmus, the macOS application the classifier was built for (see
 [The application](#the-application)).
@@ -137,4 +143,15 @@ This repository does not redistribute model weights. Each component keeps its ow
 
 ## Citation
 
-See [`CITATION.cff`](CITATION.cff).
+```bibtex
+@misc{gaur2026prefix,
+  author    = {Gaur, Devansh},
+  title     = {Cross-Request Prefix Caching and the Cost of Short Forward Passes in On-Device LLM Classification},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.24557055},
+  url       = {https://doi.org/10.5281/zenodo.24557055}
+}
+```
+
+Machine-readable metadata is in [`CITATION.cff`](CITATION.cff).

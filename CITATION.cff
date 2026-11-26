@@ -8,6 +8,20 @@ authors:
 repository-code: "https://github.com/devansh-gr/Litmus"
 version: paper-v23
 type: software
+doi: 10.5281/zenodo.24557055
+url: "https://zenodo.org/records/24557055"
+preferred-citation:
+  type: article
+  title: "Cross-Request Prefix Caching and the Cost of Short Forward Passes in On-Device LLM Classification"
+  authors:
+    - family-names: Gaur
+      given-names: Devansh
+      affiliation: "University of Waterloo"
+  year: 2026
+  publisher:
+    name: Zenodo
+  doi: 10.5281/zenodo.24557055
+  url: "https://doi.org/10.5281/zenodo.24557055"
 keywords:
   - large language models
   - KV cache
